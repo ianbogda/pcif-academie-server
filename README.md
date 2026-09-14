@@ -1,94 +1,74 @@
 # PCIF Académie
 
-PCIF Académie est un outil de travail collaboratif autour du **plan de contrôle interne financier (PCIF) des EPLE**.
+PCIF Académie est un outil collaboratif de **contrôle interne financier pour les EPLE**.
 
-L'objectif est de permettre à un établissement et à son agence comptable de travailler sur un même PCIF tout en conservant clairement les contributions de chacun.
+Il permet à un établissement, à son agence comptable et aux personnes chargées du pilotage ou de l'audit de travailler sur un même référentiel PCIF, tout en conservant des droits et des contributions distincts selon les rôles.
 
-Le projet existait initialement sous la forme d'une application autonome. Il évolue aujourd'hui vers une application Web multi-utilisateur et multi-établissement, utilisable depuis un navigateur ou depuis EPLE Tools.
+L'application est pensée pour un fonctionnement **multi-utilisateur, multi-établissement et multi-agence comptable**.
 
-> **Version actuelle : 0.5.1**
-> Le projet est encore en développement. Cette version permet de tester l'architecture et les principaux usages, mais n'est pas encore destinée à une ouverture publique en production.
+La version actuelle intègre le référentiel PCIF Académie complet de **267 questions** et s'oriente vers une logique d'**observatoire du contrôle interne financier** : moins un simple questionnaire, davantage un outil de lecture, de suivi et de pilotage des risques.
 
----
-
-## Ce que permet l'application
-
-PCIF Académie permet aujourd'hui de :
-
-* gérer plusieurs EPLE au sein d'une même instance ;
-* regrouper les établissements par agence comptable ;
-* créer et administrer les utilisateurs ;
-* rattacher un utilisateur à un ou plusieurs établissements ;
-* lui attribuer un rôle différent selon l'établissement ;
-* créer et suivre les campagnes PCIF ;
-* distinguer les contributions de l'ordonnateur, du comptable et la synthèse ;
-* donner à l'agence comptable une vision transversale de ses établissements ;
-* permettre à un auditeur de consulter un PCIF sans pouvoir le modifier ;
-* conserver un journal des opérations ;
-* détecter les modifications concurrentes d'une même réponse.
-
-L'application reprend progressivement l'identité visuelle de la version historique de PCIF Académie.
+> **Version actuelle : 0.6.0**
+>
+> Le projet reste en développement. Il peut être installé et testé sur un serveur dédié, mais plusieurs briques de sécurité et d'exploitation restent à consolider avant une ouverture publique large.
 
 ---
 
-## Les rôles
+## À quoi sert PCIF Académie ?
 
-Les droits ne sont pas simplement attachés à un utilisateur : ils dépendent également de l'établissement sur lequel il travaille.
+Le principe est de permettre à plusieurs acteurs de travailler sur un même dispositif de contrôle interne sans mélanger leurs responsabilités.
 
-Un même utilisateur peut donc intervenir dans plusieurs EPLE avec des rôles différents.
+L'application permet notamment de :
 
-### Chef d'établissement
-
-Le chef d'établissement travaille sur la partie relevant de la sphère **Ordonnateur** de son établissement.
-
-### Secrétaire général d'EPLE
-
-Le SGE intervient également dans le périmètre **Ordonnateur** des établissements auxquels il est rattaché.
-
-### Agent comptable
-
-L'agent comptable dispose d'une vision transversale des établissements de son agence comptable et intervient sur la sphère **Comptable**.
-
-### Fondé de pouvoir
-
-Le fondé de pouvoir bénéficie du même principe d'accès transversal aux établissements de l'agence.
-
-### Auditeur
-
-L'auditeur dispose volontairement d'un accès en **lecture seule**.
-
-Il peut consulter, pour les établissements auxquels il est rattaché :
-
-* les campagnes ;
-* les questions ;
-* les réponses Ordonnateur ;
-* les réponses Comptable ;
-* les Synthèses.
-
-Il ne peut modifier aucune réponse.
-
-Ce rôle peut notamment servir pour une mission d'audit, une revue du dispositif de contrôle interne ou un accompagnement nécessitant l'accès au PCIF sans intervention sur son contenu.
-
-### Administrateur de la plateforme
-
-L'administrateur gère le fonctionnement de l'instance et notamment les utilisateurs et leurs rattachements.
-
-L'administration permet de :
-
-* créer un utilisateur ;
-* modifier son compte ;
-* suspendre ou réactiver son accès ;
-* effectuer une suppression logique ;
-* gérer ses établissements ;
-* définir son rôle pour chacun d'eux.
-
-Une adresse électronique valide est obligatoire et un utilisateur métier doit être rattaché à au moins un établissement.
+* gérer plusieurs établissements ;
+* regrouper les EPLE au sein d'agences comptables ;
+* gérer les utilisateurs et leurs rattachements ;
+* définir un rôle pour chaque utilisateur et chaque établissement ;
+* créer et suivre des campagnes PCIF ;
+* parcourir les 267 questions du référentiel ;
+* distinguer les contributions Ordonnateur, Comptable et Synthèse ;
+* permettre à une agence comptable de suivre plusieurs EPLE ;
+* donner un accès en lecture seule à un auditeur ;
+* conserver l'historique des opérations ;
+* éviter l'écrasement silencieux de réponses lors d'un travail simultané ;
+* exploiter progressivement les données à l'échelle d'un établissement, d'une agence ou d'un ensemble d'EPLE.
 
 ---
 
-## Organisation des contributions
+# Le référentiel PCIF
 
-Une réponse PCIF appartient à l'une des trois sphères :
+PCIF Académie embarque désormais le référentiel métier complet de **267 questions**.
+
+Il est stocké dans :
+
+```text
+data/pcif-reference-267.json
+```
+
+L'import conserve les informations associées aux questions :
+
+* domaine ;
+* catégorie ;
+* sphère ;
+* poids ;
+* point-clé / badge ;
+* risque associé.
+
+Le référentiel est versionné afin qu'une évolution future ne modifie pas rétroactivement le contenu des campagnes déjà ouvertes.
+
+L'import peut être relancé sans créer de doublons :
+
+```bash
+npm run db:reference
+```
+
+Cette commande est conçue pour être **idempotente** : relancer l'import avec la même version du référentiel ne doit pas multiplier les questions existantes.
+
+---
+
+# Trois sphères de contribution
+
+Les réponses sont distinguées selon trois sphères :
 
 ```text
 ORDONNATEUR
@@ -96,42 +76,140 @@ COMPTABLE
 SYNTHESE
 ```
 
-Cette séparation permet de conserver les contributions des différents acteurs avant d'aboutir, lorsque cela est nécessaire, à une synthèse partagée.
+Cette séparation est structurante.
 
-Les droits d'écriture sont contrôlés par l'API et pas uniquement par l'interface utilisateur.
+Elle permet de conserver les constats propres à l'ordonnateur et au comptable avant, lorsque cela est nécessaire, de construire une lecture commune dans la synthèse.
+
+Les droits d'écriture associés à ces sphères sont contrôlés côté serveur.
+
+Ils ne reposent donc pas uniquement sur ce qui est affiché ou masqué dans l'interface.
 
 ---
 
-## Travail à plusieurs
+# Les rôles
 
-PCIF Académie est conçu pour permettre à plusieurs personnes de travailler sur une même campagne.
+Un utilisateur peut être rattaché à plusieurs établissements.
 
-Chaque réponse possède un numéro de version.
+Son rôle est défini pour chacun de ces rattachements.
 
-Lors d'une modification, le client transmet la version qu'il connaît :
+## Chef d'établissement
 
-```json
-{
-  "value": 2,
-  "comment": "Procédure formalisée",
-  "sphere": "COMPTABLE",
-  "version": 1
-}
-```
+Le chef d'établissement intervient dans le périmètre relevant de l'ordonnateur.
 
-Si la réponse a été modifiée entre-temps par un autre utilisateur, l'API refuse l'écrasement avec :
+## Secrétaire général d'EPLE
+
+Le SGE intervient également sur la sphère Ordonnateur des établissements auxquels il est rattaché.
+
+## Agent comptable
+
+L'agent comptable dispose d'une vision transversale des établissements de son agence comptable.
+
+Il intervient notamment sur la sphère Comptable.
+
+## Fondé de pouvoir
+
+Le fondé de pouvoir dispose également d'un accès transversal aux établissements de l'agence selon les droits qui lui sont attribués.
+
+## Auditeur
+
+Le rôle **Auditeur** est volontairement limité à la consultation.
+
+Un auditeur peut accéder aux campagnes des établissements auxquels il est rattaché et consulter :
+
+* les réponses Ordonnateur ;
+* les réponses Comptable ;
+* les Synthèses.
+
+Il ne peut modifier aucune réponse.
+
+Ce rôle est adapté aux besoins de contrôle, d'audit, d'accompagnement ou de revue d'un dispositif sans intervenir sur son contenu.
+
+## Administrateur de la plateforme
+
+L'administrateur gère l'instance elle-même.
+
+Il peut notamment :
+
+* créer les utilisateurs ;
+* modifier leurs informations ;
+* gérer les rattachements aux établissements ;
+* attribuer les rôles ;
+* suspendre ou réactiver un compte ;
+* effectuer une suppression logique.
+
+Une adresse électronique valide est contrôlée côté API.
+
+---
+
+# Une logique d'observatoire
+
+La v0.6 marque une évolution du projet.
+
+PCIF Académie n'est plus uniquement pensé comme un questionnaire permettant de renseigner des réponses.
+
+L'objectif est d'en faire progressivement un **observatoire du contrôle interne financier**.
+
+L'interface adopte donc une logique de cockpit permettant de faire ressortir :
+
+* les établissements ;
+* les campagnes ;
+* les domaines du PCIF ;
+* les sphères Ordonnateur et Comptable ;
+* les niveaux de maîtrise ;
+* les risques ;
+* les points-clés ;
+* les écarts et les zones nécessitant une attention particulière.
+
+La logique multi-établissement doit à terme permettre plusieurs niveaux de lecture :
 
 ```text
-409 CONFLICT
+Question
+   ↓
+Domaine
+   ↓
+Établissement
+   ↓
+Agence comptable
+   ↓
+Vue consolidée
 ```
 
-L'objectif est simple : ne pas perdre silencieusement le travail de quelqu'un lorsqu'une campagne est renseignée à plusieurs.
+L'objectif n'est pas de produire artificiellement un classement entre établissements, mais de permettre une lecture structurée des risques et des besoins d'accompagnement.
 
 ---
 
-## Architecture
+# Interface
 
-L'application repose sur une architecture client/serveur classique :
+L'interface Web se trouve dans :
+
+```text
+web/
+```
+
+Elle est développée avec React, TypeScript et Vite.
+
+La direction graphique actuelle privilégie une représentation de type **observatoire / cockpit**, sombre et orientée pilotage.
+
+Elle permet notamment :
+
+* la connexion ;
+* le choix de l'établissement actif ;
+* la navigation entre établissements et campagnes ;
+* l'accès au questionnaire PCIF ;
+* la recherche dans le référentiel ;
+* le filtrage par domaine ;
+* le filtrage par sphère ;
+* l'accès aux différentes contributions ;
+* la consultation transversale pour l'agence comptable ;
+* l'administration des utilisateurs.
+
+L'application reste prévue pour être utilisable depuis un navigateur sur ordinateur, tablette ou smartphone.
+
+---
+
+# Architecture
+
+L'application repose sur une architecture client/serveur :
 
 ```text
 Navigateur / EPLE Tools
@@ -145,73 +223,73 @@ Navigateur / EPLE Tools
      PostgreSQL
 ```
 
-Le serveur est indépendant d'Electron.
+L'interface utilisateur ne dialogue jamais directement avec PostgreSQL.
 
-EPLE Tools peut donc utiliser PCIF Académie comme client de l'API, mais l'application reste également utilisable directement depuis un navigateur.
+L'API porte les règles métier, les contrôles d'accès et les opérations sur les données.
 
-Cette séparation est volontaire : les données, les droits et les règles métier doivent rester contrôlés côté serveur.
+Electron, lorsqu'il est utilisé depuis EPLE Tools, reste donc uniquement un client de cette API.
+
+Cette séparation permet d'utiliser la même instance depuis plusieurs postes sans dépendre d'une installation locale particulière.
 
 ---
 
-## Interface Web
+# Travail simultané
 
-L'interface se trouve dans :
+Plusieurs utilisateurs peuvent intervenir sur une même campagne.
 
-```text
-web/
+Pour éviter qu'une modification écrase silencieusement celle d'une autre personne, chaque réponse dispose d'un numéro de version.
+
+Exemple :
+
+```json
+{
+  "value": 2,
+  "comment": "Procédure formalisée",
+  "sphere": "COMPTABLE",
+  "version": 1
+}
 ```
 
-Elle est développée avec React, TypeScript et Vite.
+Lors d'une modification, le client transmet la version qu'il connaît.
 
-Elle permet notamment :
+Si quelqu'un a modifié la réponse entre-temps, l'API peut répondre :
 
-* la connexion ;
-* le choix de l'établissement actif ;
-* la navigation dans les campagnes ;
-* le renseignement du questionnaire ;
-* la recherche et le filtrage des questions ;
-* la consultation des différentes sphères ;
-* le tableau de bord de l'agence comptable ;
-* l'administration des utilisateurs ;
-* la gestion des rattachements et des rôles.
+```text
+409 CONFLICT
+```
 
-L'interface est prévue pour fonctionner sur ordinateur, tablette et smartphone.
+L'utilisateur doit alors prendre connaissance de la nouvelle version avant de poursuivre.
 
 ---
 
-## Référentiel PCIF
+# Journalisation
 
-Le modèle de données permet de gérer différentes versions du référentiel PCIF.
+Les opérations importantes peuvent être enregistrées dans un journal d'audit append-only.
 
-Les questions sont rattachées à une version de référentiel afin de pouvoir faire évoluer celui-ci sans perdre la cohérence des campagnes existantes.
+Le principe est qu'un événement déjà enregistré dans ce journal n'a pas vocation à être modifié a posteriori.
 
-Le jeu de démonstration ne contient actuellement que quelques questions.
+Cette journalisation doit permettre progressivement de répondre à des questions simples :
 
-Le référentiel métier complet devra être repris depuis la source PCIF Académie existante afin de conserver les données originales :
-
-* libellés ;
-* domaines ;
-* poids ;
-* étoiles ;
-* badges ;
-* sphères.
-
-Il n'est volontairement pas recréé ou réinterprété par le serveur.
+* qui a modifié une information ?
+* quand ?
+* sur quel établissement ?
+* dans quelle campagne ?
+* sur quelle question ?
 
 ---
 
-# Installation
+# Installation pour le développement
 
 ## Prérequis
 
-L'installation de référence est actuellement prévue pour Debian 13.
+L'environnement de référence est actuellement Debian 13.
 
 ```bash
 sudo apt update
 sudo apt install -y postgresql nodejs npm
 ```
 
-Créer ensuite la base PostgreSQL :
+Créer ensuite la base :
 
 ```bash
 sudo -u postgres psql
@@ -224,12 +302,28 @@ CREATE ROLE pcif_app LOGIN PASSWORD 'CHANGE_ME';
 CREATE DATABASE pcif_academie OWNER pcif_app;
 ```
 
-Configurer et initialiser l'application :
+Configurer l'application :
 
 ```bash
 cp .env.example .env
 npm install
+```
+
+Initialiser la base :
+
+```bash
 npm run db:init
+```
+
+Importer le référentiel PCIF :
+
+```bash
+npm run db:reference
+```
+
+Créer éventuellement les données de démonstration :
+
+```bash
 npm run db:seed
 ```
 
@@ -239,7 +333,7 @@ Lancer l'API :
 npm run dev:api
 ```
 
-Puis, dans un second terminal :
+Dans un second terminal :
 
 ```bash
 cd web
@@ -247,7 +341,7 @@ npm install
 npm run dev
 ```
 
-L'interface de développement est alors accessible sur :
+L'interface de développement est alors disponible sur :
 
 ```text
 http://localhost:5173
@@ -255,9 +349,9 @@ http://localhost:5173
 
 ---
 
-## Créer l'administrateur
+# Créer le premier administrateur
 
-Un script permet de créer le premier administrateur réel de la plateforme :
+Un administrateur réel peut être créé en ligne de commande :
 
 ```bash
 npm run admin:create -- \
@@ -266,49 +360,33 @@ npm run admin:create -- \
   --password "MotDePasseSolide!"
 ```
 
-Ce compte est distinct des comptes utilisés pour les démonstrations.
+Ce mécanisme évite de dépendre d'un compte administrateur de démonstration pour initialiser une installation réelle.
 
 ---
 
-## Données de démonstration
+# Données de démonstration
 
-Le seed permet de créer une agence comptable fictive avec plusieurs EPLE et différents profils.
+Le seed peut créer une agence comptable fictive composée de plusieurs EPLE afin de tester les différents comportements de l'application.
 
-Il sert uniquement au développement et aux tests.
+Les profils de démonstration couvrent notamment :
 
-On peut notamment tester les comportements :
+| Profil               | Accès                                           |
+| -------------------- | ----------------------------------------------- |
+| Agent comptable      | établissements de l'agence                      |
+| Fondé de pouvoir     | établissements de l'agence                      |
+| Chef d'établissement | établissement de rattachement                   |
+| SGE                  | établissement de rattachement                   |
+| Auditeur             | établissement(s) de rattachement, lecture seule |
 
-| Profil               | Périmètre                           |
-| -------------------- | ----------------------------------- |
-| Agent comptable      | ensemble des EPLE de l'agence       |
-| Fondé de pouvoir     | ensemble des EPLE de l'agence       |
-| Chef d'établissement | EPLE de rattachement                |
-| SGE                  | EPLE de rattachement                |
-| Auditeur             | EPLE de rattachement, lecture seule |
-
-Les comptes et mots de passe de démonstration ne doivent évidemment pas être conservés sur une instance de production.
+Les comptes de démonstration ne doivent pas être conservés sur une installation de production.
 
 ---
 
-## Mise à jour d'une installation existante
+# Déploiement Debian
 
-Les évolutions de la base sont appliquées par migrations SQL.
+Un script permet d'installer l'application sur Debian 13.
 
-Le rôle Auditeur introduit avec la version 0.5.1 est notamment ajouté par :
-
-```text
-sql/003_role_auditeur.sql
-```
-
-Cela permet de faire évoluer une installation existante sans réinitialiser ses données.
-
----
-
-## Déploiement Debian
-
-Un script d'installation est disponible pour Debian 13.
-
-Avec un domaine :
+Avec un nom de domaine :
 
 ```bash
 chmod +x deploy/install-debian13.sh
@@ -335,9 +413,9 @@ dist/src/server.js
 
 ---
 
-## API
+# API
 
-Quelques routes utiles :
+Quelques routes principales :
 
 ```text
 POST /api/auth/login
@@ -356,76 +434,80 @@ GET  /api/campaigns/:id/questions
 PUT  /api/campaigns/:campaignId/answers/:questionId
 ```
 
-L'API constitue le point de contrôle des autorisations.
+Les droits doivent toujours être contrôlés par l'API.
 
-Un utilisateur ne doit donc pas pouvoir contourner ses droits simplement en appelant directement une route qui n'est pas proposée dans son interface.
+Le fait qu'une action ne soit pas proposée dans l'interface ne constitue pas une mesure de sécurité.
 
 ---
 
-## Sécurité
+# Sécurité
 
-Plusieurs mécanismes sont déjà présents :
+Plusieurs briques sont déjà en place :
 
 * authentification JWT ;
-* contrôle des droits côté API ;
-* cloisonnement par établissement ;
-* rôles par rattachement ;
-* journal d'audit append-only ;
-* verrouillage optimiste des modifications ;
+* contrôle des autorisations côté API ;
+* rôles par établissement ;
+* accès transversal encadré pour l'agence comptable ;
+* rôle Auditeur en lecture seule ;
+* verrouillage optimiste ;
+* journal d'audit ;
 * amorce de Row Level Security PostgreSQL.
 
-Ce socle ne suffit pas encore pour considérer l'application comme prête à être exposée publiquement.
+Ce socle reste à compléter avant une exposition large sur Internet.
 
-Avant une mise en production Internet, il reste notamment à consolider :
+Les sujets restant notamment à consolider sont :
 
-* l'authentification institutionnelle ou SSO ;
-* le MFA si nécessaire ;
-* la gestion des sessions et refresh tokens ;
-* le rate limiting ;
-* les sauvegardes et les tests de restauration ;
-* la supervision ;
-* la sécurisation du reverse proxy ;
-* la politique de journalisation ;
-* la gestion des secrets.
-
----
-
-## Quelques tests à faire
-
-Après une installation ou une évolution importante, quelques vérifications simples permettent de contrôler le cloisonnement :
-
-1. un CE ne voit que les établissements auxquels il est rattaché ;
-2. un SGE respecte le même principe ;
-3. l'agent comptable voit les établissements de son agence ;
-4. le fondé de pouvoir dispose du périmètre prévu ;
-5. un auditeur voit ses établissements mais ne peut rien modifier ;
-6. un utilisateur ne peut pas accéder directement par l'API à un EPLE hors de son périmètre ;
-7. deux modifications concurrentes d'une même réponse déclenchent correctement la gestion de conflit.
-
-Ces contrôles doivent être faits côté API, pas seulement depuis l'interface.
+* SSO ou authentification institutionnelle ;
+* MFA si le contexte l'impose ;
+* gestion et rotation des refresh tokens ;
+* expiration des sessions ;
+* rate limiting ;
+* sauvegardes automatiques ;
+* tests de restauration ;
+* supervision ;
+* gestion des secrets ;
+* durcissement du reverse proxy ;
+* politique de conservation des journaux.
 
 ---
 
-## Documentation
+# Tests de cloisonnement
 
-La documentation complémentaire du projet se trouve dans :
+Après une installation ou une évolution du moteur d'autorisation, plusieurs contrôles doivent être systématiques :
+
+1. un chef d'établissement ne voit que ses établissements ;
+2. un SGE respecte le même cloisonnement ;
+3. un agent comptable voit les établissements de son agence ;
+4. un fondé de pouvoir dispose uniquement du périmètre prévu ;
+5. un auditeur peut consulter son périmètre mais ne peut rien modifier ;
+6. un utilisateur ne peut pas accéder directement par l'API à un établissement hors de son périmètre ;
+7. les droits d'écriture par sphère sont contrôlés côté serveur ;
+8. deux modifications concurrentes produisent bien le comportement prévu.
+
+---
+
+# Documentation
+
+La documentation complémentaire se trouve dans :
 
 ```text
 docs/
 ```
 
-La documentation de l'interface Web est notamment disponible dans :
-
-```text
-docs/WEB-V0.3.md
-```
+Les documents techniques ou propres à une version peuvent y être conservés sans alourdir ce README.
 
 ---
 
-## État du projet
+# État du projet
 
-PCIF Académie est encore en construction.
+PCIF Académie est encore en développement, mais son architecture principale commence à se stabiliser.
 
-Le travail actuel porte surtout sur les fondations : **multi-établissement, gestion des utilisateurs, autorisations, travail collaboratif et séparation claire des sphères Ordonnateur / Comptable / Synthèse**.
+Le socle actuel repose sur cinq éléments :
 
-L'objectif est maintenant de stabiliser ce socle avant de réintégrer progressivement l'ensemble des fonctions métier de PCIF Académie historique.
+**un référentiel métier commun, un fonctionnement multi-EPLE, des rôles explicites, des contributions séparées et une exploitation collective des données.**
+
+Les prochaines évolutions doivent surtout renforcer la capacité à transformer les réponses au PCIF en informations utiles pour le pilotage : cartographie des risques, suivi dans le temps, plans d'action, comparaisons de campagnes et vues consolidées.
+
+Le questionnaire reste le point d'entrée.
+
+Il ne doit pas devenir la finalité de l'outil.

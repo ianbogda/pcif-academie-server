@@ -9,6 +9,7 @@ chown -R pcif:pcif "$APP"
 cd "$APP"
 sudo -u pcif npm ci
 sudo -u pcif npm run db:init
+sudo -u pcif npm run db:reference
 sudo -u pcif npm run check
 sudo -u pcif npm run build
 cd web

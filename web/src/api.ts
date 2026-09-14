@@ -34,6 +34,11 @@ export type Question = {
   label: string;
   responsibility: "ORDONNATEUR" | "COMPTABLE" | "MIXTE";
   weight: number;
+  category?: string;
+  risk_label?: string;
+  badge?: string | null;
+  pcif_p?: number;
+  pcif_i?: number;
   stars: number;
   badge: number;
   answers: Array<{

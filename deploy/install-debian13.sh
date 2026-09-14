@@ -68,6 +68,7 @@ cd "$APP_DIR"
 if [[ -f package-lock.json ]]; then sudo -u "$APP_USER" npm ci; else sudo -u "$APP_USER" npm install; fi
 sudo -u "$APP_USER" npm audit --audit-level=critical || echo "ATTENTION: audit serveur à corriger avant exposition."
 sudo -u "$APP_USER" npm run db:init
+sudo -u "$APP_USER" npm run db:reference
 [[ "$DEMO" == yes ]] && sudo -u "$APP_USER" npm run db:seed
 sudo -u "$APP_USER" npm run check
 sudo -u "$APP_USER" npm run build
