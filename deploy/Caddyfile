@@ -1,0 +1,16 @@
+pcif.example.fr {
+    encode zstd gzip
+
+    @api path /api/* /health
+    reverse_proxy @api 127.0.0.1:3000
+
+    root * /opt/pcif-academie/web/dist
+    try_files {path} /index.html
+    file_server
+
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
+}
