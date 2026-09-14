@@ -36,7 +36,6 @@ export type Question = {
   weight: number;
   category?: string;
   risk_label?: string;
-  badge?: number;
   is_key?: boolean;
   pcif_p?: number;
   pcif_i?: number;
