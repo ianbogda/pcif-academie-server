@@ -14,7 +14,10 @@ export type AdminUser = {
 
 export type PilotageQuestion = {
   id:string; code:string; domain:string; category?:string; label:string; risk_label?:string;
-  responsibility:"ORDONNATEUR"|"COMPTABLE"|"MIXTE"; weight:number; pcif_p?:number; pcif_i?:number; is_key?:boolean;
+  responsibility:"ORDONNATEUR"|"COMPTABLE"|"MIXTE"; weight:number;
+  pcif_p?:number; pcif_i?:number; gravity?:number; occurrence?:number; is_key?:boolean;
+  corrective_label?:string|null; corrective_actions?:string[]; corrective_actors?:string[];
+  corrective_deadlines?:string[]; corrective_evaluations?:string[];
   sphere?: "ORDONNATEUR"|"COMPTABLE"|"SYNTHESE"; value?:number|null; comment?:string; version?:number; updated_at?:string; updated_by?:string;
 };
 export type PcifAction = {

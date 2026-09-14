@@ -22,7 +22,9 @@ export async function registerPilotage(app:FastifyInstance){
 
     const q=await pool.query(`
       SELECT q.id,q.code,q.domain,q.category,q.label,q.risk_label,q.responsibility,
-             q.weight,q.pcif_p,q.pcif_i,q.is_key,
+             q.weight,q.pcif_p,q.pcif_i,q.gravity,q.occurrence,q.is_key,
+             q.corrective_label,q.corrective_actions,q.corrective_actors,
+             q.corrective_deadlines,q.corrective_evaluations,
              a.sphere,a.value,a.comment,a.version,a.updated_at,u.display_name AS updated_by
       FROM campaigns c
       JOIN questions q ON q.repository_version_id=c.repository_version_id AND q.active=true
