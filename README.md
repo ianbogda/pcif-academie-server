@@ -166,3 +166,24 @@ Ouvrir `http://localhost:5173`.
 Voir `docs/WEB-V0.3.md`.
 
 - contrôle d’écriture par sphère appliqué côté API (ordonnateur/comptable/synthèse).
+
+## v0.4 — auto-installateur Debian 13
+
+```bash
+chmod +x deploy/install-debian13.sh
+sudo ./deploy/install-debian13.sh --domain pcif.example.fr
+```
+
+Sans domaine :
+
+```bash
+sudo ./deploy/install-debian13.sh
+```
+
+Mise à jour :
+
+```bash
+sudo ./deploy/update-debian13.sh
+```
+
+Cette version intègre également `"type": "module"`, `@fastify/jwt` 10.2.2 et le démarrage de production via `dist/src/server.js`.

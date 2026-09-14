@@ -20,7 +20,7 @@ await registerAuth(app);
 
 app.get("/health", async () => {
   await pool.query("SELECT 1");
-  return { status: "ok", service: "pcif-academie-server", version: "0.3.0" };
+  return { status: "ok", service: "pcif-academie-server", version: "0.4.0" };
 });
 
 app.get("/api/me", async (request) => {
