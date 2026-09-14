@@ -8,14 +8,14 @@ const ref=JSON.parse(await readFile(join(here,"../data/pcif-reference-267.json")
 const client=await pool.connect();
 try{
  await client.query("BEGIN");
- let repo=(await client.query(`SELECT id FROM question_repositories WHERE code='PCIF-ACADEMIE'`)).rows[0];
- if(!repo) repo=(await client.query(`INSERT INTO question_repositories(code,label) VALUES('PCIF-ACADEMIE','PCIF Académie') RETURNING id`)).rows[0];
+ let repo=(await client.query(`SELECT id FROM repositories WHERE code='PCIF-ACADEMIE'`)).rows[0];
+ if(!repo) repo=(await client.query(`INSERT INTO repositories(code,label) VALUES('PCIF-ACADEMIE','PCIF Académie') RETURNING id`)).rows[0];
 
- let rv=(await client.query(`SELECT id FROM question_repository_versions WHERE repository_id=$1 AND version='PCIF-267-2026.09'`,[repo.id])).rows[0];
- if(!rv) rv=(await client.query(`INSERT INTO question_repository_versions(repository_id,version,label,active)
-   VALUES($1,'PCIF-267-2026.09','Référentiel PCIF Académie — 267 questions',true) RETURNING id`,[repo.id])).rows[0];
+ let rv=(await client.query(`SELECT id FROM repository_versions WHERE repository_id=$1 AND version='PCIF-267-2026.09'`,[repo.id])).rows[0];
+ if(!rv) rv=(await client.query(`INSERT INTO repository_versions(repository_id,version,published_at,active)
+   VALUES($1,'PCIF-267-2026.09',CURRENT_DATE,true) RETURNING id`,[repo.id])).rows[0];
 
- await client.query(`UPDATE question_repository_versions SET active=false WHERE repository_id=$1 AND id<>$2`,[repo.id,rv.id]);
+ await client.query(`UPDATE repository_versions SET active=false WHERE repository_id=$1 AND id<>$2`,[repo.id,rv.id]);
 
  for(const q of ref.questions){
    await client.query(`

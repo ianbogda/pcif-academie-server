@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+trap 'systemctl start pcif-academie >/dev/null 2>&1 || true' EXIT
 [[ $EUID -eq 0 ]] || { echo "Lancer avec sudo/root."; exit 1; }
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP=/opt/pcif-academie

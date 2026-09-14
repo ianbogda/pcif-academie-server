@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
@@ -9,6 +10,7 @@ import { establishmentAccess, canWriteSphere, isPlatformAdmin } from "./access.j
 import { registerAdmin } from "./admin.js";
 import { z } from "zod";
 
+const packageVersion = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 const app = Fastify({ logger: true });
 
 await app.register(helmet);
@@ -22,7 +24,7 @@ await registerAdmin(app);
 
 app.get("/health", async () => {
   await pool.query("SELECT 1");
-  return { status: "ok", service: "pcif-academie-server", version: "0.5.0" };
+  return { status: "ok", service: "pcif-academie-server", version: packageVersion };
 });
 
 app.get("/api/me", async (request) => {
