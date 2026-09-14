@@ -76,14 +76,12 @@ app.get("/api/establishments", async (request) => {
 
 app.get("/api/agencies", async (request) => {
   const user = await requireUser(request);
+  if (await isPlatformAdmin(user.sub)) {
+    const {rows}=await pool.query(`SELECT a.id,a.name FROM accounting_agencies a WHERE a.active=true ORDER BY a.name`);return rows;
+  }
   const { rows } = await pool.query(
-    `SELECT DISTINCT a.id, a.name
-       FROM accounting_agencies a
-       JOIN user_agency_roles uar ON uar.agency_id=a.id
-      WHERE uar.user_id=$1 ORDER BY a.name`,
-    [user.sub]
-  );
-  return rows;
+    `SELECT DISTINCT a.id, a.name FROM accounting_agencies a JOIN user_agency_roles uar ON uar.agency_id=a.id
+      WHERE uar.user_id=$1 AND a.active=true ORDER BY a.name`,[user.sub]); return rows;
 });
 
 app.get("/api/agencies/:id/dashboard", async (request, reply) => {

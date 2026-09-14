@@ -121,12 +121,18 @@ try {
     "Secrétaire général d'EPLE Démo",
     "ChangeMe-SGE-2026!"
   );
+  const auditorId = await upsertUser(
+    "auditeur@example.test",
+    "Auditeur Démo",
+    "ChangeMe-AUDIT-2026!"
+  );
 
   const platformAdminRole = await roleId("PLATFORM_ADMIN");
   const acRole = await roleId("AGENCY_ACCOUNTANT");
   const fpRole = await roleId("AGENCY_DEPUTY");
   const ceRole = await roleId("HEAD");
   const sgeRole = await roleId("SECRETARY_GENERAL");
+  const auditorRole = await roleId("AUDITOR");
 
   // Administrateur : rôle établissement support pour la v0.2 de démo.
   // Le contrôle global PLATFORM_ADMIN sera généralisé dans une prochaine itération.
@@ -165,67 +171,40 @@ try {
      ON CONFLICT DO NOTHING`,
     [sgeId,collegeBrossoletteId,sgeRole]
   );
+  await client.query(
+    `INSERT INTO user_establishment_roles(user_id,establishment_id,role_id) VALUES($1,$2,$3) ON CONFLICT DO NOTHING`,
+    [auditorId,collegeBrossoletteId,auditorRole]
+  );
 
-  const repo = (await client.query(
-    `INSERT INTO repositories(code,label)
-     VALUES('PCIF','PCIF Académie')
-     ON CONFLICT(code) DO UPDATE SET label=excluded.label
-     RETURNING id`
-  )).rows[0];
-
+  // La démo utilise le vrai référentiel PCIF Académie 267, importé par db:reference.
   const rv = (await client.query(
-    `INSERT INTO repository_versions(repository_id,version,published_at)
-     VALUES($1,'DEMO-0.2',CURRENT_DATE)
-     ON CONFLICT(repository_id,version)
-     DO UPDATE SET active=true
-     RETURNING id`,
-    [repo.id]
+    `SELECT rv.id FROM repository_versions rv
+       JOIN repositories r ON r.id=rv.repository_id
+      WHERE rv.version='PCIF-267-2026.09'
+      ORDER BY rv.active DESC,rv.published_at DESC NULLS LAST LIMIT 1`
   )).rows[0];
+  if(!rv) throw new Error("Référentiel PCIF-267-2026.09 absent : exécuter npm run db:reference avant db:seed");
 
-  const qs = [
-    ["DEMO-ORDO-001","Démonstration","Question de démonstration — sphère ordonnateur","ORDONNATEUR",6,2,1,10],
-    ["DEMO-CPTA-001","Démonstration","Question de démonstration — sphère comptable","COMPTABLE",6,2,1,20],
-    ["DEMO-MIX-001","Démonstration","Question de démonstration — responsabilité mixte","MIXTE",9,3,2,30]
-  ];
-
-  for (const q of qs) {
-    await client.query(
-      `INSERT INTO questions(
-         repository_version_id,code,domain,label,responsibility,weight,stars,badge,sort_order
-       )
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
-       ON CONFLICT(repository_version_id,code) DO NOTHING`,
-      [rv.id,...q]
-    );
-  }
-
-  // Une campagne ouverte par établissement, utile pour les tests immédiats.
   for (const [uai,eid] of Object.entries(establishmentIds)) {
     await client.query(
-      `INSERT INTO campaigns(
-         establishment_id,repository_version_id,label,status,created_by
-       )
+      `INSERT INTO campaigns(establishment_id,repository_version_id,label,status,created_by)
        SELECT $1,$2,$3,'OPEN',$4
        WHERE NOT EXISTS(
-         SELECT 1
-         FROM campaigns
-         WHERE establishment_id=$1
-           AND repository_version_id=$2
-           AND label=$3
+         SELECT 1 FROM campaigns WHERE establishment_id=$1 AND repository_version_id=$2 AND label=$3
        )`,
-      [eid,rv.id,`PCIF Démo 2026-2027 — ${uai}`,adminId]
+      [eid,rv.id,`PCIF Académie 2026-2027 — ${uai}`,adminId]
     );
   }
-
   await client.query("COMMIT");
 
-  console.log("Seed de démonstration v0.2 créé.");
+  console.log("Seed de démonstration PCIF Académie 267 créé.");
   console.log("Utilisateurs disponibles :");
   console.log("ADMIN : admin@example.test / ChangeMe-ADMIN-2026!");
   console.log("AC    : ac@example.test / ChangeMe-AC-2026!");
   console.log("FP    : fp@example.test / ChangeMe-FP-2026!");
   console.log("CE    : ce@example.test / ChangeMe-CE-2026!");
   console.log("SGE   : sge@example.test / ChangeMe-SGE-2026!");
+  console.log("AUDIT : auditeur@example.test / ChangeMe-AUDIT-2026!");
 } catch (e) {
   await client.query("ROLLBACK");
   throw e;

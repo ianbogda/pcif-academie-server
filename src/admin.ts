@@ -23,6 +23,50 @@ const userBody=z.object({
 });
 
 export async function registerAdmin(app:FastifyInstance){
+  app.get("/api/admin/establishments",async(request,reply)=>{
+    if(!await adminOnly(request,reply)) return;
+    const {rows}=await pool.query(`SELECT e.id,e.uai,e.name,e.kind,e.active,e.created_at,
+      a.id AS agency_id,a.name AS agency_name
+      FROM establishments e LEFT JOIN agency_establishments ae ON ae.establishment_id=e.id AND ae.active=true
+      LEFT JOIN accounting_agencies a ON a.id=ae.agency_id AND a.active=true ORDER BY e.name`);
+    return rows;
+  });
+  app.post("/api/admin/establishments",async(request,reply)=>{
+    if(!await adminOnly(request,reply)) return;
+    const p=z.object({uai:z.string().trim().regex(/^[0-9A-Z]{8}$/),name:z.string().trim().min(2).max(180),kind:z.string().trim().max(60).optional()}).safeParse(request.body);
+    if(!p.success)return reply.code(400).send({error:"INVALID_ESTABLISHMENT",details:p.error.flatten()});
+    try{const {rows}=await pool.query(`INSERT INTO establishments(uai,name,kind,active) VALUES($1,$2,$3,true) RETURNING *`,[p.data.uai,p.data.name,p.data.kind??null]);return reply.code(201).send(rows[0]);}
+    catch(e:any){if(e.code==='23505')return reply.code(409).send({error:'UAI_ALREADY_EXISTS'});throw e}
+  });
+  app.patch("/api/admin/establishments/:id",async(request,reply)=>{
+    if(!await adminOnly(request,reply)) return; const id=(request.params as any).id;
+    const p=z.object({uai:z.string().trim().regex(/^[0-9A-Z]{8}$/),name:z.string().trim().min(2).max(180),kind:z.string().trim().max(60).nullable().optional(),active:z.boolean()}).safeParse(request.body);
+    if(!p.success)return reply.code(400).send({error:"INVALID_ESTABLISHMENT"});
+    const {rows}=await pool.query(`UPDATE establishments SET uai=$1,name=$2,kind=$3,active=$4 WHERE id=$5 RETURNING *`,[p.data.uai,p.data.name,p.data.kind??null,p.data.active,id]);
+    if(!rows.length)return reply.code(404).send({error:'NOT_FOUND'});return rows[0];
+  });
+  app.get("/api/admin/agencies",async(request,reply)=>{
+    if(!await adminOnly(request,reply)) return;
+    const {rows}=await pool.query(`SELECT a.id,a.name,a.support_establishment_id,a.active,a.created_at,
+      se.name AS support_name,se.uai AS support_uai,
+      COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id',e.id,'uai',e.uai,'name',e.name,'kind',e.kind)) FILTER(WHERE e.id IS NOT NULL),'[]'::jsonb) establishments
+      FROM accounting_agencies a LEFT JOIN establishments se ON se.id=a.support_establishment_id
+      LEFT JOIN agency_establishments ae ON ae.agency_id=a.id AND ae.active=true
+      LEFT JOIN establishments e ON e.id=ae.establishment_id
+      GROUP BY a.id,se.id ORDER BY a.name`); return rows;
+  });
+  const agencyBody=z.object({name:z.string().trim().min(3).max(180),supportEstablishmentId:z.string().uuid(),establishmentIds:z.array(z.string().uuid()).min(1),active:z.boolean().default(true)});
+  app.post("/api/admin/agencies",async(request,reply)=>{
+    if(!await adminOnly(request,reply)) return;const p=agencyBody.safeParse(request.body);if(!p.success)return reply.code(400).send({error:'INVALID_AGENCY'});
+    const r=await tx(async c=>{const {rows}=await c.query(`INSERT INTO accounting_agencies(name,support_establishment_id,active) VALUES($1,$2,$3) RETURNING *`,[p.data.name,p.data.supportEstablishmentId,p.data.active]);
+      const ids=[...new Set([p.data.supportEstablishmentId,...p.data.establishmentIds])];for(const eid of ids)await c.query(`INSERT INTO agency_establishments(agency_id,establishment_id,active) VALUES($1,$2,true) ON CONFLICT(agency_id,establishment_id) DO UPDATE SET active=true,valid_until=NULL`,[rows[0].id,eid]);return rows[0]});return reply.code(201).send(r);
+  });
+  app.patch("/api/admin/agencies/:id",async(request,reply)=>{
+    if(!await adminOnly(request,reply)) return;const id=(request.params as any).id,p=agencyBody.safeParse(request.body);if(!p.success)return reply.code(400).send({error:'INVALID_AGENCY'});
+    const r=await tx(async c=>{const {rows}=await c.query(`UPDATE accounting_agencies SET name=$1,support_establishment_id=$2,active=$3 WHERE id=$4 RETURNING *`,[p.data.name,p.data.supportEstablishmentId,p.data.active,id]);if(!rows.length)throw Object.assign(new Error('NOT_FOUND'),{statusCode:404});
+      await c.query(`UPDATE agency_establishments SET active=false,valid_until=CURRENT_DATE WHERE agency_id=$1`,[id]);const ids=[...new Set([p.data.supportEstablishmentId,...p.data.establishmentIds])];for(const eid of ids)await c.query(`INSERT INTO agency_establishments(agency_id,establishment_id,active,valid_until) VALUES($1,$2,true,NULL) ON CONFLICT(agency_id,establishment_id) DO UPDATE SET active=true,valid_until=NULL`,[id,eid]);return rows[0]});return r;
+  });
+
   app.get("/api/admin/roles",async(request,reply)=>{
     if(!await adminOnly(request,reply)) return;
     const {rows}=await pool.query(`SELECT code,label FROM roles WHERE code<>'PLATFORM_ADMIN' ORDER BY label`);

@@ -56,6 +56,7 @@ fi
 log "Migrations et référentiel"
 sudo -u pcif npm run db:init
 sudo -u pcif npm run db:reference
+sudo -u pcif npm run db:demo-sync
 
 log "Contrôle TypeScript serveur"
 sudo -u pcif npm run check

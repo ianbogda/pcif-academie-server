@@ -32,6 +32,9 @@ export type PcifProcess={id:string;title:string;domain:string;icon?:string;quest
 export type ProcessReview={campaign_id:string;process_id:string;priority:boolean;status:"A_EXAMINER"|"EN_COURS"|"SECURISE";note:string};
 export type OrganisationData={operations:OfnOperation[];processes:PcifProcess[];actors:OfnActor[];assignments:OfnAssignment[];reviews:ProcessReview[]};
 
+export type AdminEstablishment = Establishment & {active:boolean;agency_id?:string|null;agency_name?:string|null};
+export type AdminAgency = {id:string;name:string;support_establishment_id:string;support_name?:string;support_uai?:string;active:boolean;establishments:Establishment[]};
+
 export type Establishment = {
   id: string;
   uai: string;
@@ -115,6 +118,12 @@ export const api = {
   me: () => request<Me>("/api/me"),
   establishments: () => request<Establishment[]>("/api/establishments"),
   adminUsers: () => request<AdminUser[]>("/api/admin/users"),
+  adminEstablishments:()=>request<AdminEstablishment[]>("/api/admin/establishments"),
+  createEstablishment:(payload:any)=>request<AdminEstablishment>("/api/admin/establishments",{method:"POST",body:JSON.stringify(payload)}),
+  updateEstablishment:(id:string,payload:any)=>request<AdminEstablishment>(`/api/admin/establishments/${id}`,{method:"PATCH",body:JSON.stringify(payload)}),
+  adminAgencies:()=>request<AdminAgency[]>("/api/admin/agencies"),
+  createAgency:(payload:any)=>request<AdminAgency>("/api/admin/agencies",{method:"POST",body:JSON.stringify(payload)}),
+  updateAgency:(id:string,payload:any)=>request<AdminAgency>(`/api/admin/agencies/${id}`,{method:"PATCH",body:JSON.stringify(payload)}),
   adminRoles: () => request<Array<{code:string;label:string}>>("/api/admin/roles"),
   createUser: (payload:any) => request<any>("/api/admin/users",{method:"POST",body:JSON.stringify(payload)}),
   updateUser: (id:string,payload:any) => request<any>(`/api/admin/users/${id}`,{method:"PATCH",body:JSON.stringify(payload)}),
