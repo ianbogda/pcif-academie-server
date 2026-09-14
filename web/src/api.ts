@@ -11,6 +11,19 @@ export type AdminUser = {
   created_at:string; assignments:UserAssignment[];
 };
 
+
+export type PilotageQuestion = {
+  id:string; code:string; domain:string; category?:string; label:string; risk_label?:string;
+  responsibility:"ORDONNATEUR"|"COMPTABLE"|"MIXTE"; weight:number; pcif_p?:number; pcif_i?:number; is_key?:boolean;
+  sphere?: "ORDONNATEUR"|"COMPTABLE"|"SYNTHESE"; value?:number|null; comment?:string; version?:number; updated_at?:string; updated_by?:string;
+};
+export type PcifAction = {
+  id:string; campaign_id:string; question_id:string; sphere:string; action_text:string; priority:"P1"|"P2"|"P3"|"P4";
+  period?:string|null; actor?:string|null; status:"A_LANCER"|"PREPARATION"|"EN_COURS"|"REALISEE"; target_date?:string|null; note:string;
+};
+export type WorkshopProgress = {campaign_id:string;workshop_no:number;completed:boolean;notes:string};
+export type PilotageData = {questions:PilotageQuestion[];actions:PcifAction[];workshops:WorkshopProgress[]};
+
 export type Establishment = {
   id: string;
   uai: string;
@@ -36,11 +49,11 @@ export type Question = {
   weight: number;
   category?: string;
   risk_label?: string;
+  badge: number;
   is_key?: boolean;
   pcif_p?: number;
   pcif_i?: number;
   stars: number;
-  badge: number;
   answers: Array<{
     sphere: "ORDONNATEUR" | "COMPTABLE" | "SYNTHESE";
     value: number | null;
@@ -104,6 +117,11 @@ export const api = {
   campaigns: (establishmentId: string) =>
     request<Campaign[]>(`/api/campaigns?establishmentId=${encodeURIComponent(establishmentId)}`),
   campaign: (id: string) => request<Campaign>(`/api/campaigns/${id}`),
+  pilotage: (id:string) => request<PilotageData>(`/api/campaigns/${id}/pilotage`),
+  createAction: (campaignId:string,payload:any) => request<PcifAction>(`/api/campaigns/${campaignId}/actions`,{method:"POST",body:JSON.stringify(payload)}),
+  updateAction: (campaignId:string,actionId:string,payload:any) => request<PcifAction>(`/api/campaigns/${campaignId}/actions/${actionId}`,{method:"PATCH",body:JSON.stringify(payload)}),
+  deleteAction: (campaignId:string,actionId:string) => request<void>(`/api/campaigns/${campaignId}/actions/${actionId}`,{method:"DELETE"}),
+  saveWorkshop: (campaignId:string,no:number,payload:any) => request<WorkshopProgress>(`/api/campaigns/${campaignId}/workshops/${no}`,{method:"PUT",body:JSON.stringify(payload)}),
   questions: (campaignId: string) => request<Question[]>(`/api/campaigns/${campaignId}/questions`),
   saveAnswer: (
     campaignId: string,

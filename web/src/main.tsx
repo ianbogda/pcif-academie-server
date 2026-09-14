@@ -1,3 +1,4 @@
+import { PilotagePcif } from "./PilotagePcif";
 import React,{useEffect,useMemo,useState} from "react";
 import{createRoot}from"react-dom/client";
 import{api,clearToken,getToken,setToken,type AdminUser,type Campaign,type Establishment,type Me,type Question}from"./api";

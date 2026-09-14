@@ -8,6 +8,7 @@ import { pool, tx } from "./db.js";
 import { registerAuth, requireUser } from "./auth.js";
 import { establishmentAccess, canWriteSphere, isPlatformAdmin } from "./access.js";
 import { registerAdmin } from "./admin.js";
+import { registerPilotage } from "./pilotage.js";
 import { z } from "zod";
 
 const packageVersion = JSON.parse(readFileSync("package.json", "utf8")).version;
@@ -21,6 +22,7 @@ await app.register(cors, {
 await app.register(jwt, { secret: process.env.JWT_SECRET ?? "INSECURE_DEV_SECRET_CHANGE_ME" });
 await registerAuth(app);
 await registerAdmin(app);
+await registerPilotage(app);
 
 app.get("/health", async () => {
   await pool.query("SELECT 1");
