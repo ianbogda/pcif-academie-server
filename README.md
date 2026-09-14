@@ -187,3 +187,8 @@ sudo ./deploy/update-debian13.sh
 ```
 
 Cette version intègre également `"type": "module"`, `@fastify/jwt` 10.2.2 et le démarrage de production via `dist/src/server.js`.
+
+
+## Correctif v0.4.1
+
+Correction de la signature `AnswerEditor` : la prop `editable` est désormais correctement déstructurée, ce qui rétablit la compilation TypeScript du frontend.

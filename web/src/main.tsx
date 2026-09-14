@@ -372,7 +372,7 @@ function QuestionCard({ q, campaignId, onChanged, permissions }: {
   );
 }
 
-function AnswerEditor({ q, sphere, campaignId, onChanged }: {
+function AnswerEditor({ q, sphere, campaignId, onChanged, editable }: {
   q: Question;
   sphere: "ORDONNATEUR" | "COMPTABLE" | "SYNTHESE";
   campaignId: string;
