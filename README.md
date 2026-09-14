@@ -8,7 +8,7 @@ L'application est pensée pour un fonctionnement **multi-utilisateur, multi-éta
 
 La version actuelle intègre le référentiel PCIF Académie complet de **267 questions** et s'oriente vers une logique d'**observatoire du contrôle interne financier** : moins un simple questionnaire, davantage un outil de lecture, de suivi et de pilotage des risques.
 
-> **Version actuelle : 0.6.0**
+> **Version actuelle : 0.6.x**
 >
 > Le projet reste en développement. Il peut être installé et testé sur un serveur dédié, mais plusieurs briques de sécurité et d'exploitation restent à consolider avant une ouverture publique large.
 

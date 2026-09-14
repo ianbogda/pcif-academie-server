@@ -19,14 +19,14 @@ try{
 
  for(const q of ref.questions){
    await client.query(`
-     INSERT INTO questions(repository_version_id,code,domain,label,responsibility,stars,weight,sort_order,category,risk_label,badge,pcif_p,pcif_i)
-     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+     INSERT INTO questions(repository_version_id,code,domain,label,responsibility,stars,weight,sort_order,category,risk_label,badge,pcif_p,pcif_i,is_key)
+     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
      ON CONFLICT(repository_version_id,code) DO UPDATE SET
        domain=excluded.domain,label=excluded.label,responsibility=excluded.responsibility,
        stars=excluded.stars,weight=excluded.weight,sort_order=excluded.sort_order,
        category=excluded.category,risk_label=excluded.risk_label,badge=excluded.badge,
-       pcif_p=excluded.pcif_p,pcif_i=excluded.pcif_i`,
-     [rv.id,q.code,q.domain,q.label,q.responsibility,q.stars,q.weight,q.order,q.category,q.risk,q.badge,q.pcif_p,q.pcif_i]);
+       pcif_p=excluded.pcif_p,pcif_i=excluded.pcif_i,is_key=excluded.is_key`,
+     [rv.id,q.code,q.domain,q.label,q.responsibility,q.stars,q.weight,q.order,q.category,q.risk,Number(q.badge ?? 0),q.pcif_p,q.pcif_i,Boolean(q.is_key)]);
  }
  await client.query("COMMIT");
  console.log(`Référentiel importé : ${ref.questions.length} questions.`);
