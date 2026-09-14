@@ -9,6 +9,7 @@ import { registerAuth, requireUser } from "./auth.js";
 import { establishmentAccess, canWriteSphere, isPlatformAdmin } from "./access.js";
 import { registerAdmin } from "./admin.js";
 import { registerPilotage } from "./pilotage.js";
+import { registerOrganisation } from "./organisation.js";
 import { z } from "zod";
 
 const packageVersion = JSON.parse(readFileSync("package.json", "utf8")).version;
@@ -23,6 +24,7 @@ await app.register(jwt, { secret: process.env.JWT_SECRET ?? "INSECURE_DEV_SECRET
 await registerAuth(app);
 await registerAdmin(app);
 await registerPilotage(app);
+await registerOrganisation(app);
 
 app.get("/health", async () => {
   await pool.query("SELECT 1");

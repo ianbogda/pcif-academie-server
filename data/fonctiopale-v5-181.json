@@ -1,0 +1,1051 @@
+{
+  "version": "FONCTIOPALE-V5",
+  "count": 181,
+  "domains": [
+    {
+      "category": "Organisation",
+      "subcategories": [
+        {
+          "name": "Gestion des délégations",
+          "operations": [
+            {
+              "name": "Attribution des délégations et des mandats de l'ordonnateur",
+              "sphere": "ordonnateur",
+              "id": "f0-0-0"
+            },
+            {
+              "name": "Attribution des délégations et des mandats de l'Agent Comptable",
+              "sphere": "comptable",
+              "id": "f0-0-1"
+            },
+            {
+              "name": "Saisie des délégations dans les progiciels",
+              "sphere": "ordonnateur",
+              "id": "f0-0-2"
+            },
+            {
+              "name": "Rapprochement des actes de délégations et des délégations informatiques",
+              "sphere": "ordonnateur",
+              "id": "f0-0-3"
+            },
+            {
+              "name": "Rapprochement des actes de délégations et des délégations informatiques",
+              "sphere": "comptable",
+              "id": "f0-0-4"
+            },
+            {
+              "name": "Mise à jour annuel des profils des personnels des services de gestion budgétaire",
+              "sphere": "ordonnateur",
+              "id": "f0-0-5"
+            },
+            {
+              "name": "Mise à jour annuel des profils des personnels de l'agence comptable",
+              "sphere": "comptable",
+              "id": "f0-0-6"
+            }
+          ]
+        },
+        {
+          "name": "ARCHIVAGE CLASSEMENT SECURITE",
+          "operations": [
+            {
+              "name": "Classement des archives numériques",
+              "sphere": "ordonnateur",
+              "id": "f0-1-0"
+            },
+            {
+              "name": "Classement des archives numériques",
+              "sphere": "comptable",
+              "id": "f0-1-1"
+            },
+            {
+              "name": "Elaboration et mise à jour du plan d'archives",
+              "sphere": "ordonnateur",
+              "id": "f0-1-2"
+            },
+            {
+              "name": "Elaboration et mise à jour du plan d'archives",
+              "sphere": "comptable",
+              "id": "f0-1-3"
+            },
+            {
+              "name": "Sauvegarde informatique de la comptabilité auxiliaire PRESTO ou EASYLIS",
+              "sphere": "ordonnateur",
+              "id": "f0-1-4"
+            },
+            {
+              "name": "Sauvegarde informatique de la comptabilité auxiliaire GESATEL",
+              "sphere": "ordonnateur",
+              "id": "f0-1-5"
+            },
+            {
+              "name": "Sauvegarde informatique de la comptabilité auxiliaire Porte Monnaies Electroniques",
+              "sphere": "ordonnateur",
+              "id": "f0-1-6"
+            },
+            {
+              "name": "Sauvegarde informatique des données administratives",
+              "sphere": "comptable",
+              "id": "f0-1-7"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Exécution Budgétaire",
+      "subcategories": [
+        {
+          "name": "BUDGET",
+          "operations": [
+            {
+              "name": "Elaboration BUDGET et DBM niveau 3",
+              "sphere": "ordonnateur",
+              "id": "f1-0-0"
+            },
+            {
+              "name": "Validation saisie budget et DBM pour vote",
+              "sphere": "ordonnateur",
+              "id": "f1-0-1"
+            },
+            {
+              "name": "Décisions de l'ordonnateur et DBM pour information",
+              "sphere": "ordonnateur",
+              "id": "f1-0-2"
+            },
+            {
+              "name": "Mise en exécution budgétaire (vote actes,publicité, mise en exécution)",
+              "sphere": "ordonnateur",
+              "id": "f1-0-3"
+            }
+          ]
+        },
+        {
+          "name": "DEPENSES",
+          "operations": [
+            {
+              "name": "Mise en concurrence / Marchés Publics",
+              "sphere": "ordonnateur",
+              "id": "f1-1-0"
+            },
+            {
+              "name": "Création d'un tiers fournisseur",
+              "sphere": "ordonnateur",
+              "id": "f1-1-1"
+            },
+            {
+              "name": "Mise à jour des domiciliations bancaires tiers fournisseur",
+              "sphere": "ordonnateur",
+              "id": "f1-1-2"
+            },
+            {
+              "name": "Validation des mises à jour des domiciliations bancaires tiers fournisseurs",
+              "sphere": "comptable",
+              "id": "f1-1-3"
+            },
+            {
+              "name": "Engagement juridique de la dépense",
+              "sphere": "ordonnateur",
+              "id": "f1-1-4"
+            },
+            {
+              "name": "Engagement comptable de la dépense - Saisie EJ / EJM",
+              "sphere": "ordonnateur",
+              "id": "f1-1-5"
+            },
+            {
+              "name": "Validation des EJ / EJM",
+              "sphere": "ordonnateur",
+              "id": "f1-1-6"
+            },
+            {
+              "name": "Saisie et contrôle du service fait",
+              "sphere": "ordonnateur",
+              "id": "f1-1-7"
+            },
+            {
+              "name": "Liquidation des Demandes de Paiement (rapprochement factures et EJ, ajout de PJ)",
+              "sphere": "ordonnateur",
+              "id": "f1-1-8"
+            },
+            {
+              "name": "Supervision et validation des liquidations des Demandes de Paiement",
+              "sphere": "ordonnateur",
+              "id": "f1-1-9"
+            },
+            {
+              "name": "Ordonnancement des intérêts moratoires",
+              "sphere": "ordonnateur",
+              "id": "f1-1-10"
+            },
+            {
+              "name": "Validation des DP et de demandes de comptabilisation",
+              "sphere": "comptable",
+              "id": "f1-1-11"
+            },
+            {
+              "name": "Bordereau de contrôle + transmission à l'Etablissement Rattaché",
+              "sphere": "comptable",
+              "id": "f1-1-12"
+            },
+            {
+              "name": "Notification du dépassement du Délai Global de Paiement",
+              "sphere": "comptable",
+              "id": "f1-1-13"
+            },
+            {
+              "name": "Prise en charge des Demandes de Paiement et des Demandes de comptabilisation",
+              "sphere": "comptable",
+              "id": "f1-1-14"
+            },
+            {
+              "name": "Rapprochement Demandes de Paiement et Demandes de Reversement",
+              "sphere": "comptable",
+              "id": "f1-1-15"
+            },
+            {
+              "name": "Paiement des demandes de paiement",
+              "sphere": "comptable",
+              "id": "f1-1-16"
+            },
+            {
+              "name": "Règlement des Demandes de paiement",
+              "sphere": "comptable",
+              "id": "f1-1-17"
+            },
+            {
+              "name": "Paiement à l'étranger",
+              "sphere": "comptable",
+              "id": "f1-1-18"
+            },
+            {
+              "name": "Suivi des factures non parvenues et des contrôles bloquants à la clôture des dépenses",
+              "sphere": "ordonnateur",
+              "id": "f1-1-19"
+            },
+            {
+              "name": "Demande de versement de l'ordonnateur",
+              "sphere": "ordonnateur",
+              "id": "f1-1-20"
+            },
+            {
+              "name": "Instruction et contrôle de la demande de versement de l'ordonnateur",
+              "sphere": "comptable",
+              "id": "f1-1-21"
+            },
+            {
+              "name": "Validation de la demande de versement de l'ordonnateur",
+              "sphere": "comptable",
+              "id": "f1-1-22"
+            },
+            {
+              "name": "Règlement des demandes de versement de l'ordonnateur",
+              "sphere": "comptable",
+              "id": "f1-1-23"
+            }
+          ]
+        },
+        {
+          "name": "Recettes",
+          "operations": [
+            {
+              "name": "Création d'un tiers client",
+              "sphere": "ordonnateur",
+              "id": "f1-2-0"
+            },
+            {
+              "name": "Mise à jour des domiciliations bancaires du tiers client",
+              "sphere": "comptable",
+              "id": "f1-2-1"
+            },
+            {
+              "name": "Validation des mises à jour des domiciliations bancaires des tiers clients",
+              "sphere": "comptable",
+              "id": "f1-2-2"
+            },
+            {
+              "name": "Constatation des droits",
+              "sphere": "ordonnateur",
+              "id": "f1-2-3"
+            },
+            {
+              "name": "Contrôle et validation des liquidations des titres de recette",
+              "sphere": "ordonnateur",
+              "id": "f1-2-4"
+            },
+            {
+              "name": "Validation des Titres de Recette",
+              "sphere": "ordonnateur",
+              "id": "f1-2-5"
+            },
+            {
+              "name": "Bordereau de contrôle + transmission à l'Etablissement Rattaché",
+              "sphere": "comptable",
+              "id": "f1-2-6"
+            },
+            {
+              "name": "Prise en charge des ordres de recette",
+              "sphere": "comptable",
+              "id": "f1-2-7"
+            },
+            {
+              "name": "Vérification et déclassement des avances",
+              "sphere": "comptable",
+              "id": "f1-2-8"
+            },
+            {
+              "name": "Rapprochement et mise à jour des développements de solde",
+              "sphere": "comptable",
+              "id": "f1-2-9"
+            }
+          ]
+        },
+        {
+          "name": "Paies",
+          "operations": [
+            {
+              "name": "Contrôle de la compétence du CA en matière de recrutement de personnels",
+              "sphere": "ordonnateur",
+              "id": "f1-3-0"
+            },
+            {
+              "name": "Contrôle des plafonds et des taux horaires des heures supplémentaires (UFA, FC, ERASMUS) votés par le CA",
+              "sphere": "ordonnateur",
+              "id": "f1-3-1"
+            },
+            {
+              "name": "Suivi administratif des contrats des AED / AESH",
+              "sphere": "ordonnateur",
+              "id": "f1-3-2"
+            },
+            {
+              "name": "Contrôle et transmission des HS transmis au façonnier",
+              "sphere": "ordonnateur",
+              "id": "f1-3-3"
+            },
+            {
+              "name": "Transmission et conservation des documents de paie",
+              "sphere": "ordonnateur",
+              "id": "f1-3-4"
+            },
+            {
+              "name": "Gestion de la fin des contrats",
+              "sphere": "ordonnateur",
+              "id": "f1-3-5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Droits constatés et Bourses",
+      "subcategories": [
+        {
+          "name": "TIERS OP@LE",
+          "operations": [
+            {
+              "name": "Saisie et vérification de la base élève (SIECLE BEE)",
+              "sphere": "ordonnateur",
+              "id": "f2-0-0"
+            },
+            {
+              "name": "Mise à jour des régimes dans SIECLE BEE",
+              "sphere": "ordonnateur",
+              "id": "f2-0-1"
+            },
+            {
+              "name": "Vérification import Base élève dans OP@LE",
+              "sphere": "ordonnateur",
+              "id": "f2-0-2"
+            },
+            {
+              "name": "Correction des logs erronés",
+              "sphere": "ordonnateur",
+              "id": "f2-0-3"
+            },
+            {
+              "name": "Validation des domiciliations bancaires initiales",
+              "sphere": "comptable",
+              "id": "f2-0-4"
+            },
+            {
+              "name": "Mise à jour des domiciliations bancaires tiers élèves",
+              "sphere": "ordonnateur",
+              "id": "f2-0-5"
+            },
+            {
+              "name": "Validation des mises à jour des domiciliations bancaires des tiers élèves",
+              "sphere": "comptable",
+              "id": "f2-0-6"
+            }
+          ]
+        },
+        {
+          "name": "Constatation",
+          "operations": [
+            {
+              "name": "Constatation des droits",
+              "sphere": "ordonnateur",
+              "id": "f2-1-0"
+            },
+            {
+              "name": "Constatation des droits dans GFE",
+              "sphere": "ordonnateur",
+              "id": "f2-1-1"
+            },
+            {
+              "name": "Reception et contrôle du flux GFE dans opale",
+              "sphere": "ordonnateur",
+              "id": "f2-1-2"
+            },
+            {
+              "name": "Liquidation des Titres de Recette",
+              "sphere": "ordonnateur",
+              "id": "f2-1-3"
+            },
+            {
+              "name": "Validation des Titres de Recette",
+              "sphere": "ordonnateur",
+              "id": "f2-1-4"
+            },
+            {
+              "name": "Bordereau de contrôle + transmission ER",
+              "sphere": "comptable",
+              "id": "f2-1-5"
+            },
+            {
+              "name": "Prise en charge des ordres de recette",
+              "sphere": "comptable",
+              "id": "f2-1-6"
+            },
+            {
+              "name": "Génération et envoi des ASAP (factures à payer)",
+              "sphere": "comptable",
+              "id": "f2-1-7"
+            }
+          ]
+        },
+        {
+          "name": "Opérations pour le compte de tiers - Bourses",
+          "operations": [
+            {
+              "name": "Communication auprès des familles",
+              "sphere": "ordonnateur",
+              "id": "f2-2-0"
+            },
+            {
+              "name": "Gestion de DIAMAN",
+              "sphere": "ordonnateur",
+              "id": "f2-2-1"
+            },
+            {
+              "name": "Attribution des droits",
+              "sphere": "ordonnateur",
+              "id": "f2-2-2"
+            },
+            {
+              "name": "Contrôle du flux entrant de boursiers",
+              "sphere": "comptable",
+              "id": "f2-2-3"
+            },
+            {
+              "name": "Saisie des régularisations de bourses",
+              "sphere": "comptable",
+              "id": "f2-2-4"
+            },
+            {
+              "name": "Compensation sur créances trimestre courant",
+              "sphere": "comptable",
+              "id": "f2-2-5"
+            },
+            {
+              "name": "Compensation sur créances trimestre antérieur",
+              "sphere": "comptable",
+              "id": "f2-2-6"
+            },
+            {
+              "name": "Echantillonage et contrôle aléatoire de dossiers",
+              "sphere": "comptable",
+              "id": "f2-2-7"
+            },
+            {
+              "name": "Paiement / Règlement",
+              "sphere": "comptable",
+              "id": "f2-2-8"
+            },
+            {
+              "name": "Suivi et paiement des tiers sans RIB",
+              "sphere": "comptable",
+              "id": "f2-2-9"
+            },
+            {
+              "name": "Déclaration des soldes à l'autorité académique",
+              "sphere": "comptable",
+              "id": "f2-2-10"
+            }
+          ]
+        },
+        {
+          "name": "Encaissement en chèques et en espèces",
+          "operations": [
+            {
+              "name": "Encaissement et scan des chèques",
+              "sphere": "comptable",
+              "id": "f2-3-0"
+            },
+            {
+              "name": "Contrôle et remise en banque des chèques (mandataire)",
+              "sphere": "comptable",
+              "id": "f2-3-1"
+            },
+            {
+              "name": "Encaissement des espèces et remise des quittances",
+              "sphere": "comptable",
+              "id": "f2-3-2"
+            },
+            {
+              "name": "Tenue du PV de caisse et contrôle des cumuls d'encaisse",
+              "sphere": "comptable",
+              "id": "f2-3-3"
+            },
+            {
+              "name": "Encaissement et scan des chèques (mandataire)",
+              "sphere": "comptable",
+              "id": "f2-3-4"
+            },
+            {
+              "name": "Remise en banque des chèques (mandataire)",
+              "sphere": "comptable",
+              "id": "f2-3-5"
+            },
+            {
+              "name": "PV de réception des encaissements du mandataire",
+              "sphere": "comptable",
+              "id": "f2-3-6"
+            },
+            {
+              "name": "Remise de chèques dans OP@LE",
+              "sphere": "comptable",
+              "id": "f2-3-7"
+            }
+          ]
+        },
+        {
+          "name": "Encaissement dématérialisé",
+          "operations": [
+            {
+              "name": "Saisie des mandats SEPA (AC ou ER)",
+              "sphere": "comptable",
+              "id": "f2-4-0"
+            },
+            {
+              "name": "Campagne de prélèvement SEPA",
+              "sphere": "comptable",
+              "id": "f2-4-1"
+            },
+            {
+              "name": "Gestion du flux TS-paiement: envoi des créances et réception des encaissements.",
+              "sphere": "comptable",
+              "id": "f2-4-2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Régies",
+      "subcategories": [
+        {
+          "name": "REGIE AVANCE",
+          "operations": [
+            {
+              "name": "Elaboration de l'arrêté",
+              "sphere": "ordonnateur",
+              "id": "f3-0-0"
+            },
+            {
+              "name": "Validation de l'arrêté",
+              "sphere": "comptable",
+              "id": "f3-0-1"
+            },
+            {
+              "name": "Agrément régisseur",
+              "sphere": "comptable",
+              "id": "f3-0-2"
+            },
+            {
+              "name": "Saisie des décaissements",
+              "sphere": "comptable",
+              "id": "f3-0-3"
+            },
+            {
+              "name": "Instruction et contrôle de la demande de versement de l'ordonnateur",
+              "sphere": "comptable",
+              "id": "f3-0-4"
+            },
+            {
+              "name": "Régularisation budgétaire des dépenses effectuées en régie",
+              "sphere": "ordonnateur",
+              "id": "f3-0-5"
+            },
+            {
+              "name": "Suivi des délais de régularisation",
+              "sphere": "ordonnateur",
+              "id": "f3-0-6"
+            },
+            {
+              "name": "Prise en charge et vérification comptable",
+              "sphere": "comptable",
+              "id": "f3-0-7"
+            },
+            {
+              "name": "Réapprovisionnement de la régie d'avance",
+              "sphere": "comptable",
+              "id": "f3-0-8"
+            }
+          ]
+        },
+        {
+          "name": "REGIE RECETTES",
+          "operations": [
+            {
+              "name": "Elaboration arrêté",
+              "sphere": "ordonnateur",
+              "id": "f3-1-0"
+            },
+            {
+              "name": "Validation de l'arrêté",
+              "sphere": "comptable",
+              "id": "f3-1-1"
+            },
+            {
+              "name": "Agrément du régisseur",
+              "sphere": "comptable",
+              "id": "f3-1-2"
+            },
+            {
+              "name": "Encaissement des espèces",
+              "sphere": "ordonnateur",
+              "id": "f3-1-3"
+            },
+            {
+              "name": "Délivrance des reçus",
+              "sphere": "ordonnateur",
+              "id": "f3-1-4"
+            },
+            {
+              "name": "Suivi des délais de remise au comptable",
+              "sphere": "ordonnateur",
+              "id": "f3-1-5"
+            },
+            {
+              "name": "Supervision et recomptage de la caisse",
+              "sphere": "ordonnateur",
+              "id": "f3-1-6"
+            },
+            {
+              "name": "Prise en charge et vérification comptable",
+              "sphere": "comptable",
+              "id": "f3-1-7"
+            },
+            {
+              "name": "Dépôt des fonds à la Banque Postale",
+              "sphere": "comptable",
+              "id": "f3-1-8"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Comptabilité Générale courante",
+      "subcategories": [
+        {
+          "name": "Ecritures courantes",
+          "operations": [
+            {
+              "name": "Saisie des écritures courantes",
+              "sphere": "comptable",
+              "id": "f4-0-0"
+            },
+            {
+              "name": "Rapprochements automatiques ou manuels",
+              "sphere": "comptable",
+              "id": "f4-0-1"
+            },
+            {
+              "name": "Contrôle hebdomadaire des écritures au statut créée (validation ou suppression)",
+              "sphere": "comptable",
+              "id": "f4-0-2"
+            },
+            {
+              "name": "Demande de versement du comptable",
+              "sphere": "comptable",
+              "id": "f4-0-3"
+            },
+            {
+              "name": "Gestion des excédents de versement",
+              "sphere": "comptable",
+              "id": "f4-0-4"
+            },
+            {
+              "name": "Contrepassation d'écritures erronées",
+              "sphere": "comptable",
+              "id": "f4-0-5"
+            },
+            {
+              "name": "Lettrage",
+              "sphere": "comptable",
+              "id": "f4-0-6"
+            },
+            {
+              "name": "Contrôle mensuel de la balance (y.c corrections)",
+              "sphere": "comptable",
+              "id": "f4-0-7"
+            },
+            {
+              "name": "Transmission du dialogue de gestion à ER",
+              "sphere": "comptable",
+              "id": "f4-0-8"
+            },
+            {
+              "name": "Réponses et actions correctives au dialogue de gestion",
+              "sphere": "ordonnateur",
+              "id": "f4-0-9"
+            }
+          ]
+        },
+        {
+          "name": "TRESORERIE",
+          "operations": [
+            {
+              "name": "Saisie des opérations courantes de trésorerie",
+              "sphere": "comptable",
+              "id": "f4-1-0"
+            },
+            {
+              "name": "Correspondance avec le service de dépôt de fonds",
+              "sphere": "comptable",
+              "id": "f4-1-1"
+            },
+            {
+              "name": "Encaissement d'espèces (hors régies)",
+              "sphere": "comptable",
+              "id": "f4-1-2"
+            },
+            {
+              "name": "Remise des quittances",
+              "sphere": "comptable",
+              "id": "f4-1-3"
+            },
+            {
+              "name": "Recomptage quotidien de la caisse de l'Agence Comptable",
+              "sphere": "comptable",
+              "id": "f4-1-4"
+            },
+            {
+              "name": "Visa régulier de la caisse de l'Agence Comptable",
+              "sphere": "comptable",
+              "id": "f4-1-5"
+            },
+            {
+              "name": "Dépôt d'espèces à La Banque postale",
+              "sphere": "comptable",
+              "id": "f4-1-6"
+            },
+            {
+              "name": "Scan et envoi des chèques au STC (hors mandataires)",
+              "sphere": "comptable",
+              "id": "f4-1-7"
+            }
+          ]
+        },
+        {
+          "name": "Cloture",
+          "operations": [
+            {
+              "name": "Contrôle des cumuls extracomptables",
+              "sphere": "comptable",
+              "id": "f4-2-0"
+            },
+            {
+              "name": "Cloture des modules auxiliaires",
+              "sphere": "comptable",
+              "id": "f4-2-1"
+            },
+            {
+              "name": "Validation des écritures au statut créé",
+              "sphere": "comptable",
+              "id": "f4-2-2"
+            },
+            {
+              "name": "Cloture générale de la comptabilité",
+              "sphere": "comptable",
+              "id": "f4-2-3"
+            }
+          ]
+        },
+        {
+          "name": "INVENTAIRE STOCKS VALEURS INACTIVES",
+          "operations": [
+            {
+              "name": "Achat des valeurs inactives",
+              "sphere": "ordonnateur",
+              "id": "f4-3-0"
+            },
+            {
+              "name": "Rapprochement entrées V.I. et factures achat V.I.",
+              "sphere": "comptable",
+              "id": "f4-3-1"
+            },
+            {
+              "name": "Conservation des valeurs inactives",
+              "sphere": "comptable",
+              "id": "f4-3-2"
+            },
+            {
+              "name": "Vente des valeurs inactives",
+              "sphere": "comptable",
+              "id": "f4-3-3"
+            },
+            {
+              "name": "Comptabilité, vérification des valeurs inactives",
+              "sphere": "comptable",
+              "id": "f4-3-4"
+            },
+            {
+              "name": "Suivi des stocks des valeurs inactives",
+              "sphere": "ordonnateur",
+              "id": "f4-3-5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Contentieux",
+      "subcategories": [
+        {
+          "name": "Contentieux",
+          "operations": [
+            {
+              "name": "Constitution des dossiers",
+              "sphere": "comptable",
+              "id": "f5-0-0"
+            },
+            {
+              "name": "Contrôle et validation des poursuites",
+              "sphere": "comptable",
+              "id": "f5-0-1"
+            },
+            {
+              "name": "Transmission pour information des poursuites engagées",
+              "sphere": "comptable",
+              "id": "f5-0-2"
+            },
+            {
+              "name": "Requêtes DDFIP pour SATD",
+              "sphere": "comptable",
+              "id": "f5-0-3"
+            },
+            {
+              "name": "Requêtes FICOBA pour SATD",
+              "sphere": "comptable",
+              "id": "f5-0-4"
+            },
+            {
+              "name": "Transmission à un commissaire de justice",
+              "sphere": "comptable",
+              "id": "f5-0-5"
+            },
+            {
+              "name": "Saisie d'un tiers détenteur",
+              "sphere": "comptable",
+              "id": "f5-0-6"
+            },
+            {
+              "name": "Relance des huissiers ou des tiers saisis",
+              "sphere": "comptable",
+              "id": "f5-0-7"
+            },
+            {
+              "name": "Transmission des dossiers irrécouvrables au CE",
+              "sphere": "comptable",
+              "id": "f5-0-8"
+            },
+            {
+              "name": "Validation en conseil d'Administration",
+              "sphere": "ordonnateur",
+              "id": "f5-0-9"
+            },
+            {
+              "name": "Ordonnancement des Admissions en Non Valeur",
+              "sphere": "ordonnateur",
+              "id": "f5-0-10"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Patrimoines, stocks et Domaines",
+      "subcategories": [
+        {
+          "name": "INVENTAIRE STOCKS",
+          "operations": [
+            {
+              "name": "Suivi matériel des stocks de denrées alimentaires",
+              "sphere": "ordonnateur",
+              "id": "f6-0-0"
+            },
+            {
+              "name": "Suivi informatique des stocks de denrées alimentaires",
+              "sphere": "ordonnateur",
+              "id": "f6-0-1"
+            },
+            {
+              "name": "Vérification entrées stocks / mandats  de denrées alimentaires",
+              "sphere": "ordonnateur",
+              "id": "f6-0-2"
+            },
+            {
+              "name": "Vérif. feuilles de conso/sorties (menus) et variation stocks",
+              "sphere": "ordonnateur",
+              "id": "f6-0-3"
+            },
+            {
+              "name": "Contrôle aléatoire du stock  de denrées alimentaires",
+              "sphere": "ordonnateur",
+              "id": "f6-0-4"
+            },
+            {
+              "name": "Contrôle du stock de denrées alimentaires par l'Agence Comptable",
+              "sphere": "comptable",
+              "id": "f6-0-5"
+            },
+            {
+              "name": "Tracabilité et valorisation des déchets alimentaires",
+              "sphere": "ordonnateur",
+              "id": "f6-0-6"
+            },
+            {
+              "name": "Suivi matériel des stocks de matières d'oeuvre",
+              "sphere": "ordonnateur",
+              "id": "f6-0-7"
+            },
+            {
+              "name": "Suivi informatique des stocks de matières d'œuvre",
+              "sphere": "ordonnateur",
+              "id": "f6-0-8"
+            },
+            {
+              "name": "Vérification entrées stocks / mandats  de matières d'œuvre",
+              "sphere": "ordonnateur",
+              "id": "f6-0-9"
+            },
+            {
+              "name": "Contrôle aléatoire du stock de matières d'œuvre",
+              "sphere": "ordonnateur",
+              "id": "f6-0-10"
+            },
+            {
+              "name": "Contrôle du stock de matières d'oeuvre par l'Agence Comptable",
+              "sphere": "comptable",
+              "id": "f6-0-11"
+            },
+            {
+              "name": "Tracabilité et valorisation des déchets de matières industrielles",
+              "sphere": "ordonnateur",
+              "id": "f6-0-12"
+            },
+            {
+              "name": "Chiffrage et saisie du bulletin de fabrication des objets confectionnés",
+              "sphere": "ordonnateur",
+              "id": "f6-0-13"
+            },
+            {
+              "name": "Ordonnancement et facturation des objets confectionnés",
+              "sphere": "ordonnateur",
+              "id": "f6-0-14"
+            }
+          ]
+        },
+        {
+          "name": "IMMOBILISATIONS",
+          "operations": [
+            {
+              "name": "Suivi matériel de l'inventaire des immobilisations",
+              "sphere": "ordonnateur",
+              "id": "f6-1-0"
+            },
+            {
+              "name": "Proposition de mise en service des immobilisations",
+              "sphere": "ordonnateur",
+              "id": "f6-1-1"
+            },
+            {
+              "name": "Mise en service des immobilisations",
+              "sphere": "comptable",
+              "id": "f6-1-2"
+            },
+            {
+              "name": "Liaison des financements et des immobilisations",
+              "sphere": "comptable",
+              "id": "f6-1-3"
+            },
+            {
+              "name": "Annulation des subventions totalement amorties",
+              "sphere": "comptable",
+              "id": "f6-1-4"
+            },
+            {
+              "name": "Préparation des sorties d'inventaire",
+              "sphere": "ordonnateur",
+              "id": "f6-1-5"
+            },
+            {
+              "name": "Validation comptable des sorties d'inventaire",
+              "sphere": "comptable",
+              "id": "f6-1-6"
+            },
+            {
+              "name": "Validation des amortissements",
+              "sphere": "comptable",
+              "id": "f6-1-7"
+            }
+          ]
+        },
+        {
+          "name": "LOGEMENTS DE FONCTION",
+          "operations": [
+            {
+              "name": "Tenue d'un registre des consommations",
+              "sphere": "ordonnateur",
+              "id": "f6-2-0"
+            },
+            {
+              "name": "Déclaration des occupants à la Collecitivités de Rattachement",
+              "sphere": "ordonnateur",
+              "id": "f6-2-1"
+            },
+            {
+              "name": "Archivage et transmission des titres d'occupation",
+              "sphere": "ordonnateur",
+              "id": "f6-2-2"
+            },
+            {
+              "name": "Calcul et transmission des avantages en nature",
+              "sphere": "ordonnateur",
+              "id": "f6-2-3"
+            },
+            {
+              "name": "Ordonnancement des TR de dépassement de forfait",
+              "sphere": "ordonnateur",
+              "id": "f6-2-4"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

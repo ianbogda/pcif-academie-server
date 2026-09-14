@@ -1,0 +1,1119 @@
+{
+  "version": "PCIF-PROCESS-39-2026.09",
+  "count": 39,
+  "processes": [
+    {
+      "id": "ORG-GRP",
+      "title": "Gouvernance du groupement",
+      "domain": "Organisation",
+      "icon": "fa-people-roof",
+      "questionIds": [
+        "0-0-0",
+        "0-0-1"
+      ],
+      "steps": [
+        "Convention du groupement",
+        "Adoption par les CA",
+        "Diffusion",
+        "Revue lors d’un changement",
+        "Actualisation et archivage"
+      ],
+      "description": "Sécuriser le cadre juridique du groupement et son actualisation.",
+      "owner": "Mixte",
+      "processFamily": "Management",
+      "macroProcess": "Piloter la gouvernance financière et le contrôle interne"
+    },
+    {
+      "id": "ORG-NOM",
+      "title": "Nomination et accréditation",
+      "domain": "Organisation",
+      "icon": "fa-user-check",
+      "questionIds": [
+        "0-1-0",
+        "0-1-1",
+        "0-1-2",
+        "0-1-3"
+      ],
+      "steps": [
+        "Nomination / prestation de serment",
+        "Collecte des arrêtés",
+        "Accréditation des ordonnateurs",
+        "Conservation des preuves",
+        "Revue lors des changements"
+      ],
+      "description": "S’assurer que chaque acteur dispose d’un fondement juridique valide.",
+      "owner": "Mixte",
+      "processFamily": "Management",
+      "macroProcess": "Piloter la gouvernance financière et le contrôle interne"
+    },
+    {
+      "id": "ORG-OFN",
+      "title": "Organigramme fonctionnel nominatif",
+      "domain": "Organisation",
+      "icon": "fa-sitemap",
+      "questionIds": [
+        "0-2-0",
+        "0-2-1",
+        "0-2-2",
+        "0-2-3",
+        "0-2-4",
+        "0-2-5"
+      ],
+      "steps": [
+        "Recenser les fonctions",
+        "Affecter les titulaires",
+        "Prévoir les suppléances",
+        "Mettre à jour les fiches de poste",
+        "Diffuser l’OFN",
+        "Former les agents",
+        "Revoir à chaque changement"
+      ],
+      "description": "Formaliser qui fait quoi, avec quelles responsabilités et suppléances.",
+      "owner": "Mixte",
+      "processFamily": "Management",
+      "macroProcess": "Piloter l’organisation et les responsabilités"
+    },
+    {
+      "id": "ORG-DEL",
+      "title": "Délégations, mandats et suppléances",
+      "domain": "Organisation",
+      "icon": "fa-file-signature",
+      "questionIds": [
+        "0-3-0",
+        "0-3-1",
+        "0-3-2",
+        "0-3-3",
+        "0-3-4",
+        "0-3-5",
+        "0-3-6"
+      ],
+      "steps": [
+        "Identifier le besoin de délégation",
+        "Vérifier la compétence délégable",
+        "Rédiger l’acte / mandat",
+        "Signer et dater",
+        "Transmettre à l’autre sphère",
+        "Mettre à jour l’OFN",
+        "Réviser à chaque changement"
+      ],
+      "description": "Sécuriser les actes de délégation et les mandats.",
+      "owner": "Mixte",
+      "processFamily": "Management",
+      "macroProcess": "Piloter l’organisation et les responsabilités"
+    },
+    {
+      "id": "ORG-HAB",
+      "title": "Habilitations informatiques",
+      "domain": "Organisation",
+      "icon": "fa-user-lock",
+      "questionIds": [
+        "0-4-0",
+        "0-4-1",
+        "0-4-2",
+        "0-4-3",
+        "0-4-4",
+        "0-4-5",
+        "0-4-6",
+        "0-4-7"
+      ],
+      "steps": [
+        "Partir des missions / délégations",
+        "Attribuer un compte personnel",
+        "Définir le profil minimal",
+        "Tester l’accès",
+        "Tracer l’habilitation",
+        "Revoir lors des mouvements",
+        "Retirer les droits caducs",
+        "Sensibiliser au risque cyber"
+      ],
+      "description": "Aligner les droits applicatifs sur les responsabilités réelles.",
+      "owner": "Mixte",
+      "processFamily": "Support",
+      "macroProcess": "Administrer les habilitations et la sécurité numérique"
+    },
+    {
+      "id": "ORG-CIF",
+      "title": "Documentation et plan de contrôle interne",
+      "domain": "Organisation",
+      "icon": "fa-list-check",
+      "questionIds": [
+        "0-5-0",
+        "0-5-1",
+        "0-5-2",
+        "0-5-3",
+        "0-5-4",
+        "0-5-5"
+      ],
+      "steps": [
+        "Identifier les processus critiques",
+        "Rédiger les procédures",
+        "Définir les contrôles clés",
+        "Planifier les contrôles",
+        "Réaliser et tracer",
+        "Analyser les écarts",
+        "Mettre à jour la cartographie",
+        "Présenter le bilan"
+      ],
+      "description": "Passer de la cartographie des risques à un plan de contrôle documenté.",
+      "owner": "Mixte",
+      "processFamily": "Management",
+      "macroProcess": "Piloter la gouvernance financière et le contrôle interne"
+    },
+    {
+      "id": "ORG-ARC",
+      "title": "Archivage, sauvegarde et continuité",
+      "domain": "Organisation",
+      "icon": "fa-box-archive",
+      "questionIds": [
+        "0-6-0",
+        "0-6-1",
+        "0-6-2",
+        "0-6-3",
+        "0-6-4",
+        "0-6-5",
+        "0-6-6"
+      ],
+      "steps": [
+        "Identifier les documents / données",
+        "Définir la durée et le support",
+        "Classer et nommer",
+        "Sauvegarder",
+        "Tester la restauration",
+        "Contrôler les accès",
+        "Éliminer selon les règles",
+        "Réviser le dispositif"
+      ],
+      "description": "Garantir disponibilité, intégrité et traçabilité des documents et données.",
+      "owner": "Mixte",
+      "processFamily": "Support",
+      "macroProcess": "Gérer l’information, l’archivage et la continuité"
+    },
+    {
+      "id": "ORG-FORM",
+      "title": "Formation et sensibilisation",
+      "domain": "Organisation",
+      "icon": "fa-graduation-cap",
+      "questionIds": [
+        "0-7-0",
+        "0-7-1",
+        "0-7-2"
+      ],
+      "steps": [
+        "Identifier les compétences attendues",
+        "Évaluer les besoins",
+        "Programmer la formation",
+        "Former / accompagner",
+        "Conserver les preuves",
+        "Évaluer l’appropriation"
+      ],
+      "description": "Maintenir les compétences nécessaires aux tâches financières.",
+      "owner": "Mixte",
+      "processFamily": "Support",
+      "macroProcess": "Développer les compétences et professionnaliser les acteurs"
+    },
+    {
+      "id": "BUD-PREP",
+      "title": "Préparation et adoption du budget",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-chart-pie",
+      "questionIds": [
+        "1-0-0",
+        "1-0-1",
+        "1-0-2",
+        "1-0-3",
+        "1-0-4",
+        "1-0-5",
+        "1-0-6",
+        "1-0-7",
+        "1-0-8",
+        "1-0-9"
+      ],
+      "steps": [
+        "Collecter les notifications et prévisions",
+        "Construire les hypothèses",
+        "Répartir ALO / SRH",
+        "Rédiger le rapport budgétaire",
+        "Présenter au CA",
+        "Adopter",
+        "Transmettre les actes",
+        "Contrôler la prise en compte"
+      ],
+      "description": "Construire un budget sincère, documenté et régulièrement adopté.",
+      "owner": "Ordonnateur",
+      "processFamily": "Management",
+      "macroProcess": "Piloter la stratégie budgétaire et financière"
+    },
+    {
+      "id": "BUD-SUIV",
+      "title": "Suivi budgétaire et DBM",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-arrows-rotate",
+      "questionIds": [
+        "1-0-10",
+        "1-0-11",
+        "1-0-12",
+        "1-0-13",
+        "1-0-14",
+        "1-0-15",
+        "1-0-16",
+        "1-0-17",
+        "1-0-18",
+        "1-0-19",
+        "1-0-20"
+      ],
+      "steps": [
+        "Suivre l’exécution et les crédits",
+        "Analyser les écarts",
+        "Identifier le type de DBM",
+        "Préparer l’ajustement",
+        "Présenter / informer le CA",
+        "Transmettre à l’AC",
+        "Mettre à jour le FDR",
+        "Recontrôler les ouvertures"
+      ],
+      "description": "Piloter les ajustements budgétaires en cours d’exercice.",
+      "owner": "Mixte",
+      "processFamily": "Management",
+      "macroProcess": "Piloter la stratégie budgétaire et financière"
+    },
+    {
+      "id": "DEP-TIERS",
+      "title": "Tiers fournisseurs et RIB",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-address-card",
+      "questionIds": [
+        "1-1-0",
+        "1-1-1",
+        "1-1-2",
+        "1-1-3"
+      ],
+      "steps": [
+        "Créer / identifier le tiers",
+        "Utiliser SIRENE si applicable",
+        "Collecter le RIB",
+        "Vérifier par canal indépendant",
+        "Créer une nouvelle domiciliation",
+        "Contrôler l’affacturage",
+        "Valider et tracer"
+      ],
+      "description": "Réduire le risque de fraude au RIB et d’erreur de tiers.",
+      "owner": "Ordonnateur",
+      "processFamily": "Support",
+      "macroProcess": "Administrer les référentiels tiers et données financières"
+    },
+    {
+      "id": "DEP-ACH",
+      "title": "Achat public et fonds sociaux",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-cart-shopping",
+      "questionIds": [
+        "1-1-4",
+        "1-1-5",
+        "1-1-6",
+        "1-1-7",
+        "1-1-8",
+        "1-1-9"
+      ],
+      "steps": [
+        "Expression du besoin",
+        "Vérifier seuil / procédure",
+        "Programmer l’achat",
+        "Mettre en concurrence",
+        "Formaliser l’écrit",
+        "Faire signer / notifier",
+        "Tracer la décision",
+        "Cas fonds social : décision et PV"
+      ],
+      "description": "Sécuriser la commande publique avant engagement.",
+      "owner": "Ordonnateur",
+      "processFamily": "Métier",
+      "macroProcess": "Acheter et exécuter la dépense"
+    },
+    {
+      "id": "DEP-EJ",
+      "title": "Engagement juridique et avances",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-file-contract",
+      "questionIds": [
+        "1-1-10",
+        "1-1-11",
+        "1-1-12",
+        "1-1-13",
+        "1-1-14"
+      ],
+      "steps": [
+        "Créer l’EJ / EJM avant commande",
+        "Joindre devis / contrat",
+        "Choisir l’article / imputation",
+        "Traiter avance ou acompte",
+        "Rappeler l’EJ d’origine",
+        "Suivre le solde de l’engagement"
+      ],
+      "description": "Garantir l’engagement préalable et le suivi des acomptes.",
+      "owner": "Ordonnateur",
+      "processFamily": "Métier",
+      "macroProcess": "Acheter et exécuter la dépense"
+    },
+    {
+      "id": "DEP-SF",
+      "title": "Service fait, facture et liquidation",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-receipt",
+      "questionIds": [
+        "1-1-15",
+        "1-1-16",
+        "1-1-17",
+        "1-1-18",
+        "1-1-19",
+        "1-1-20",
+        "1-1-21",
+        "1-1-22",
+        "1-1-23",
+        "1-1-24"
+      ],
+      "steps": [
+        "Réceptionner la prestation",
+        "Vérifier matériellement le service fait",
+        "Dater et viser le BL",
+        "Importer / contrôler Chorus Pro",
+        "Liquider la facture",
+        "Contrôler RIB / moyen de règlement",
+        "Joindre les PJ",
+        "Suivre les pièces bloquées",
+        "Respecter les délais"
+      ],
+      "description": "S’assurer que la dépense correspond à une prestation réelle et correctement liquidée.",
+      "owner": "Ordonnateur",
+      "processFamily": "Métier",
+      "macroProcess": "Acheter et exécuter la dépense"
+    },
+    {
+      "id": "DEP-PAY",
+      "title": "Prise en charge comptable et paiement",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-money-check-dollar",
+      "questionIds": [
+        "1-1-25",
+        "1-1-26",
+        "1-1-27",
+        "1-1-28",
+        "1-1-29",
+        "1-1-30"
+      ],
+      "steps": [
+        "Recevoir la DP",
+        "Contrôler le signataire",
+        "Appliquer le plan de contrôle",
+        "Vérifier le caractère libératoire",
+        "Contrôler délais / intérêts",
+        "Régulariser acomptes et avoirs",
+        "Rapprocher DP / avoir",
+        "Mettre en paiement"
+      ],
+      "description": "Sécuriser les contrôles comptables avant paiement.",
+      "owner": "Comptable",
+      "processFamily": "Métier",
+      "macroProcess": "Acheter et exécuter la dépense"
+    },
+    {
+      "id": "REC-TIERS",
+      "title": "Tiers recettes, pièces et subventions",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-folder-open",
+      "questionIds": [
+        "1-2-0",
+        "1-2-1",
+        "1-2-2",
+        "1-2-3",
+        "1-2-4",
+        "1-2-5"
+      ],
+      "steps": [
+        "Importer / créer le tiers",
+        "Contrôler les données",
+        "Définir PJ et articles",
+        "Classer les notifications",
+        "Partager l’archivage",
+        "Transmettre les subventions à l’AC"
+      ],
+      "description": "Organiser les données de base et les justificatifs de recette.",
+      "owner": "Mixte",
+      "processFamily": "Support",
+      "macroProcess": "Administrer les référentiels tiers et données financières"
+    },
+    {
+      "id": "REC-TAR",
+      "title": "Tarifs, voyages et autorisations",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-tags",
+      "questionIds": [
+        "1-2-6",
+        "1-2-7",
+        "1-2-8"
+      ],
+      "steps": [
+        "Définir le tarif / participation",
+        "Faire adopter l’acte",
+        "Construire le budget du voyage",
+        "Informer les familles",
+        "Exécuter l’opération",
+        "Présenter le bilan au CA"
+      ],
+      "description": "Donner une base juridique et financière aux recettes spécifiques.",
+      "owner": "Ordonnateur",
+      "processFamily": "Métier",
+      "macroProcess": "Constater, liquider et recouvrer les recettes"
+    },
+    {
+      "id": "REC-TR",
+      "title": "Émission et liquidation des titres",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-file-invoice-dollar",
+      "questionIds": [
+        "1-2-9",
+        "1-2-10",
+        "1-2-11"
+      ],
+      "steps": [
+        "Identifier le fait générateur",
+        "Calculer la créance",
+        "Émettre le titre périodiquement",
+        "Joindre les PJ",
+        "Liquider / valider",
+        "Transmettre au comptable"
+      ],
+      "description": "Émettre des recettes complètes, justifiées et régulières.",
+      "owner": "Ordonnateur",
+      "processFamily": "Métier",
+      "macroProcess": "Constater, liquider et recouvrer les recettes"
+    },
+    {
+      "id": "REC-GFE",
+      "title": "GFE, frais scolaires et remises d’ordre",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-school",
+      "questionIds": [
+        "1-2-12",
+        "1-2-13",
+        "1-2-14",
+        "1-2-15",
+        "1-2-16",
+        "1-2-17"
+      ],
+      "steps": [
+        "Préparer les constatations",
+        "Appliquer les remises d’ordre",
+        "Contrôler les logs d’interface",
+        "Comparer GFE et titres",
+        "Corriger les anomalies",
+        "Joindre les PJ",
+        "Envoyer le flux à l’ordonnateur"
+      ],
+      "description": "Fiabiliser le cycle des droits constatés et des frais scolaires.",
+      "owner": "Mixte",
+      "processFamily": "Métier",
+      "macroProcess": "Gérer les droits constatés, le SRH et les frais scolaires"
+    },
+    {
+      "id": "REC-PME",
+      "title": "Porte-monnaie électronique / restauration",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-utensils",
+      "questionIds": [
+        "1-2-18",
+        "1-2-19",
+        "1-2-20"
+      ],
+      "steps": [
+        "Extraire les consommations",
+        "Valider les éditions",
+        "Émettre les titres mensuels",
+        "Comparer logiciel et OP@LE",
+        "Corriger les écarts",
+        "Archiver la validation"
+      ],
+      "description": "Rapprocher consommations et recettes du SRH.",
+      "owner": "Mixte",
+      "processFamily": "Métier",
+      "macroProcess": "Gérer les droits constatés, le SRH et les frais scolaires"
+    },
+    {
+      "id": "REC-PC",
+      "title": "Prise en charge comptable des recettes",
+      "domain": "Exécution budgétaire",
+      "icon": "fa-stamp",
+      "questionIds": [
+        "1-2-21",
+        "1-2-22",
+        "1-2-23",
+        "1-2-24",
+        "1-2-25",
+        "1-2-26",
+        "1-2-27"
+      ],
+      "steps": [
+        "Suivre les titres en cours",
+        "Contrôler le signataire",
+        "Contrôler PJ et liquidation",
+        "Déclasser les avances",
+        "Prendre en charge",
+        "Rapprocher avances / titres",
+        "Contrôler les soldes",
+        "Envoyer les ASAP"
+      ],
+      "description": "Sécuriser la prise en charge et le suivi comptable des recettes.",
+      "owner": "Comptable",
+      "processFamily": "Métier",
+      "macroProcess": "Constater, liquider et recouvrer les recettes"
+    },
+    {
+      "id": "TRE-CAIS",
+      "title": "Trésorerie, caisse, chèques et dépôts",
+      "domain": "Comptabilité Générale",
+      "icon": "fa-vault",
+      "questionIds": [
+        "2-0-0",
+        "2-0-1",
+        "2-0-2",
+        "2-0-3",
+        "2-0-4",
+        "2-0-5",
+        "2-0-6",
+        "2-0-7",
+        "2-0-8",
+        "2-0-9",
+        "2-0-10",
+        "2-0-11",
+        "2-0-12"
+      ],
+      "steps": [
+        "Contrôler le DFT / rapprochement",
+        "Organiser la caisse",
+        "Préparer le dépôt",
+        "Séparer préparation / transport / enregistrement",
+        "Déposer à la Banque Postale",
+        "Archiver le récépissé",
+        "Traiter les manquants",
+        "Envoyer les chèques au STC",
+        "Contrôler le retour en valeur"
+      ],
+      "description": "Sécuriser les moyens de paiement et les mouvements de trésorerie.",
+      "owner": "Comptable",
+      "processFamily": "Métier",
+      "macroProcess": "Gérer la trésorerie et les moyens de paiement"
+    },
+    {
+      "id": "TRE-SEPA",
+      "title": "Télépaiement, SEPA et rejets",
+      "domain": "Comptabilité Générale",
+      "icon": "fa-building-columns",
+      "questionIds": [
+        "2-0-13",
+        "2-0-14",
+        "2-0-15",
+        "2-0-16",
+        "2-0-17",
+        "2-0-18",
+        "2-0-19",
+        "2-0-20",
+        "2-0-21"
+      ],
+      "steps": [
+        "Intégrer les flux de télépaiement",
+        "Traiter les flux bloqués",
+        "Collecter le mandat SEPA",
+        "Identifier le responsable financier",
+        "Créer la domiciliation",
+        "Informer des échéances",
+        "Exécuter le prélèvement",
+        "Traiter les rejets",
+        "Clôturer / archiver le mandat"
+      ],
+      "description": "Fiabiliser les prélèvements et les encaissements dématérialisés.",
+      "owner": "Comptable",
+      "processFamily": "Métier",
+      "macroProcess": "Gérer la trésorerie et les moyens de paiement"
+    },
+    {
+      "id": "CPT-FLUX",
+      "title": "Prise en charge des flux budgétaires",
+      "domain": "Comptabilité Générale",
+      "icon": "fa-right-left",
+      "questionIds": [
+        "2-1-0",
+        "2-1-1",
+        "2-1-2",
+        "2-1-3",
+        "2-1-4",
+        "2-1-5"
+      ],
+      "steps": [
+        "Recevoir le flux de dépense / recette",
+        "Contrôler imputation et crédits",
+        "Séparer prise en charge et règlement",
+        "Prendre en charge",
+        "Tracer le contrôle",
+        "Traiter les anomalies"
+      ],
+      "description": "Formaliser les contrôles sur les flux budgétaires.",
+      "owner": "Comptable",
+      "processFamily": "Métier",
+      "macroProcess": "Tenir et contrôler la comptabilité générale"
+    },
+    {
+      "id": "CPT-BOUR",
+      "title": "Bourses nationales",
+      "domain": "Comptabilité Générale",
+      "icon": "fa-user-graduate",
+      "questionIds": [
+        "2-2-0",
+        "2-2-1",
+        "2-2-2",
+        "2-2-3",
+        "2-2-4",
+        "2-2-5",
+        "2-2-6",
+        "2-2-7",
+        "2-2-8"
+      ],
+      "steps": [
+        "Contrôler le flux GFE",
+        "Archiver les attributions",
+        "Traiter les régularisations",
+        "Rapprocher le 443110",
+        "Appliquer déductibilité / compensation",
+        "Contrôler les RIB",
+        "Régler à terme échu",
+        "Traiter les rejets"
+      ],
+      "description": "Sécuriser les opérations pour compte de tiers relatives aux bourses.",
+      "owner": "Mixte",
+      "processFamily": "Métier",
+      "macroProcess": "Gérer les opérations pour compte de tiers"
+    },
+    {
+      "id": "CPT-JRN",
+      "title": "Contrôle des journaux et écritures",
+      "domain": "Comptabilité Générale",
+      "icon": "fa-book",
+      "questionIds": [
+        "2-3-0",
+        "2-3-1",
+        "2-3-2",
+        "2-3-3",
+        "2-3-4",
+        "2-3-5",
+        "2-3-6"
+      ],
+      "steps": [
+        "Planifier le contrôle",
+        "Extraire les journaux",
+        "Analyser les écritures",
+        "Identifier les anomalies",
+        "Contrepasser si nécessaire",
+        "Traiter les écritures créées",
+        "Contrôler rapprochements et lettrages",
+        "Tracer le contrôle"
+      ],
+      "description": "Mettre en œuvre une supervision comptable périodique.",
+      "owner": "Comptable",
+      "processFamily": "Métier",
+      "macroProcess": "Tenir et contrôler la comptabilité générale"
+    },
+    {
+      "id": "CPT-BAL",
+      "title": "Balance, soldes et analyse financière",
+      "domain": "Comptabilité Générale",
+      "icon": "fa-scale-balanced",
+      "questionIds": [
+        "2-4-0",
+        "2-4-1",
+        "2-4-2",
+        "2-4-3",
+        "2-4-4",
+        "2-4-5",
+        "2-4-6"
+      ],
+      "steps": [
+        "Extraire balance et développements",
+        "Analyser les soldes",
+        "Identifier les comptes techniques",
+        "Traiter les soldes anormaux",
+        "Partager avec le SG",
+        "Calculer les indicateurs",
+        "Comparer aux seuils d’alerte",
+        "Formaliser l’analyse"
+      ],
+      "description": "Transformer la balance en outil de pilotage et d’alerte.",
+      "owner": "Mixte",
+      "processFamily": "Management",
+      "macroProcess": "Piloter la qualité comptable et la situation financière"
+    },
+    {
+      "id": "CPT-CLOT",
+      "title": "Travaux de fin d’exercice",
+      "domain": "Comptabilité Générale",
+      "icon": "fa-calendar-check",
+      "questionIds": [
+        "2-5-0",
+        "2-5-1",
+        "2-5-2",
+        "2-5-3",
+        "2-5-4",
+        "2-5-5",
+        "2-5-6"
+      ],
+      "steps": [
+        "Recenser les opérations d’inventaire",
+        "Évaluer les stocks",
+        "Identifier CAP / PAR",
+        "Identifier CCA / PCA",
+        "Valider subventions amorties",
+        "Valider cessions d’actifs",
+        "Contrôler amortissements",
+        "Documenter la clôture"
+      ],
+      "description": "Fiabiliser les écritures d’inventaire avant compte financier.",
+      "owner": "Mixte",
+      "processFamily": "Métier",
+      "macroProcess": "Clôturer l’exercice et produire le compte financier"
+    },
+    {
+      "id": "REG-PERM",
+      "title": "Régies permanentes",
+      "domain": "Régies",
+      "icon": "fa-cash-register",
+      "questionIds": [
+        "3-0-0",
+        "3-0-1",
+        "3-0-2",
+        "3-0-3",
+        "3-0-4",
+        "3-0-5",
+        "3-0-6",
+        "3-0-7",
+        "3-0-8",
+        "3-0-9",
+        "3-0-10",
+        "3-0-11",
+        "3-0-12",
+        "3-0-13",
+        "3-0-14",
+        "3-0-15"
+      ],
+      "steps": [
+        "Créer / actualiser l’acte",
+        "Nommer régisseur et suppléant",
+        "Mettre à disposition l’avance",
+        "Exécuter recettes / dépenses autorisées",
+        "Saisir et justifier",
+        "Déposer les fonds / chèques",
+        "Régulariser avec l’AC",
+        "Rapprocher le 545",
+        "Contrôler sur place",
+        "Établir le PV",
+        "Organiser la remise de service"
+      ],
+      "description": "Piloter le cycle complet d’une régie permanente.",
+      "owner": "Mixte",
+      "processFamily": "Métier",
+      "macroProcess": "Gérer les régies et opérations de proximité"
+    },
+    {
+      "id": "REG-TEMP",
+      "title": "Régies temporaires",
+      "domain": "Régies",
+      "icon": "fa-credit-card",
+      "questionIds": [
+        "3-1-0",
+        "3-1-1",
+        "3-1-2",
+        "3-1-3",
+        "3-1-4",
+        "3-1-5",
+        "3-1-6",
+        "3-1-7",
+        "3-1-8"
+      ],
+      "steps": [
+        "Créer l’acte temporaire",
+        "Informer le régisseur",
+        "Désigner un suppléant",
+        "Remettre avance / carte",
+        "Suivre les opérations",
+        "Collecter les justificatifs",
+        "Restituer carte et pièces",
+        "Régulariser le solde",
+        "Clôturer le 543200",
+        "Établir le PV de fin"
+      ],
+      "description": "Encadrer une régie temporaire de la création à la clôture.",
+      "owner": "Mixte",
+      "processFamily": "Métier",
+      "macroProcess": "Gérer les régies et opérations de proximité"
+    },
+    {
+      "id": "PAT-ACQ",
+      "title": "Acquisition et amortissement des immobilisations",
+      "domain": "Patrimoine stocks Domaine",
+      "icon": "fa-building",
+      "questionIds": [
+        "4-0-0",
+        "4-0-1",
+        "4-0-2",
+        "4-0-3",
+        "4-0-4",
+        "4-0-5"
+      ],
+      "steps": [
+        "Autoriser l’acquisition",
+        "Qualifier immobilisation / charge",
+        "Déterminer la valeur d’entrée",
+        "Créer la fiche d’immobilisation",
+        "Faire approuver le plan d’amortissement",
+        "Mettre en service",
+        "Rattacher le financement"
+      ],
+      "description": "Sécuriser l’entrée au patrimoine et le plan d’amortissement.",
+      "owner": "Mixte",
+      "processFamily": "Métier",
+      "macroProcess": "Gérer le patrimoine, les immobilisations et les stocks"
+    },
+    {
+      "id": "PAT-INV",
+      "title": "Inventaire, contrôle et sortie des immobilisations",
+      "domain": "Patrimoine stocks Domaine",
+      "icon": "fa-barcode",
+      "questionIds": [
+        "4-0-6",
+        "4-0-7",
+        "4-0-8",
+        "4-0-9",
+        "4-0-10",
+        "4-0-11",
+        "4-0-12",
+        "4-0-13",
+        "4-0-14"
+      ],
+      "steps": [
+        "Localiser et identifier les biens",
+        "Rapprocher inventaire physique / comptable",
+        "Marquer les biens",
+        "Contrôler mise en service",
+        "Vérifier subventions",
+        "Identifier réforme / cession",
+        "Faire autoriser par le CA",
+        "Archiver les pièces de sortie",
+        "Valider amortissements"
+      ],
+      "description": "Maintenir un inventaire fiable jusqu’à la sortie d’actif.",
+      "owner": "Mixte",
+      "processFamily": "Métier",
+      "macroProcess": "Gérer le patrimoine, les immobilisations et les stocks"
+    },
+    {
+      "id": "PAT-STK",
+      "title": "Gestion des stocks",
+      "domain": "Patrimoine stocks Domaine",
+      "icon": "fa-boxes-stacked",
+      "questionIds": [
+        "4-1-0",
+        "4-1-1",
+        "4-1-2",
+        "4-1-3",
+        "4-1-4",
+        "4-1-5",
+        "4-1-6",
+        "4-1-7",
+        "4-1-8",
+        "4-1-9",
+        "4-1-10"
+      ],
+      "steps": [
+        "Identifier les stocks",
+        "Sécuriser les accès",
+        "Définir la méthode de valorisation",
+        "Tracer entrées / sorties",
+        "Contrôler les mouvements",
+        "Traiter obsolescence / déchets",
+        "Valoriser productions",
+        "Réaliser l’inventaire physique",
+        "Rapprocher avec la comptabilité",
+        "Archiver et passer les écritures de fin d’exercice"
+      ],
+      "description": "Maîtriser existence, valorisation et mouvements des stocks.",
+      "owner": "Mixte",
+      "processFamily": "Métier",
+      "macroProcess": "Gérer le patrimoine, les immobilisations et les stocks"
+    },
+    {
+      "id": "PAT-VEH",
+      "title": "Véhicules de service",
+      "domain": "Patrimoine stocks Domaine",
+      "icon": "fa-car",
+      "questionIds": [
+        "4-2-0",
+        "4-2-1",
+        "4-2-2",
+        "4-2-3"
+      ],
+      "steps": [
+        "Formaliser une charte d’usage",
+        "Autoriser les utilisateurs",
+        "Tracer trajets / kilométrage / carburant",
+        "Entretenir et restituer",
+        "Contrôler périodiquement",
+        "Archiver les contrôles"
+      ],
+      "description": "Encadrer l’utilisation des véhicules de service.",
+      "owner": "Ordonnateur",
+      "processFamily": "Support",
+      "macroProcess": "Gérer les moyens généraux et ressources matérielles"
+    },
+    {
+      "id": "PAT-LOC",
+      "title": "Mise à disposition des locaux",
+      "domain": "Patrimoine stocks Domaine",
+      "icon": "fa-door-open",
+      "questionIds": [
+        "4-3-0",
+        "4-3-1",
+        "4-3-2",
+        "4-3-3"
+      ],
+      "steps": [
+        "Qualifier l’usage",
+        "Établir la convention",
+        "Faire voter le CA",
+        "Associer la collectivité",
+        "Calculer la redevance",
+        "Émettre les titres",
+        "Contrôler les pièces",
+        "Archiver"
+      ],
+      "description": "Sécuriser les occupations de locaux hors usage pédagogique.",
+      "owner": "Ordonnateur",
+      "processFamily": "Support",
+      "macroProcess": "Gérer les moyens généraux et ressources matérielles"
+    },
+    {
+      "id": "PAT-LOG",
+      "title": "Logements de fonction",
+      "domain": "Patrimoine stocks Domaine",
+      "icon": "fa-house",
+      "questionIds": [
+        "4-4-0",
+        "4-4-1",
+        "4-4-2",
+        "4-4-3",
+        "4-4-4",
+        "4-4-5",
+        "4-4-6"
+      ],
+      "steps": [
+        "Recenser NAS / COP",
+        "Faire émettre l’avis du CA",
+        "Conserver les titres d’occupation",
+        "Détecter occupations sans titre",
+        "Liquider les redevances",
+        "Traiter les échéanciers",
+        "Contrôler conventions et tarifs",
+        "Suivre les dépassements",
+        "Émettre les titres complémentaires"
+      ],
+      "description": "Assurer la régularité juridique et financière des logements.",
+      "owner": "Mixte",
+      "processFamily": "Support",
+      "macroProcess": "Gérer les moyens généraux et ressources matérielles"
+    },
+    {
+      "id": "REC-AMI",
+      "title": "Recouvrement amiable et encaissements",
+      "domain": "Contentieux",
+      "icon": "fa-envelope-open-text",
+      "questionIds": [
+        "5-0-0",
+        "5-0-1",
+        "5-0-2",
+        "5-0-3",
+        "5-0-4",
+        "5-0-5",
+        "5-0-6",
+        "5-0-7",
+        "5-0-8"
+      ],
+      "steps": [
+        "Planifier les relances",
+        "Attribuer le suivi",
+        "Partager la liste des créances",
+        "Relancer selon calendrier",
+        "Accorder / formaliser un échéancier",
+        "Surveiller la prescription",
+        "Enregistrer l’encaissement",
+        "Contrôler tiers payeur",
+        "Rapprocher le titre"
+      ],
+      "description": "Organiser le recouvrement avant toute mesure forcée.",
+      "owner": "Mixte",
+      "processFamily": "Métier",
+      "macroProcess": "Constater, liquider et recouvrer les recettes"
+    },
+    {
+      "id": "REC-FOR",
+      "title": "Recouvrement forcé et provisionnement",
+      "domain": "Contentieux",
+      "icon": "fa-gavel",
+      "questionIds": [
+        "5-0-9",
+        "5-0-10",
+        "5-0-11",
+        "5-0-12",
+        "5-0-13",
+        "5-0-14",
+        "5-0-15"
+      ],
+      "steps": [
+        "Identifier la créance à basculer",
+        "Passer au 416",
+        "Vérifier fonds social / situation",
+        "Notifier l’avis avant poursuite",
+        "Demander autorisation si nécessaire",
+        "Choisir la poursuite",
+        "Constituer le dossier de preuve",
+        "Suivre l’exécution",
+        "Proposer une provision si nécessaire"
+      ],
+      "description": "Sécuriser juridiquement le passage au contentieux.",
+      "owner": "Mixte",
+      "processFamily": "Métier",
+      "macroProcess": "Gérer le contentieux et les créances à risque"
+    },
+    {
+      "id": "REC-ANV",
+      "title": "Admission en non-valeur et remise gracieuse",
+      "domain": "Contentieux",
+      "icon": "fa-file-circle-xmark",
+      "questionIds": [
+        "5-1-0",
+        "5-1-1",
+        "5-1-2",
+        "5-1-3"
+      ],
+      "steps": [
+        "Identifier les créances candidates",
+        "Constituer les justificatifs",
+        "Transmettre à l’ordonnateur",
+        "Présenter au CA si nécessaire",
+        "Instruire la remise gracieuse",
+        "Décider",
+        "Enregistrer dans OP@LE / DCP",
+        "Rattacher au titre initial",
+        "Archiver et suivre"
+      ],
+      "description": "Tracer les décisions d’extinction ou d’allègement de créances.",
+      "owner": "Mixte",
+      "processFamily": "Métier",
+      "macroProcess": "Gérer le contentieux et les créances à risque"
+    }
+  ]
+}

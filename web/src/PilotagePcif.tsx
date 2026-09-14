@@ -1,3 +1,4 @@
+import { OrganisationPcif } from "./OrganisationPcif";
 import React,{useEffect,useMemo,useState}from"react";
 import{api,type Campaign,type Establishment,type Me,type PcifAction,type PilotageData,type PilotageQuestion}from"./api";
 
@@ -16,7 +17,7 @@ function residual(q:PilotageQuestion){const f=factor(q.value);return f===null?0:
 function sev(n:number){return n>=6?["crit","Critique"]:n>=4?["high","Élevé"]:n>=2?["med","Modéré"]:["low","Faible"]}
 
 export function PilotagePcif({campaign,establishment,me,onBack}:{campaign:Campaign;establishment:Establishment;me:Me;onBack:()=>void}){
- const[data,setData]=useState<PilotageData|null>(null),[tab,setTab]=useState<"dashboard"|"diagnostic"|"risks"|"annual"|"workshops">("dashboard");
+ const[data,setData]=useState<PilotageData|null>(null),[tab,setTab]=useState<"dashboard"|"diagnostic"|"risks"|"annual"|"workshops"|"organisation">("dashboard");
  const[scope,setScope]=useState<"both"|"O"|"C">("both"),[mode,setMode]=useState<"all"|"sprint"|"critical"|"unanswered">("all"),[domain,setDomain]=useState("TOUS"),[idx,setIdx]=useState(0);
  async function load(){setData(await api.pilotage(campaign.id))}
  useEffect(()=>{load()},[campaign.id]);
@@ -63,12 +64,14 @@ export function PilotagePcif({campaign,establishment,me,onBack}:{campaign:Campai
    <button className={tab==="risks"?"active":""} onClick={()=>setTab("risks")}>Risques</button>
    <button className={tab==="annual"?"active":""} onClick={()=>setTab("annual")}>Programme annuel</button>
    <button className={tab==="workshops"?"active":""} onClick={()=>setTab("workshops")}>Ateliers 4 × 60</button>
+   <button className={tab==="organisation"?"active":""} onClick={()=>setTab("organisation")}>ONF & Processus</button>
   </nav>
   {tab==="dashboard"&&<Dashboard qs={qs} metrics={metrics} answered={answered} critical={critical} mastery={mastery} coverage={coverage} actions={data.actions} workshops={data.workshops} go={setTab}/>}
   {tab==="diagnostic"&&<Diagnostic qs={qs} campaignId={campaign.id} mode={mode} setMode={setMode} domain={domain} setDomain={setDomain} idx={idx} setIdx={setIdx} reload={load}/>}
   {tab==="risks"&&<RiskView qs={qs}/>}
   {tab==="annual"&&<Annual data={data} campaignId={campaign.id} reload={load}/>}
   {tab==="workshops"&&<Workshops data={data} campaignId={campaign.id} reload={load}/>}
+  {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id}/>}
  </div>
 }
 

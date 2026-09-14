@@ -24,6 +24,14 @@ export type PcifAction = {
 export type WorkshopProgress = {campaign_id:string;workshop_no:number;completed:boolean;notes:string};
 export type PilotageData = {questions:PilotageQuestion[];actions:PcifAction[];workshops:WorkshopProgress[]};
 
+
+export type OfnActor={id:string;campaign_id:string;name:string;role:string;function_code:string};
+export type OfnAssignment={id:string;campaign_id:string;operation_id:string;actor_id:string;direct_action:boolean;delegation:boolean;substitution:boolean;ring?:string|null;note:string};
+export type OfnOperation={id:string;name:string;category:string;subcategory:string;sphere:string;processIds?:string[]};
+export type PcifProcess={id:string;title:string;domain:string;icon?:string;questionIds:string[];steps:string[];description:string;owner:string;processFamily?:string;macroProcess?:string};
+export type ProcessReview={campaign_id:string;process_id:string;priority:boolean;status:"A_EXAMINER"|"EN_COURS"|"SECURISE";note:string};
+export type OrganisationData={operations:OfnOperation[];processes:PcifProcess[];actors:OfnActor[];assignments:OfnAssignment[];reviews:ProcessReview[]};
+
 export type Establishment = {
   id: string;
   uai: string;
@@ -118,6 +126,12 @@ export const api = {
     request<Campaign[]>(`/api/campaigns?establishmentId=${encodeURIComponent(establishmentId)}`),
   campaign: (id: string) => request<Campaign>(`/api/campaigns/${id}`),
   pilotage: (id:string) => request<PilotageData>(`/api/campaigns/${id}/pilotage`),
+  organisation: (id:string) => request<OrganisationData>(`/api/campaigns/${id}/organisation`),
+  createOfnActor:(campaignId:string,payload:any)=>request<OfnActor>(`/api/campaigns/${campaignId}/ofn/actors`,{method:"POST",body:JSON.stringify(payload)}),
+  deleteOfnActor:(campaignId:string,actorId:string)=>request<void>(`/api/campaigns/${campaignId}/ofn/actors/${actorId}`,{method:"DELETE"}),
+  saveOfnAssignment:(campaignId:string,payload:any)=>request<OfnAssignment>(`/api/campaigns/${campaignId}/ofn/assignments`,{method:"PUT",body:JSON.stringify(payload)}),
+  deleteOfnAssignment:(campaignId:string,id:string)=>request<void>(`/api/campaigns/${campaignId}/ofn/assignments/${id}`,{method:"DELETE"}),
+  saveProcessReview:(campaignId:string,processId:string,payload:any)=>request<ProcessReview>(`/api/campaigns/${campaignId}/processes/${processId}`,{method:"PUT",body:JSON.stringify(payload)}),
   createAction: (campaignId:string,payload:any) => request<PcifAction>(`/api/campaigns/${campaignId}/actions`,{method:"POST",body:JSON.stringify(payload)}),
   updateAction: (campaignId:string,actionId:string,payload:any) => request<PcifAction>(`/api/campaigns/${campaignId}/actions/${actionId}`,{method:"PATCH",body:JSON.stringify(payload)}),
   deleteAction: (campaignId:string,actionId:string) => request<void>(`/api/campaigns/${campaignId}/actions/${actionId}`,{method:"DELETE"}),
