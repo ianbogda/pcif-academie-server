@@ -5,7 +5,8 @@ import jwt from "@fastify/jwt";
 import "dotenv/config";
 import { pool, tx } from "./db.js";
 import { registerAuth, requireUser } from "./auth.js";
-import { establishmentAccess, canWriteSphere } from "./access.js";
+import { establishmentAccess, canWriteSphere, isPlatformAdmin } from "./access.js";
+import { registerAdmin } from "./admin.js";
 import { z } from "zod";
 
 const app = Fastify({ logger: true });
@@ -17,10 +18,11 @@ await app.register(cors, {
 });
 await app.register(jwt, { secret: process.env.JWT_SECRET ?? "INSECURE_DEV_SECRET_CHANGE_ME" });
 await registerAuth(app);
+await registerAdmin(app);
 
 app.get("/health", async () => {
   await pool.query("SELECT 1");
-  return { status: "ok", service: "pcif-academie-server", version: "0.4.1" };
+  return { status: "ok", service: "pcif-academie-server", version: "0.5.0" };
 });
 
 app.get("/api/me", async (request) => {
@@ -42,11 +44,15 @@ app.get("/api/me", async (request) => {
       WHERE uar.user_id=$1 ORDER BY a.name`,
     [user.sub]
   );
-  return { user, establishments: memberships.rows, agencies: agencies.rows };
+  return { user: {...user, isPlatformAdmin: await isPlatformAdmin(user.sub)}, establishments: memberships.rows, agencies: agencies.rows };
 });
 
 app.get("/api/establishments", async (request) => {
   const user = await requireUser(request);
+  if (await isPlatformAdmin(user.sub)) {
+    const { rows } = await pool.query(`SELECT id,uai,name,kind FROM establishments WHERE active=true ORDER BY name`);
+    return rows;
+  }
   const { rows } = await pool.query(
     `SELECT DISTINCT e.id, e.uai, e.name, e.kind
        FROM establishments e

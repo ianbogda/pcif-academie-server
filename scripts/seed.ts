@@ -34,7 +34,8 @@ try {
     ["HEAD","Chef d'établissement"],
     ["SECRETARY_GENERAL","Secrétaire général"],
     ["CONTRIBUTOR","Contributeur"],
-    ["READER","Lecteur"]
+    ["READER","Lecteur"],
+    ["AUDITOR","Auditeur"]
   ];
 
   for (const [code,label] of roles) {
@@ -99,6 +100,7 @@ try {
     "Administrateur plateforme Démo",
     "ChangeMe-ADMIN-2026!"
   );
+  await client.query(`UPDATE users SET is_platform_admin=true WHERE id=$1`, [adminId]);
   const acId = await upsertUser(
     "ac@example.test",
     "Agent comptable Démo",

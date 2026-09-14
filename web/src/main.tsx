@@ -1,462 +1,95 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { api, clearToken, getToken, setToken, type Campaign, type Establishment, type Me, type Question } from "./api";
-import "./styles.css";
+import React,{useEffect,useMemo,useState} from "react";
+import{createRoot}from"react-dom/client";
+import{api,clearToken,getToken,setToken,type AdminUser,type Campaign,type Establishment,type Me,type Question}from"./api";
+import"./styles.css";
 
-type View =
-  | { kind: "home" }
-  | { kind: "establishment"; establishment: Establishment }
-  | { kind: "campaign"; campaign: Campaign };
+type View={kind:"home"}|{kind:"campaign";campaign:Campaign;establishment:Establishment}|{kind:"admin"};
+const demo=[["AC","ac@example.test","ChangeMe-AC-2026!"],["FP","fp@example.test","ChangeMe-FP-2026!"],["CE","ce@example.test","ChangeMe-CE-2026!"],["SGE","sge@example.test","ChangeMe-SGE-2026!"],["Admin","admin@example.test","ChangeMe-ADMIN-2026!"]] as const;
 
-const demoAccounts = [
-  ["Administrateur", "admin@example.test", "ChangeMe-ADMIN-2026!"],
-  ["Agent comptable", "ac@example.test", "ChangeMe-AC-2026!"],
-  ["Fondé de pouvoir", "fp@example.test", "ChangeMe-FP-2026!"],
-  ["Chef d'établissement", "ce@example.test", "ChangeMe-CE-2026!"],
-  ["SGE", "sge@example.test", "ChangeMe-SGE-2026!"]
-] as const;
-
-function App() {
-  const [me, setMe] = useState<Me | null>(null);
-  const [view, setView] = useState<View>({ kind: "home" });
-  const [loading, setLoading] = useState(Boolean(getToken()));
-  const [fatal, setFatal] = useState("");
-
-  async function loadSession() {
-    setLoading(true);
-    try {
-      const data = await api.me();
-      setMe(data);
-      setFatal("");
-    } catch {
-      clearToken();
-      setMe(null);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (getToken()) loadSession();
-    else setLoading(false);
-  }, []);
-
-  if (loading) return <Splash />;
-  if (!me) return <Login onAuthenticated={loadSession} />;
-  if (fatal) return <div className="fatal">{fatal}</div>;
-
-  const logout = () => {
-    clearToken();
-    setMe(null);
-    setView({ kind: "home" });
-  };
-
-  return (
-    <div className="app-shell">
-      <header className="topbar">
-        <button className="brand" onClick={() => setView({ kind: "home" })}>
-          <span className="brand-mark">P</span>
-          <span><strong>PCIF Académie</strong><small>Contrôle interne financier collaboratif</small></span>
-        </button>
-        <div className="user-zone">
-          <div>
-            <strong>{me.user.displayName}</strong>
-            <small>{me.user.email}</small>
-          </div>
-          <button className="btn ghost" onClick={logout}>Déconnexion</button>
-        </div>
-      </header>
-
-      <main className="main">
-        {view.kind === "home" && <Home me={me} onOpen={(e) => setView({ kind: "establishment", establishment: e })} />}
-        {view.kind === "establishment" && (
-          <EstablishmentPage
-            establishment={view.establishment}
-            onBack={() => setView({ kind: "home" })}
-            onOpenCampaign={(c) => setView({ kind: "campaign", campaign: c })}
-          />
-        )}
-        {view.kind === "campaign" && (
-          <CampaignPage
-            campaign={view.campaign}
-            me={me}
-            onBack={async () => {
-              const e = (await api.establishments()).find(x => x.id === view.campaign.establishment_id);
-              if (e) setView({ kind: "establishment", establishment: e });
-              else setView({ kind: "home" });
-            }}
-          />
-        )}
-      </main>
-    </div>
-  );
-}
-
-function Splash() {
-  return <div className="splash"><div className="spinner" /><strong>PCIF Académie</strong></div>;
-}
-
-function Login({ onAuthenticated }: { onAuthenticated: () => Promise<void> }) {
-  const [email, setEmail] = useState("ac@example.test");
-  const [password, setPassword] = useState("ChangeMe-AC-2026!");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true); setError("");
-    try {
-      const result = await api.login(email, password);
-      setToken(result.accessToken);
-      await onAuthenticated();
-    } catch {
-      setError("Identifiants incorrects ou compte indisponible.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="login-page">
-      <section className="login-card">
-        <div className="login-brand">
-          <span className="brand-mark large">P</span>
-          <div><h1>PCIF Académie</h1><p>Plateforme collaborative de contrôle interne financier</p></div>
-        </div>
-        <form onSubmit={submit}>
-          <label>Adresse électronique<input value={email} onChange={e => setEmail(e.target.value)} /></label>
-          <label>Mot de passe<input type="password" value={password} onChange={e => setPassword(e.target.value)} /></label>
-          {error && <div className="alert error">{error}</div>}
-          <button className="btn primary wide" disabled={busy}>{busy ? "Connexion…" : "Se connecter"}</button>
-        </form>
-      </section>
-      <aside className="demo-card">
-        <h2>Comptes de démonstration</h2>
-        <p>Cliquer sur un profil pour renseigner le formulaire.</p>
-        <div className="demo-list">
-          {demoAccounts.map(([label, mail, pwd]) => (
-            <button key={mail} onClick={() => { setEmail(mail); setPassword(pwd); }}>
-              <strong>{label}</strong><small>{mail}</small>
-            </button>
-          ))}
-        </div>
-        <p className="warning">Ces comptes sont exclusivement destinés à la démonstration.</p>
-      </aside>
-    </div>
-  );
-}
-
-function Home({ me, onOpen }: { me: Me; onOpen: (e: Establishment) => void }) {
-  const [establishments, setEstablishments] = useState<Establishment[]>([]);
-  const [dashboard, setDashboard] = useState<any[]>([]);
-  const [busy, setBusy] = useState(true);
-  const isAgencyUser = me.agencies.length > 0;
-
-  useEffect(() => {
-    (async () => {
-      setBusy(true);
-      const ets = await api.establishments();
-      setEstablishments(ets);
-      if (isAgencyUser) {
-        const d = await api.agencyDashboard(me.agencies[0].id);
-        setDashboard(d);
-      }
-      setBusy(false);
-    })();
-  }, []);
-
-  if (busy) return <PageLoading />;
-
-  if (!isAgencyUser && establishments.length === 1) {
-    return (
-      <section>
-        <Hero title={establishments[0].name} eyebrow="Mon établissement"
-          text="Accédez à la campagne PCIF de votre établissement et contribuez aux évaluations." />
-        <div className="single-establishment">
-          <EstablishmentCard e={establishments[0]} onOpen={onOpen} />
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section>
-      <Hero
-        eyebrow={isAgencyUser ? "Agence comptable" : "Administration"}
-        title={isAgencyUser ? me.agencies[0].name : "PCIF Académie"}
-        text={isAgencyUser
-          ? "Suivez l’avancement PCIF de l’ensemble des établissements rattachés."
-          : "Sélectionnez un établissement accessible."}
-      />
-      {isAgencyUser && dashboard.length > 0 && (
-        <div className="kpi-grid">
-          <Kpi label="Établissements" value={String(establishments.length)} />
-          <Kpi label="Campagnes actives" value={String(dashboard.filter(x => x.campaign_id).length)} />
-          <Kpi label="Avancement moyen" value={`${Math.round(dashboard.reduce((s,x)=>s+Number(x.progress||0),0)/Math.max(dashboard.length,1))}%`} />
-        </div>
-      )}
-      <div className="section-head">
-        <div><h2>Établissements</h2><p>{establishments.length} établissement(s) accessible(s)</p></div>
+function Logo(){return <div className="pcif-logo"><div className="logo-shield">✓</div><div><b>PCIF Académie</b><small>Pilotage du contrôle interne financier</small></div></div>}
+function App(){
+ const[me,setMe]=useState<Me|null>(null),[view,setView]=useState<View>({kind:"home"}),[busy,setBusy]=useState(!!getToken());
+ const[active,setActive]=useState<Establishment|null>(null),[ets,setEts]=useState<Establishment[]>([]);
+ async function session(){setBusy(true);try{const m=await api.me(),e=await api.establishments();setMe(m);setEts(e);setActive(e[0]??null)}catch{clearToken();setMe(null)}finally{setBusy(false)}}
+ useEffect(()=>{getToken()?session():setBusy(false)},[]);
+ if(busy)return <div className="splash"><Logo/><span>Chargement…</span></div>;
+ if(!me)return <Login onLogin={session}/>;
+ const logout=()=>{clearToken();setMe(null);setView({kind:"home"})};
+ return <div className="pcif-app">
+   <aside className="sidebar">
+    <Logo/>
+    <div className="profile"><small>Utilisateur connecté</small><strong>{me.user.displayName}</strong><span>{me.user.email}</span></div>
+    <nav>
+      <button className={view.kind==="home"?"active":""} onClick={()=>setView({kind:"home"})}>⌂ Tableau de bord</button>
+      {me.user.isPlatformAdmin&&<button className={view.kind==="admin"?"active":""} onClick={()=>setView({kind:"admin"})}>⚙ Utilisateurs</button>}
+    </nav>
+    <div className="sidebar-foot"><button onClick={logout}>Déconnexion</button></div>
+   </aside>
+   <div className="workspace">
+    <header className="topbar">
+      <div className="context"><span>Établissement actif</span>
+       <select value={active?.id??""} onChange={e=>{const x=ets.find(v=>v.id===e.target.value)||null;setActive(x);setView({kind:"home"})}} disabled={ets.length<=1}>
+        {ets.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}
+       </select>
+       {active&&<small>{active.uai} · {active.kind}</small>}
       </div>
-      <div className="establishment-grid">
-        {establishments.map(e => {
-          const d = dashboard.find(x => x.id === e.id);
-          return <EstablishmentCard key={e.id} e={e} onOpen={onOpen} progress={d?.progress} />;
-        })}
-      </div>
-    </section>
-  );
+      <div className="rolechips">{me.agencies.map(a=><span key={a.id}>{roleLabel(a.role)}</span>)}{me.establishments.filter(x=>x.id===active?.id).map(x=><span key={x.role}>{roleLabel(x.role)}</span>)}</div>
+    </header>
+    <main>
+      {view.kind==="home"&&<Dashboard establishment={active} onOpen={(c,e)=>setView({kind:"campaign",campaign:c,establishment:e})}/>}
+      {view.kind==="campaign"&&<CampaignView me={me} campaign={view.campaign} establishment={view.establishment} onBack={()=>setView({kind:"home"})}/>}
+      {view.kind==="admin"&&<AdminUsers establishments={ets}/>}
+    </main>
+   </div>
+ </div>
 }
-
-function Hero({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) {
-  return <div className="hero"><span>{eyebrow}</span><h1>{title}</h1><p>{text}</p></div>;
+function Login({onLogin}:{onLogin:()=>Promise<void>}){
+ const[email,setEmail]=useState("ac@example.test"),[password,setPassword]=useState("ChangeMe-AC-2026!"),[err,setErr]=useState("");
+ async function go(e:React.FormEvent){e.preventDefault();try{const r=await api.login(email,password);setToken(r.accessToken);await onLogin()}catch{setErr("Identifiants incorrects ou compte indisponible.")}}
+ return <div className="login"><section><Logo/><h1>Bienvenue</h1><p>Retrouvez PCIF Académie dans son environnement métier, désormais collaboratif et multi‑établissements.</p><form onSubmit={go}><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Mot de passe<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>{err&&<div className="error">{err}</div>}<button className="primary">Se connecter</button></form></section><aside><b>Profils de démonstration</b>{demo.map(([l,m,p])=><button key={m} onClick={()=>{setEmail(m);setPassword(p)}}><span>{l}</span><small>{m}</small></button>)}</aside></div>
 }
-
-function Kpi({ label, value }: { label: string; value: string }) {
-  return <div className="kpi"><strong>{value}</strong><span>{label}</span></div>;
+function Dashboard({establishment,onOpen}:{establishment:Establishment|null;onOpen:(c:Campaign,e:Establishment)=>void}){
+ const[camps,setCamps]=useState<Campaign[]>([]);useEffect(()=>{establishment?api.campaigns(establishment.id).then(setCamps):setCamps([])},[establishment?.id]);
+ if(!establishment)return <Empty text="Aucun établissement accessible."/>;
+ return <><div className="hero"><div><small>PCIF Académie</small><h1>{establishment.name}</h1><p>Diagnostic, maîtrise des risques et plan d’action de l’établissement.</p></div><div className="pill">{establishment.uai}</div></div>
+ <div className="tiles"><div><b>{camps.length}</b><span>Campagne(s)</span></div><div><b>{establishment.kind||"EPLE"}</b><span>Type</span></div><div><b>Multi</b><span>Travail collaboratif</span></div></div>
+ <section className="panel"><h2>Campagnes PCIF</h2>{camps.map(c=><button className="campaign" key={c.id} onClick={()=>onOpen(c,establishment)}><div><span className="status">{c.status}</span><b>{c.label}</b><small>Référentiel {c.repository_version}</small></div><i>→</i></button>)}</section></>
 }
-
-function EstablishmentCard({ e, onOpen, progress }: { e: Establishment; onOpen:(e:Establishment)=>void; progress?: number }) {
-  const p = Number(progress ?? 0);
-  return (
-    <button className="establishment-card" onClick={() => onOpen(e)}>
-      <div className="card-top"><span className="kind">{e.kind ?? "EPLE"}</span><span className="uai">{e.uai}</span></div>
-      <h3>{e.name}</h3>
-      {progress !== undefined && <>
-        <div className="progress-line"><span style={{ width: `${Math.min(100,p)}%` }} /></div>
-        <small>{p}% d’avancement</small>
-      </>}
-      <div className="card-action">Ouvrir <span>→</span></div>
-    </button>
-  );
+function CampaignView({me,campaign,establishment,onBack}:{me:Me;campaign:Campaign;establishment:Establishment;onBack:()=>void}){
+ const[questions,setQuestions]=useState<Question[]>([]),[domain,setDomain]=useState("TOUS"),[scope,setScope]=useState("TOUS");
+ useEffect(()=>{api.questions(campaign.id).then(setQuestions)},[campaign.id]);
+ const roles=me.establishments.filter(x=>x.id===establishment.id).map(x=>x.role),agency=me.agencies.map(x=>x.role),admin=!!me.user.isPlatformAdmin;
+ const canO=admin||roles.some(r=>["HEAD","SECRETARY_GENERAL","CONTRIBUTOR"].includes(r));
+ const canC=admin||roles.some(r=>["AGENCY_ACCOUNTANT","AGENCY_DEPUTY"].includes(r))||agency.some(r=>["AGENCY_ACCOUNTANT","AGENCY_DEPUTY"].includes(r));
+ const domains=["TOUS",...Array.from(new Set(questions.map(q=>q.domain)))];
+ const filtered=questions.filter(q=>(domain==="TOUS"||q.domain===domain)&&(scope==="TOUS"||q.responsibility===scope));
+ return <><button className="back" onClick={onBack}>← Retour</button><div className="hero"><div><small>{campaign.status}</small><h1>{campaign.label}</h1><p>{establishment.name} · travail simultané ordonnateur / comptable.</p></div></div>
+ <div className="scopebar"><select value={domain} onChange={e=>setDomain(e.target.value)}>{domains.map(d=><option key={d}>{d}</option>)}</select><button className={scope==="TOUS"?"active":""} onClick={()=>setScope("TOUS")}>Tous</button><button className={scope==="ORDONNATEUR"?"active o":""} onClick={()=>setScope("ORDONNATEUR")}>Ordonnateur</button><button className={scope==="COMPTABLE"?"active c":""} onClick={()=>setScope("COMPTABLE")}>Comptable</button><button className={scope==="MIXTE"?"active":""} onClick={()=>setScope("MIXTE")}>Mixte</button></div>
+ <div className="questions">{filtered.map(q=><QuestionCard key={q.id} q={q} campaignId={campaign.id} canO={canO} canC={canC} onUpdate={x=>setQuestions(v=>v.map(a=>a.id===x.id?x:a))}/>)}</div></>
 }
-
-function EstablishmentPage({ establishment, onBack, onOpenCampaign }: {
-  establishment: Establishment;
-  onBack: () => void;
-  onOpenCampaign: (c: Campaign) => void;
-}) {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [busy, setBusy] = useState(true);
-
-  useEffect(() => {
-    api.campaigns(establishment.id).then(setCampaigns).finally(() => setBusy(false));
-  }, [establishment.id]);
-
-  return (
-    <section>
-      <Back onClick={onBack} />
-      <Hero eyebrow={`${establishment.kind ?? "EPLE"} · ${establishment.uai}`} title={establishment.name}
-        text="Campagnes PCIF disponibles pour cet établissement." />
-      {busy ? <PageLoading /> : (
-        <div className="campaign-list">
-          {campaigns.map(c => (
-            <button className="campaign-card" key={c.id} onClick={() => onOpenCampaign(c)}>
-              <div><span className={`status ${c.status.toLowerCase()}`}>{c.status}</span><h3>{c.label}</h3>
-              <p>Référentiel {c.repository_version}</p></div><span className="arrow">→</span>
-            </button>
-          ))}
-          {!campaigns.length && <Empty title="Aucune campagne" text="Aucune campagne PCIF n’est actuellement disponible." />}
-        </div>
-      )}
-    </section>
-  );
+function QuestionCard({q,campaignId,canO,canC,onUpdate}:{q:Question;campaignId:string;canO:boolean;canC:boolean;onUpdate:(q:Question)=>void}){
+ const spheres=q.responsibility==="MIXTE"?["ORDONNATEUR","COMPTABLE","SYNTHESE"] as const:[q.responsibility] as any;
+ return <article className="questioncard"><div className="meta"><span>{q.domain}</span><span className={q.responsibility==="ORDONNATEUR"?"o":q.responsibility==="COMPTABLE"?"c":""}>{q.responsibility}</span><span>★ {q.stars}/3</span><span>Poids {q.weight}</span></div><h3>{q.label}</h3><div className="answergrid">{spheres.map((s:any)=><Answer key={s} q={q} sphere={s} campaignId={campaignId} editable={s==="ORDONNATEUR"?canO:s==="COMPTABLE"?canC:(canO||canC)} onUpdate={onUpdate}/>)}</div></article>
 }
-
-function CampaignPage({ campaign, me, onBack }: { campaign: Campaign; me: Me; onBack: () => void }) {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [busy, setBusy] = useState(true);
-  const [domain, setDomain] = useState("TOUS");
-  const [sphere, setSphere] = useState("TOUS");
-  const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    api.questions(campaign.id).then(setQuestions).finally(() => setBusy(false));
-  }, [campaign.id]);
-
-  const domains = useMemo(() => ["TOUS", ...Array.from(new Set(questions.map(q => q.domain)))], [questions]);
-  const filtered = useMemo(() => questions.filter(q =>
-    (domain === "TOUS" || q.domain === domain) &&
-    (sphere === "TOUS" || q.responsibility === sphere || (sphere === "MIXTE" && q.responsibility === "MIXTE")) &&
-    (!query || `${q.code} ${q.label}`.toLowerCase().includes(query.toLowerCase()))
-  ), [questions, domain, sphere, query]);
-
-  const answered = questions.filter(q => q.answers.length > 0).length;
-  const progress = questions.length ? Math.round(answered * 100 / questions.length) : 0;
-
-  function replaceQuestion(updated: Question) {
-    setQuestions(prev => prev.map(q => q.id === updated.id ? updated : q));
-  }
-
-  const directRoles = me.establishments
-    .filter(e => e.id === campaign.establishment_id)
-    .map(e => e.role);
-  const agencyRoles = me.agencies.map(a => a.role);
-  const canEditOrdonnateur = directRoles.some(r =>
-    ["PLATFORM_ADMIN", "HEAD", "SECRETARY_GENERAL", "CONTRIBUTOR"].includes(r)
-  );
-  const canEditComptable =
-    directRoles.includes("PLATFORM_ADMIN") ||
-    agencyRoles.some(r => ["AGENCY_ACCOUNTANT", "AGENCY_DEPUTY"].includes(r));
-  const canEditSynthese = canEditOrdonnateur || canEditComptable;
-
-  return (
-    <section>
-      <Back onClick={onBack} />
-      <Hero eyebrow={campaign.status} title={campaign.label}
-        text={`${answered}/${questions.length || "—"} questions renseignées · ${progress}% d’avancement`} />
-      <div className="toolbar">
-        <input placeholder="Rechercher une question…" value={query} onChange={e => setQuery(e.target.value)} />
-        <select value={domain} onChange={e => setDomain(e.target.value)}>{domains.map(d => <option key={d}>{d}</option>)}</select>
-        <select value={sphere} onChange={e => setSphere(e.target.value)}>
-          <option value="TOUS">Toutes les sphères</option>
-          <option value="ORDONNATEUR">Ordonnateur</option>
-          <option value="COMPTABLE">Comptable</option>
-          <option value="MIXTE">Mixte</option>
-        </select>
-      </div>
-      {busy ? <PageLoading /> : (
-        <div className="question-list">
-          {filtered.map(q => (
-            <QuestionCard
-              key={q.id}
-              q={q}
-              campaignId={campaign.id}
-              onChanged={replaceQuestion}
-              permissions={{
-                ORDONNATEUR: canEditOrdonnateur,
-                COMPTABLE: canEditComptable,
-                SYNTHESE: canEditSynthese
-              }}
-            />
-          ))}
-          {!filtered.length && <Empty title="Aucune question" text="Aucun résultat avec les filtres sélectionnés." />}
-        </div>
-      )}
-    </section>
-  );
+function Answer({q,sphere,campaignId,editable,onUpdate}:{q:Question;sphere:"ORDONNATEUR"|"COMPTABLE"|"SYNTHESE";campaignId:string;editable:boolean;onUpdate:(q:Question)=>void}){
+ const ex=q.answers.find(a=>a.sphere===sphere);const[value,setValue]=useState<number|null>(ex?.value??null),[comment,setComment]=useState(ex?.comment??""),[state,setState]=useState("");
+ async function save(){try{setState("Enregistrement…");const r=await api.saveAnswer(campaignId,q.id,{sphere,value,comment,version:ex?.version??0});onUpdate({...q,answers:[...q.answers.filter(a=>a.sphere!==sphere),{sphere,value:r.value,comment:r.comment,version:r.version,updatedAt:r.updated_at,updatedBy:""}]});setState("Enregistré")}catch(e:any){setState(e.status===409?"Conflit de version":"Erreur")}}
+ return <div className="answerbox"><header><b>{sphereLabel(sphere)}</b>{!editable&&<small>Lecture seule</small>}</header><div className="scores">{[0,1,2,3].map(n=><button key={n} disabled={!editable} className={value===n?"active":""} onClick={()=>setValue(n)}>{n}</button>)}</div><textarea readOnly={!editable} value={comment} onChange={e=>setComment(e.target.value)} placeholder="Observation / preuve / action à prévoir…"/><footer><small>{state||ex?.updatedBy||""}</small>{editable&&<button className="primary" onClick={save}>Enregistrer</button>}</footer></div>
 }
-
-function QuestionCard({ q, campaignId, onChanged, permissions }: {
-  q: Question;
-  campaignId: string;
-  onChanged: (q: Question) => void;
-  permissions: Record<"ORDONNATEUR" | "COMPTABLE" | "SYNTHESE", boolean>;
-}) {
-  const allowedSpheres = q.responsibility === "MIXTE"
-    ? ["ORDONNATEUR", "COMPTABLE", "SYNTHESE"] as const
-    : [q.responsibility] as const;
-
-  return (
-    <article className="question-card">
-      <header>
-        <div><span className={`sphere sphere-${q.responsibility.toLowerCase()}`}>{q.responsibility}</span>
-          <span className="question-code">{q.code}</span></div>
-        <div className="question-meta">Poids {q.weight} · {"★".repeat(q.stars)}{"☆".repeat(3-q.stars)}</div>
-      </header>
-      <h3>{q.label}</h3>
-      <p className="domain">{q.domain}</p>
-      <div className="answers-grid">
-        {allowedSpheres.map(s => (
-          <AnswerEditor
-            key={s}
-            q={q}
-            sphere={s}
-            campaignId={campaignId}
-            onChanged={onChanged}
-            editable={permissions[s]}
-          />
-        ))}
-      </div>
-    </article>
-  );
+function AdminUsers({establishments}:{establishments:Establishment[]}){
+ const[users,setUsers]=useState<AdminUser[]>([]),[roles,setRoles]=useState<any[]>([]),[editing,setEditing]=useState<AdminUser|null>(null),[creating,setCreating]=useState(false),[msg,setMsg]=useState("");
+ async function load(){setUsers(await api.adminUsers());setRoles(await api.adminRoles())} useEffect(()=>{load()},[]);
+ async function del(u:AdminUser){if(!confirm(`Supprimer ${u.display_name} ? Cette suppression est logique et conserve l'audit.`))return;await api.deleteUser(u.id);await load()}
+ async function suspend(u:AdminUser){await api.updateUser(u.id,{email:u.email,displayName:u.display_name,active:!u.active,assignments:u.assignments.map(a=>({establishmentId:a.establishmentId,roleCode:a.roleCode}))});await load()}
+ return <><div className="hero"><div><small>Administration</small><h1>Utilisateurs</h1><p>Un utilisateur possède une adresse email valide et au moins un rattachement établissement + rôle.</p></div><button className="primary" onClick={()=>setCreating(true)}>+ Nouvel utilisateur</button></div>
+ {msg&&<div className="notice">{msg}</div>}<section className="panel"><table className="users"><thead><tr><th>Utilisateur</th><th>Statut</th><th>Rattachements</th><th></th></tr></thead><tbody>{users.map(u=><tr key={u.id}><td><b>{u.display_name}</b><small>{u.email}{u.is_platform_admin?" · ADMIN":""}</small></td><td><span className={u.active?"ok":"off"}>{u.active?"Actif":"Suspendu"}</span></td><td>{u.assignments.map((a,i)=><span className="assignment" key={i}>{a.establishmentName} · {roleLabel(a.roleCode)}</span>)}</td><td className="actions"><button onClick={()=>setEditing(u)}>Modifier</button>{!u.is_platform_admin&&<><button onClick={()=>suspend(u)}>{u.active?"Suspendre":"Réactiver"}</button><button className="danger" onClick={()=>del(u)}>Supprimer</button></>}</td></tr>)}</tbody></table></section>
+ {(editing||creating)&&<UserModal user={editing} establishments={establishments} roles={roles} onClose={()=>{setEditing(null);setCreating(false)}} onSaved={async(temp)=>{setEditing(null);setCreating(false);await load();if(temp)setMsg(`Mot de passe temporaire : ${temp}`)}}/>}</>
 }
-
-function AnswerEditor({ q, sphere, campaignId, onChanged, editable }: {
-  q: Question;
-  sphere: "ORDONNATEUR" | "COMPTABLE" | "SYNTHESE";
-  campaignId: string;
-  onChanged: (q: Question) => void;
-  editable: boolean;
-}) {
-  const existing = q.answers.find(a => a.sphere === sphere);
-  const [value, setValue] = useState<number | null>(existing?.value ?? null);
-  const [comment, setComment] = useState(existing?.comment ?? "");
-  const [state, setState] = useState<"idle"|"saving"|"saved"|"conflict"|"error">("idle");
-
-  useEffect(() => {
-    const e = q.answers.find(a => a.sphere === sphere);
-    setValue(e?.value ?? null);
-    setComment(e?.comment ?? "");
-  }, [q.id, q.answers, sphere]);
-
-  async function save() {
-    setState("saving");
-    try {
-      const saved = await api.saveAnswer(campaignId, q.id, {
-        sphere, value, comment, version: existing?.version ?? 0
-      });
-      const newAnswers = [...q.answers.filter(a => a.sphere !== sphere), {
-        sphere,
-        value: saved.value,
-        comment: saved.comment,
-        version: saved.version,
-        updatedAt: saved.updated_at,
-        updatedBy: ""
-      }];
-      onChanged({ ...q, answers: newAnswers as Question["answers"] });
-      setState("saved");
-      setTimeout(() => setState("idle"), 1800);
-    } catch (e: any) {
-      setState(e.status === 409 ? "conflict" : "error");
-    }
-  }
-
-  return (
-    <div className="answer-editor">
-      <div className="answer-head">
-        <strong>{sphereLabel(sphere)}</strong>
-        <span className="answer-head-right">
-          {!editable && <small className="readonly">Lecture seule</small>}
-          {existing && <small>v{existing.version}</small>}
-        </span>
-      </div>
-      <div className="score-row">
-        {[0,1,2,3].map(n => <button key={n} className={value === n ? "score active" : "score"} onClick={() => editable && setValue(n)} disabled={!editable}>{n}</button>)}
-        <button className={value === null ? "score active null" : "score null"} onClick={() => editable && setValue(null)} disabled={!editable}>—</button>
-      </div>
-      <textarea
-        value={comment}
-        onChange={e => editable && setComment(e.target.value)}
-        placeholder="Commentaire…"
-        rows={3}
-        readOnly={!editable}
-      />
-      <div className="save-row">
-        <span className={`save-state ${state}`}>
-          {state === "saving" && "Enregistrement…"}
-          {state === "saved" && "Enregistré"}
-          {state === "conflict" && "Conflit : rechargez la question"}
-          {state === "error" && "Erreur d’enregistrement"}
-          {state === "idle" && existing?.updatedBy && `Dernière modification : ${existing.updatedBy}`}
-        </span>
-        {editable && <button className="btn primary small" onClick={save} disabled={state === "saving"}>Enregistrer</button>}
-      </div>
-    </div>
-  );
+function UserModal({user,establishments,roles,onClose,onSaved}:{user:AdminUser|null;establishments:Establishment[];roles:any[];onClose:()=>void;onSaved:(temp?:string)=>void}){
+ const[email,setEmail]=useState(user?.email??""),[name,setName]=useState(user?.display_name??""),[active,setActive]=useState(user?.active??true),[assign,setAssign]=useState<any[]>(user?.assignments.map(a=>({establishmentId:a.establishmentId,roleCode:a.roleCode}))??[{establishmentId:establishments[0]?.id??"",roleCode:"SECRETARY_GENERAL"}]),[err,setErr]=useState("");
+ function patch(i:number,k:string,v:string){setAssign(a=>a.map((x,j)=>j===i?{...x,[k]:v}:x))}
+ async function save(){try{if(!email.includes("@"))throw new Error("Email invalide");const payload={email,displayName:name,active,assignments:assign};if(user)await api.updateUser(user.id,payload);else{const r=await api.createUser(payload);await onSaved(r.temporaryPassword);return}await onSaved()}catch(e:any){setErr(e.message||"Erreur")}}
+ return <div className="modal"><div><header><h2>{user?"Modifier":"Créer"} un utilisateur</h2><button onClick={onClose}>×</button></header><label>Nom<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>{user&&<label className="check"><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/> Compte actif</label>}<h3>Établissements et rôles</h3>{assign.map((a,i)=><div className="assignmentrow" key={i}><select value={a.establishmentId} onChange={e=>patch(i,"establishmentId",e.target.value)}>{establishments.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select><select value={a.roleCode} onChange={e=>patch(i,"roleCode",e.target.value)}>{roles.map(r=><option key={r.code} value={r.code}>{r.label}</option>)}</select>{assign.length>1&&<button onClick={()=>setAssign(x=>x.filter((_,j)=>j!==i))}>−</button>}</div>)}<button className="link" onClick={()=>setAssign(x=>[...x,{establishmentId:establishments[0]?.id??"",roleCode:"READER"}])}>+ Ajouter un établissement</button>{err&&<div className="error">{err}</div>}<footer><button onClick={onClose}>Annuler</button><button className="primary" onClick={save}>Enregistrer</button></footer></div></div>
 }
-
-function sphereLabel(s: string) {
-  return s === "ORDONNATEUR" ? "Ordonnateur" : s === "COMPTABLE" ? "Comptable" : "Synthèse";
-}
-function Back({ onClick }: { onClick: () => void }) {
-  return <button className="back" onClick={onClick}>← Retour</button>;
-}
-function PageLoading() {
-  return <div className="page-loading"><div className="spinner" />Chargement…</div>;
-}
-function Empty({ title, text }: { title: string; text: string }) {
-  return <div className="empty"><h3>{title}</h3><p>{text}</p></div>;
-}
-
-createRoot(document.getElementById("root")!).render(<App />);
+function Empty({text}:{text:string}){return <div className="empty">{text}</div>}function sphereLabel(s:string){return s==="ORDONNATEUR"?"Ordonnateur":s==="COMPTABLE"?"Comptable":"Synthèse"}function roleLabel(r:string){return({AGENCY_ACCOUNTANT:"Agent comptable",AGENCY_DEPUTY:"Fondé de pouvoir",HEAD:"Chef d’établissement",SECRETARY_GENERAL:"Secrétaire général",CONTRIBUTOR:"Contributeur",READER:"Lecteur",AUDITOR:"Auditeur",PLATFORM_ADMIN:"Administrateur"} as any)[r]||r}
+createRoot(document.getElementById("root")!).render(<App/>);

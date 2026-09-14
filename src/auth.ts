@@ -10,7 +10,7 @@ export async function registerAuth(app: FastifyInstance) {
 
     const { rows } = await pool.query(
       `SELECT id, email, display_name, password_hash, active
-       FROM users WHERE lower(email)=lower($1)`,
+       FROM users WHERE lower(email)=lower($1) AND deleted_at IS NULL`,
       [body.email]
     );
     const user = rows[0];

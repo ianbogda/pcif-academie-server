@@ -1,7 +1,14 @@
 export type Me = {
-  user: { sub: string; email: string; displayName: string };
+  user: { sub: string; email: string; displayName: string; isPlatformAdmin?: boolean };
   establishments: Array<{ id: string; uai: string; name: string; role: string }>;
   agencies: Array<{ id: string; name: string; role: string }>;
+};
+
+
+export type UserAssignment = { establishmentId:string; establishmentName?:string; uai?:string; roleCode:string; roleLabel?:string };
+export type AdminUser = {
+  id:string; email:string; display_name:string; active:boolean; is_platform_admin:boolean;
+  created_at:string; assignments:UserAssignment[];
 };
 
 export type Establishment = {
@@ -81,6 +88,12 @@ export const api = {
     }),
   me: () => request<Me>("/api/me"),
   establishments: () => request<Establishment[]>("/api/establishments"),
+  adminUsers: () => request<AdminUser[]>("/api/admin/users"),
+  adminRoles: () => request<Array<{code:string;label:string}>>("/api/admin/roles"),
+  createUser: (payload:any) => request<any>("/api/admin/users",{method:"POST",body:JSON.stringify(payload)}),
+  updateUser: (id:string,payload:any) => request<any>(`/api/admin/users/${id}`,{method:"PATCH",body:JSON.stringify(payload)}),
+  deleteUser: (id:string) => request<void>(`/api/admin/users/${id}`,{method:"DELETE"}),
+  resetUserPassword: (id:string,password?:string) => request<any>(`/api/admin/users/${id}/reset-password`,{method:"POST",body:JSON.stringify(password?{password}:{})}),
   agencies: () => request<Array<{ id: string; name: string }>>("/api/agencies"),
   agencyDashboard: (id: string) => request<any[]>(`/api/agencies/${id}/dashboard`),
   campaigns: (establishmentId: string) =>
