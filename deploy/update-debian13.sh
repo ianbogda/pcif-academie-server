@@ -48,7 +48,10 @@ chown -R pcif:pcif "$APP"
 log "Dépendances serveur"
 cd "$APP"
 if [[ -f package-lock.json ]]; then
-  sudo -u pcif npm ci
+  if ! sudo -u pcif npm ci; then
+    echo "package-lock.json désynchronisé : régénération avec npm install"
+    sudo -u pcif npm install
+  fi
 else
   sudo -u pcif npm install
 fi
@@ -68,7 +71,10 @@ sudo -u pcif npm run build
 log "Dépendances et build Web"
 cd "$APP/web"
 if [[ -f package-lock.json ]]; then
-  sudo -u pcif npm ci
+  if ! sudo -u pcif npm ci; then
+    echo "package-lock.json désynchronisé : régénération avec npm install"
+    sudo -u pcif npm install
+  fi
 else
   sudo -u pcif npm install
 fi
