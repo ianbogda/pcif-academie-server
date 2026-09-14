@@ -51,6 +51,7 @@ export type Campaign = {
   label: string;
   status: string;
   repository_version: string;
+  question_count?: number;
   establishment_name?: string;
 };
 

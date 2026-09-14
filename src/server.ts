@@ -138,6 +138,7 @@ app.get("/api/campaigns/:id", async (request, reply) => {
   const { rows } = await pool.query(
     `SELECT c.id, c.establishment_id, e.uai, e.name AS establishment_name,
             c.repository_version_id, rv.version AS repository_version,
+           (SELECT count(*)::int FROM questions q2 WHERE q2.repository_version_id=c.repository_version_id AND q2.active=true) AS question_count,
             c.label, c.status, c.created_at, c.updated_at
        FROM campaigns c
        JOIN establishments e ON e.id=c.establishment_id
@@ -159,7 +160,8 @@ app.get("/api/campaigns", async (request, reply) => {
   if (!access.canRead) return reply.code(403).send({ error: "FORBIDDEN" });
 
   const { rows } = await pool.query(
-    `SELECT c.*, rv.version AS repository_version
+    `SELECT c.*, rv.version AS repository_version,
+           (SELECT count(*)::int FROM questions q2 WHERE q2.repository_version_id=c.repository_version_id AND q2.active=true) AS question_count
        FROM campaigns c JOIN repository_versions rv ON rv.id=c.repository_version_id
       WHERE c.establishment_id=$1 ORDER BY c.created_at DESC`,
     [establishmentId]

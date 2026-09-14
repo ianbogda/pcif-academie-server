@@ -54,7 +54,7 @@ function Dashboard({establishment,onOpen}:{establishment:Establishment|null;onOp
  if(!establishment)return <Empty text="Aucun établissement accessible."/>;
  return <><div className="hero"><div><small>PCIF Académie</small><h1>{establishment.name}</h1><p>Diagnostic, maîtrise des risques et plan d’action de l’établissement.</p></div><div className="pill">{establishment.uai}</div></div>
  <div className="tiles"><div><b>{camps.length}</b><span>Campagne(s)</span></div><div><b>{establishment.kind||"EPLE"}</b><span>Type</span></div><div><b>Multi</b><span>Travail collaboratif</span></div></div>
- <section className="panel"><h2>Campagnes PCIF</h2>{camps.map(c=><button className="campaign" key={c.id} onClick={()=>onOpen(c,establishment)}><div><span className="status">{c.status}</span><b>{c.label}</b><small>Référentiel {c.repository_version}</small></div><i>→</i></button>)}</section></>
+ <section className="panel"><h2>Campagnes PCIF</h2>{camps.map(c=><button className="campaign" key={c.id} onClick={()=>onOpen(c,establishment)}><div><span className="status">{c.status}</span><b>{c.label}</b><small>Référentiel {c.repository_version}{c.question_count ? ` · ${c.question_count} questions` : ""}</small></div><i>→</i></button>)}</section></>
 }
 function CampaignView({me,campaign,establishment,onBack}:{me:Me;campaign:Campaign;establishment:Establishment;onBack:()=>void}){
  const[questions,setQuestions]=useState<Question[]>([]),[domain,setDomain]=useState("TOUS"),[scope,setScope]=useState("TOUS");
