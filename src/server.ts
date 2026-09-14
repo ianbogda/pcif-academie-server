@@ -10,7 +10,7 @@ import { establishmentAccess, canWriteSphere, isPlatformAdmin } from "./access.j
 import { registerAdmin } from "./admin.js";
 import { z } from "zod";
 
-const packageVersion = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
+const packageVersion = JSON.parse(readFileSync("package.json", "utf8")).version;
 const app = Fastify({ logger: true });
 
 await app.register(helmet);
