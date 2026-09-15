@@ -125,6 +125,18 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+async function download(path:string){
+  const headers=new Headers(),token=getToken();
+  if(token)headers.set("Authorization",`Bearer ${token}`);
+  const response=await fetch(path,{headers});
+  if(response.status===401)clearToken();
+  if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(data.error??`HTTP_${response.status}`)}
+  const disposition=response.headers.get("Content-Disposition")||"",match=disposition.match(/filename="([^"]+)"/);
+  const url=URL.createObjectURL(await response.blob()),anchor=document.createElement("a");
+  anchor.href=url;anchor.download=match?.[1]||"PCIF_Academie_vers_CARTOPALE.html";anchor.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
 export const api = {
   login: (email: string, password: string) =>
     request<{ accessToken: string }>("/api/auth/login", {
@@ -158,6 +170,7 @@ export const api = {
     request<Campaign[]>(`/api/campaigns?establishmentId=${encodeURIComponent(establishmentId)}`),
   campaign: (id: string) => request<Campaign>(`/api/campaigns/${id}`),
   pilotage: (id:string) => request<PilotageData>(`/api/campaigns/${id}/pilotage`),
+  exportCartopale:(id:string)=>download(`/api/campaigns/${id}/export/cartopale`),
   benchmark:(establishmentId:string)=>request<BenchmarkData>(`/api/establishments/${establishmentId}/benchmark`),
   audit:(campaignId:string)=>request<AuditData>(`/api/campaigns/${campaignId}/audit`),
   createAuditObservation:(campaignId:string,payload:any)=>request<any>(`/api/campaigns/${campaignId}/audit/observations`,{method:"POST",body:JSON.stringify(payload)}),

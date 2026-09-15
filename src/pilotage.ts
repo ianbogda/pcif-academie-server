@@ -4,6 +4,7 @@ import { z } from "zod";
 import { pool } from "./db.js";
 import { requireUser } from "./auth.js";
 import { establishmentAccess } from "./access.js";
+import { buildCartopaleHtml,cartopaleFilename,type CartopaleSave } from "./cartopale.js";
 
 async function campaignAccess(userId:string,campaignId:string){
   const {rows}=await pool.query(`SELECT id,establishment_id,status FROM campaigns WHERE id=$1`,[campaignId]);
@@ -14,6 +15,38 @@ async function campaignAccess(userId:string,campaignId:string){
 }
 
 export async function registerPilotage(app:FastifyInstance){
+  app.get("/api/campaigns/:id/export/cartopale",async(request,reply)=>{
+    const user=await requireUser(request),id=(request.params as any).id;
+    const ca=await campaignAccess(user.sub,id);
+    if(!ca) return reply.code(404).send({error:"NOT_FOUND"});
+    if(!ca.access.canRead) return reply.code(403).send({error:"FORBIDDEN"});
+    const campaign=(await pool.query(`SELECT c.id,c.label,e.id establishment_id,e.uai,e.name,COALESCE(a.name,'') agency_name
+      FROM campaigns c JOIN establishments e ON e.id=c.establishment_id
+      LEFT JOIN agency_establishments ae ON ae.establishment_id=e.id AND ae.active=true
+      LEFT JOIN accounting_agencies a ON a.id=ae.agency_id WHERE c.id=$1 LIMIT 1`,[id])).rows[0];
+    const rows=(await pool.query(`SELECT q.code,a.sphere,a.value,a.comment,a.updated_at FROM campaigns c
+      JOIN questions q ON q.repository_version_id=c.repository_version_id AND q.active=true
+      JOIN answers a ON a.campaign_id=c.id AND a.question_id=q.id
+      WHERE c.id=$1 AND a.value IS NOT NULL ORDER BY q.sort_order,(a.sphere='SYNTHESE') ASC,a.updated_at ASC`,[id])).rows;
+    const actions=(await pool.query(`SELECT q.code,pa.action_text,pa.priority,pa.period,pa.actor,pa.status,pa.target_date,pa.note
+      FROM pcif_actions pa JOIN questions q ON q.id=pa.question_id WHERE pa.campaign_id=$1 AND pa.selected=true
+      ORDER BY q.sort_order,pa.priority,pa.created_at`,[id])).rows;
+    const people=(await pool.query(`SELECT r.code,u.display_name FROM user_establishment_roles ur JOIN roles r ON r.id=ur.role_id JOIN users u ON u.id=ur.user_id
+      WHERE ur.establishment_id=$1 AND u.active=true AND u.deleted_at IS NULL
+      UNION ALL SELECT r.code,u.display_name FROM user_agency_roles ur JOIN roles r ON r.id=ur.role_id JOIN users u ON u.id=ur.user_id
+      JOIN agency_establishments ae ON ae.agency_id=ur.agency_id AND ae.establishment_id=$1 AND ae.active=true WHERE u.active=true AND u.deleted_at IS NULL`,[campaign.establishment_id])).rows;
+    const person=(...roles:string[])=>people.find((p:any)=>roles.includes(p.code))?.display_name||"";
+    const answers:Record<string,number>={},obs:Record<string,string>={};
+    for(const row of rows){answers[row.code]=Number(row.value);if(row.comment?.trim())obs[row.code]=row.comment.trim()}
+    const plans:CartopaleSave["plans"]={};
+    for(const action of actions)(plans[action.code]??=[]).push({action:action.action_text,priorite:action.priority,periode:action.period||"",pilote:action.actor||"",statut:action.status,echeance:action.target_date?String(action.target_date).slice(0,10):"",observation:action.note||""});
+    const now=new Date(),dateIso=now.toISOString().slice(0,10),dateFr=new Intl.DateTimeFormat("fr-FR").format(now);
+    const save:CartopaleSave={etab:{name:campaign.name,uai:campaign.uai||"",groupement:campaign.agency_name,date:dateFr,ac:person("AGENCY_ACCOUNTANT"),fp:person("AGENCY_DEPUTY"),sg:person("SECRETARY_GENERAL"),ce:person("HEAD"),lbl_ac:"L’Agent Comptable",lbl_fp:"Le Fondé de pouvoir",lbl_sg:"Le Secrétaire Général",lbl_ce:"Le Chef d’établissement",campagne:campaign.label},answers,obs,plans};
+    const document=buildCartopaleHtml(save,{campaignLabel:campaign.label,answerCount:Object.keys(answers).length,exportedAt:dateFr});
+    await pool.query(`INSERT INTO audit_events(user_id,establishment_id,module,entity_type,entity_id,operation,after_data) VALUES($1,$2,'PILOTAGE','CAMPAIGN',$3,'EXPORT_CARTOPALE',$4::jsonb)`,[user.sub,campaign.establishment_id,id,JSON.stringify({campaignLabel:campaign.label,answers:Object.keys(answers).length,actions:actions.length})]);
+    return reply.header("Content-Type","text/html; charset=utf-8").header("Content-Disposition",`attachment; filename="${cartopaleFilename(campaign.uai,campaign.label,dateIso)}"`).send(document);
+  });
+
   app.get("/api/establishments/:id/benchmark",async(request,reply)=>{
     const user=await requireUser(request),id=(request.params as any).id;
     const access=await establishmentAccess(user.sub,id);
