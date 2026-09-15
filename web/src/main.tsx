@@ -1,12 +1,12 @@
-import { PilotagePcif } from "./PilotagePcif";
+import { PilotagePcif,type PilotageTab } from "./PilotagePcif";
 import "bootstrap/dist/css/bootstrap.min.css";
 import React,{useEffect,useMemo,useState} from "react";
 import{createRoot}from"react-dom/client";
-import{api,clearToken,getToken,setToken,type AdminUser,type Campaign,type Establishment,type Me,type Question}from"./api";
+import{api,clearToken,getToken,setToken,type AdminUser,type BenchmarkData,type Campaign,type Establishment,type Me,type PilotageData,type Question}from"./api";
 import { demoProfiles as demo } from "./demoProfiles";
 import"./styles.css";
 
-type View={kind:"home"}|{kind:"campaign";campaign:Campaign;establishment:Establishment}|{kind:"admin"};
+type View={kind:"home"}|{kind:"campaign";campaign:Campaign;establishment:Establishment;tab?:PilotageTab;organisationView?:"ofn"|"process"}|{kind:"admin"};
 const isDemo=import.meta.env.VITE_DEPLOYMENT_ENV==="demo";
 
 function Logo(){return <div className="pcif-logo"><svg className="logo-shield" viewBox="0 0 40 46" aria-hidden="true"><path d="M20 2 36 9v12c0 11-6.7 19-16 23C10.7 40 4 32 4 21V9Z"/><path d="m12 22 5 5 11-12"/></svg><div><b>PCIF Académie</b><small>Pilotage du contrôle interne financier</small></div></div>}
@@ -19,6 +19,7 @@ function App(){
  if(busy)return <><DemoBanner/><div className={`splash${isDemo?" demo-mode":""}`}><Logo/><span>Chargement…</span></div></>;
  if(!me)return new URLSearchParams(location.search).get("resetToken")?<ResetPassword/>:<Login onLogin={session}/>;
  const logout=()=>{clearToken();setMe(null);setView({kind:"home"})};
+ const openShortcut=async(tab:PilotageTab,organisationView?:"ofn"|"process")=>{if(!active)return;const camps=await api.campaigns(active.id);const campaign=camps[0];if(campaign)setView({kind:"campaign",campaign,establishment:active,tab,organisationView})};
  return <div className={`pcif-app${isDemo?" demo-mode":""}`}>
    <DemoBanner/>
    <aside className="sidebar">
@@ -26,6 +27,9 @@ function App(){
     <div className="profile"><small>Utilisateur connecté</small><strong>{me.user.displayName}</strong><span>{me.user.email}</span></div>
     <nav>
       <button className={view.kind==="home"?"active":""} onClick={()=>setView({kind:"home"})}>⌂ Tableau de bord</button>
+      <button onClick={()=>openShortcut("workshops")}>◎ Ateliers PCIF</button>
+      <button onClick={()=>openShortcut("organisation","ofn")}>♙ Organigramme fonctionnel</button>
+      <button onClick={()=>openShortcut("organisation","process")}>⌘ Processus & logigrammes</button>
       {me.user.isPlatformAdmin&&<button className={view.kind==="admin"?"active":""} onClick={()=>setView({kind:"admin"})}>⚙ Administration</button>}
     </nav>
     <div className="sidebar-foot"><button onClick={logout}>Déconnexion</button></div>
@@ -42,7 +46,7 @@ function App(){
     </header>
     <main>
       {view.kind==="home"&&<Dashboard establishment={active} onOpen={(c,e)=>setView({kind:"campaign",campaign:c,establishment:e})}/>}
-      {view.kind==="campaign"&&<PilotagePcif me={me} campaign={view.campaign} establishment={view.establishment} onBack={()=>setView({kind:"home"})}/>}
+      {view.kind==="campaign"&&<PilotagePcif me={me} campaign={view.campaign} establishment={view.establishment} initialTab={view.tab} organisationView={view.organisationView} onBack={()=>setView({kind:"home"})}/>} 
       {view.kind==="admin"&&<AdminHub establishments={ets}/>}
     </main>
    </div>
@@ -61,12 +65,22 @@ function ResetPassword(){
  return <><DemoBanner/><div className={`login login-single${isDemo?" demo-mode":""}`}><section><Logo/><h1>{activation?"Activer mon compte":"Nouveau mot de passe"}</h1>{state==="done"?<><div className="notice">Votre mot de passe est enregistré. Vous pouvez maintenant vous connecter.</div><button className="primary" onClick={()=>location.href="/"}>Se connecter</button></>:state==="error"?<><div className="error">Ce lien est invalide, expiré ou déjà utilisé.</div><button onClick={()=>location.href="/"}>Demander un nouveau lien</button></>:<form onSubmit={save}><p>Choisissez un mot de passe personnel d’au moins 12 caractères.</p><label>Nouveau mot de passe<input type="password" autoComplete="new-password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><label>Confirmation<input type="password" autoComplete="new-password" required value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)}/></label>{message&&<div className="error">{message}</div>}<button className="primary">Enregistrer mon mot de passe</button></form>}</section></div></>
 }
 function Dashboard({establishment,onOpen}:{establishment:Establishment|null;onOpen:(c:Campaign,e:Establishment)=>void}){
- const[camps,setCamps]=useState<Campaign[]>([]);useEffect(()=>{establishment?api.campaigns(establishment.id).then(setCamps):setCamps([])},[establishment?.id]);
+ const[camps,setCamps]=useState<Campaign[]>([]),[data,setData]=useState<PilotageData|null>(null),[benchmark,setBenchmark]=useState<BenchmarkData|null>(null);
+ useEffect(()=>{setData(null);setBenchmark(null);if(!establishment){setCamps([]);return}api.campaigns(establishment.id).then(async list=>{setCamps(list);if(list[0])setData(await api.pilotage(list[0].id));api.benchmark(establishment.id).then(setBenchmark).catch(()=>setBenchmark(null))})},[establishment?.id]);
  if(!establishment)return <Empty text="Aucun établissement accessible."/>;
- return <><div className="hero"><div><small>PCIF Académie</small><h1>{establishment.name}</h1><p>Diagnostic, maîtrise des risques et plan d’action de l’établissement.</p></div><div className="pill">{establishment.uai}</div></div>
- <div className="tiles"><div><b>{camps.length}</b><span>Campagne(s)</span></div><div><b>{establishment.kind||"EPLE"}</b><span>Type</span></div><div><b>Multi</b><span>Travail collaboratif</span></div></div>
- <section className="panel"><h2>Campagnes PCIF</h2>{camps.map(c=><button className="campaign" key={c.id} onClick={()=>onOpen(c,establishment)}><div><span className="status">{c.status}</span><b>{c.label}</b><small>Référentiel {c.repository_version}{c.question_count ? ` · ${c.question_count} questions` : ""}</small></div><i>→</i></button>)}</section></>
+ const campaign=camps[0],questions=data?.questions||[],unique=new Map<string,any>();for(const q of questions){const old=unique.get(q.id);if(!old||q.sphere==="SYNTHESE")unique.set(q.id,q)}const qs=[...unique.values()];
+ const answered=qs.filter(q=>q.value===1||q.value===2||q.value===3),coverage=qs.length?Math.round(100*answered.length/qs.length):0;
+ const risk=answered.reduce((s,q)=>s+(q.value===1?Number(q.weight):q.value===2?Number(q.weight)*.5:0),0),max=answered.reduce((s,q)=>s+Number(q.weight),0),mastery=max?Math.round(100*(1-risk/max)):0;
+ const critical=qs.filter(q=>(q.value===1||q.value===2)&&Number(q.weight)>=6).length,actions=data?.actions||[],done=actions.filter(a=>a.status==="REALISEE").length;
+ const domains=Array.from(new Set(qs.map(q=>q.domain))).map(domain=>{const rows=qs.filter(q=>q.domain===domain),a=rows.filter(q=>q.value===1||q.value===2||q.value===3),r=a.reduce((s,q)=>s+(q.value===1?Number(q.weight):q.value===2?Number(q.weight)*.5:0),0),m=a.reduce((s,q)=>s+Number(q.weight),0);return{domain,score:m?Math.round(100*(1-r/m)):0}});
+ return <div className="home-dashboard"><section className="welcome-card"><div><small>Bonjour,</small><h1>{establishment.name}</h1><p>{campaign?.label||"Aucune campagne active"} · {qs.length||campaign?.question_count||0} points de contrôle</p><div className="welcome-progress"><i style={{width:`${coverage}%`}}/><b>{coverage}% complétée</b></div>{campaign&&<button onClick={()=>onOpen(campaign,establishment)}>Prochaine étape · poursuivre la campagne →</button>}</div><blockquote>« Comprendre nos pratiques pour construire ensemble un établissement plus sûr et plus efficace. »</blockquote></section>
+ <div className="home-kpis"><HomeKpi tone="green" value={`${mastery}%`} label="Maîtrise globale" detail={`${answered.length} réponses consolidées`}/><HomeKpi tone="blue" value={`${coverage}%`} label="Progression" detail={`${answered.length} sur ${qs.length} contrôles`}/><HomeKpi tone="red" value={critical} label="Risques prioritaires" detail="Poids ≥ 6 à traiter"/><HomeKpi tone="teal" value={`${done}/${actions.length}`} label="Actions réalisées" detail={actions.length?`${Math.round(100*done/actions.length)}% du plan d’action`:"Plan à construire"}/></div>
+ <div className="home-grid"><section className="home-card mastery-card"><header><h2>Maîtrise par macro-processus</h2>{campaign&&<button onClick={()=>onOpen(campaign,establishment)}>Voir le détail →</button>}</header>{domains.length?domains.map((d,i)=><div className="macro-row" key={d.domain}><span className={`macro-icon c${i%6}`}>{i+1}</span><b>{d.domain}</b><div><i style={{width:`${d.score}%`}}/></div><strong>{d.score}%</strong></div>):<p className="empty-state">Commencez le diagnostic pour calculer la maîtrise.</p>}</section><BenchmarkCard data={benchmark}/></div>
+ <div className="home-grid lower"><section className="home-card"><header><h2>Points d’attention</h2></header>{critical?<><p><strong>{critical} risques prioritaires</strong><br/>Les réponses « Non » ou « Partiel » les plus pondérées appellent un traitement.</p>{campaign&&<button onClick={()=>onOpen(campaign,establishment)}>Ouvrir la cartographie →</button>}</>:<p className="empty-state">Aucun risque prioritaire identifié à ce stade.</p>}</section><section className="home-card"><header><h2>Plan d’action</h2></header><div className="action-ring" style={{"--pct":`${actions.length?Math.round(100*done/actions.length):0}%`} as React.CSSProperties}><b>{actions.length?Math.round(100*done/actions.length):0}%</b></div><p>{done} réalisée(s) · {actions.length-done} à poursuivre</p></section></div>
+ <section className="panel compact-campaigns"><h2>Campagnes</h2>{camps.map(c=><button className="campaign" key={c.id} onClick={()=>onOpen(c,establishment)}><div><span className="status">{c.status}</span><b>{c.label}</b><small>Référentiel {c.repository_version}{c.question_count?` · ${c.question_count} questions`:""}</small></div><i>→</i></button>)}</section></div>
 }
+function HomeKpi({tone,value,label,detail}:{tone:string;value:string|number;label:string;detail:string}){return <article className={`home-kpi ${tone}`}><span></span><div><strong>{value}</strong><b>{label}</b><small>{detail}</small></div></article>}
+function BenchmarkCard({data}:{data:BenchmarkData|null}){const[scope,setScope]=useState<"agency"|"department"|"academy">("agency"),cohort=data?.[scope],mine=cohort?.values.indexOf(data?.current??-1);return <section className="home-card benchmark-card"><header><h2>Se situer dans son environnement</h2></header><nav><button className={scope==="agency"?"active":""} onClick={()=>setScope("agency")}>Agence comptable</button><button className={scope==="department"?"active":""} onClick={()=>setScope("department")}>Département</button><button className={scope==="academy"?"active":""} onClick={()=>setScope("academy")}>Académie</button></nav>{cohort&&cohort.count>=3?<><div className="benchmark-scale">{cohort.values.map((v,i)=><i key={i} className={i===mine?"mine":""} style={{left:`${Math.max(2,Math.min(98,v))}%`}} title={`${v}%`}/>)}</div><div className="benchmark-values"><span>Mon établissement <b>{data?.current??"—"}%</b></span><span>Moyenne <b>{cohort.average}%</b></span><span>Échantillon <b>{cohort.count} EPLE</b></span></div></>:<p className="empty-state">Au moins trois campagnes renseignées sont nécessaires pour préserver la confidentialité de la comparaison.</p>}</section>}
 function CampaignView({me,campaign,establishment,onBack}:{me:Me;campaign:Campaign;establishment:Establishment;onBack:()=>void}){
  const[questions,setQuestions]=useState<Question[]>([]),[domain,setDomain]=useState("TOUS"),[scope,setScope]=useState("TOUS");
  useEffect(()=>{api.questions(campaign.id).then(setQuestions)},[campaign.id]);
@@ -131,4 +145,3 @@ function UserModal({user,establishments,roles,onClose,onSaved}:{user:AdminUser|n
 }
 function Empty({text}:{text:string}){return <div className="empty">{text}</div>}function sphereLabel(s:string){return s==="ORDONNATEUR"?"Ordonnateur":s==="COMPTABLE"?"Comptable":"Synthèse"}function roleLabel(r:string){return({AGENCY_ACCOUNTANT:"Agent comptable",AGENCY_DEPUTY:"Fondé de pouvoir",HEAD:"Chef d’établissement",SECRETARY_GENERAL:"Secrétaire général",CONTRIBUTOR:"Contributeur",READER:"Lecteur",AUDITOR:"Auditeur",PLATFORM_ADMIN:"Administrateur"} as any)[r]||r}
 createRoot(document.getElementById("root")!).render(<App/>);
-

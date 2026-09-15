@@ -32,6 +32,8 @@ export type WorkshopSession = {
   exit_criteria:Record<string,boolean>;updated_at:string;updated_by_name?:string|null;
 };
 export type PilotageData = {questions:PilotageQuestion[];actions:PcifAction[];workshops:WorkshopProgress[];workshopSessions:WorkshopSession[]};
+export type BenchmarkData={current:number|null;agency:BenchmarkCohort;department:BenchmarkCohort;academy:BenchmarkCohort};
+export type BenchmarkCohort={count:number;average:number|null;values:number[]};
 
 
 export type OfnActor={id:string;campaign_id:string;name:string;role:string;function_code:string;sphere:"ORDONNATEUR"|"COMPTABLE"|"MIXTE";service:string;source_user_id?:string|null;source:string};
@@ -153,6 +155,7 @@ export const api = {
     request<Campaign[]>(`/api/campaigns?establishmentId=${encodeURIComponent(establishmentId)}`),
   campaign: (id: string) => request<Campaign>(`/api/campaigns/${id}`),
   pilotage: (id:string) => request<PilotageData>(`/api/campaigns/${id}/pilotage`),
+  benchmark:(establishmentId:string)=>request<BenchmarkData>(`/api/establishments/${establishmentId}/benchmark`),
   organisation: (id:string) => request<OrganisationData>(`/api/campaigns/${id}/organisation`),
   createOfnActor:(campaignId:string,payload:any)=>request<OfnActor>(`/api/campaigns/${campaignId}/ofn/actors`,{method:"POST",body:JSON.stringify(payload)}),
   updateOfnActor:(campaignId:string,actorId:string,payload:any)=>request<OfnActor>(`/api/campaigns/${campaignId}/ofn/actors/${actorId}`,{method:"PATCH",body:JSON.stringify(payload)}),

@@ -13,6 +13,34 @@ async function campaignAccess(userId:string,campaignId:string){
 }
 
 export async function registerPilotage(app:FastifyInstance){
+  app.get("/api/establishments/:id/benchmark",async(request,reply)=>{
+    const user=await requireUser(request),id=(request.params as any).id;
+    const access=await establishmentAccess(user.sub,id);
+    if(!access.canRead) return reply.code(403).send({error:"FORBIDDEN"});
+    const target=(await pool.query(`SELECT e.id,e.department_code,e.academy_code,ae.agency_id
+      FROM establishments e LEFT JOIN agency_establishments ae ON ae.establishment_id=e.id AND ae.active=true
+      WHERE e.id=$1`,[id])).rows[0];
+    if(!target) return reply.code(404).send({error:"NOT_FOUND"});
+    const {rows}=await pool.query(`WITH latest AS (
+      SELECT e.id,e.department_code,e.academy_code,ae.agency_id,c.id campaign_id
+      FROM establishments e
+      LEFT JOIN agency_establishments ae ON ae.establishment_id=e.id AND ae.active=true
+      JOIN LATERAL (SELECT id,repository_version_id FROM campaigns WHERE establishment_id=e.id AND status<>'ARCHIVED' ORDER BY created_at DESC LIMIT 1) c ON true
+      WHERE e.active=true AND (e.id=$1 OR ($2::uuid IS NOT NULL AND ae.agency_id=$2) OR ($3::text IS NOT NULL AND e.department_code=$3) OR ($4::text IS NOT NULL AND e.academy_code=$4))
+    ), scores AS (
+      SELECT l.id,l.department_code,l.academy_code,l.agency_id,
+        ROUND(100*(1-COALESCE(SUM(CASE a.value WHEN 1 THEN q.weight WHEN 2 THEN q.weight*.5 ELSE 0 END),0)/NULLIF(SUM(CASE WHEN a.value IN(1,2,3) THEN q.weight ELSE 0 END),0)))::int mastery
+      FROM latest l JOIN campaigns c ON c.id=l.campaign_id
+      JOIN questions q ON q.repository_version_id=c.repository_version_id AND q.active=true
+      LEFT JOIN LATERAL (SELECT value FROM answers WHERE campaign_id=c.id AND question_id=q.id ORDER BY (sphere='SYNTHESE') DESC,updated_at DESC LIMIT 1) a ON true
+      GROUP BY l.id,l.department_code,l.academy_code,l.agency_id
+      HAVING COUNT(a.value) FILTER(WHERE a.value IN(1,2,3))>0
+    ) SELECT id,mastery,(id=$1) current,(agency_id=$2) agency,(department_code=$3) department,(academy_code=$4) academy FROM scores ORDER BY mastery`,
+      [id,target.agency_id||null,target.department_code||null,target.academy_code||null]);
+    const cohort=(key:string)=>{const values=rows.filter(r=>r[key]).map(r=>Number(r.mastery));return{count:values.length,average:values.length>=3?Math.round(values.reduce((a,b)=>a+b,0)/values.length):null,values:values.length>=3?values:[]}};
+    return{current:rows.find(r=>r.current)?.mastery??null,agency:cohort("agency"),department:cohort("department"),academy:cohort("academy")};
+  });
+
   app.get("/api/campaigns/:id/pilotage",async(request,reply)=>{
     const user=await requireUser(request);
     const id=(request.params as any).id;

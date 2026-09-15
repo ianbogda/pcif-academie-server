@@ -4,6 +4,8 @@ Application collaborative de pilotage du contrôle interne financier des EPLE.
 
 La version actuelle propose le référentiel PCIF de 267 contrôles, le diagnostic partagé ordonnateur/comptable, la cartographie des risques, les ateliers, le plan d’action et la construction de l’organigramme fonctionnel nominatif (ONF).
 
+Le tableau de bord consolide les données de la campagne active : couverture, maîtrise pondérée, risques prioritaires, plan d’action et résultats par domaine. Il permet aussi une comparaison anonymisée avec les EPLE de l’agence comptable, du département ou de l’académie, lorsque l’échantillon contient des campagnes renseignées.
+
 ## Environnements
 
 | Environnement | Adresse | Particularité |
@@ -155,4 +157,4 @@ sudo journalctl -u pcif-academie-demo -n 100 --no-pager
 
 ## Version
 
-Version actuelle : **0.20.0**.
+Version actuelle : **0.21.0**.

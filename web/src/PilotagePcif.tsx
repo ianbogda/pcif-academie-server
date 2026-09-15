@@ -26,8 +26,9 @@ function occurrence(q:PilotageQuestion){return Number(q.occurrence ?? q.pcif_p ?
 function residual(q:PilotageQuestion){const f=factor(q.value);return f===null?0:(gravity(q)*occurrence(q))*f}
 function sev(n:number){return n>=6?["crit","Critique"]:n>=4?["high","Élevé"]:n>=2?["med","Modéré"]:["low","Faible"]}
 
-export function PilotagePcif({campaign,establishment,me,onBack}:{campaign:Campaign;establishment:Establishment;me:Me;onBack:()=>void}){
- const[data,setData]=useState<PilotageData|null>(null),[tab,setTab]=useState<"dashboard"|"diagnostic"|"risks"|"annual"|"workshops"|"organisation">("dashboard");
+export type PilotageTab="dashboard"|"diagnostic"|"risks"|"annual"|"workshops"|"organisation";
+export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashboard",organisationView="ofn"}:{campaign:Campaign;establishment:Establishment;me:Me;onBack:()=>void;initialTab?:PilotageTab;organisationView?:"ofn"|"process"}){
+ const[data,setData]=useState<PilotageData|null>(null),[tab,setTab]=useState<PilotageTab>(initialTab);
  const[scope,setScope]=useState<"both"|"O"|"C">("both"),[mode,setMode]=useState<"all"|"sprint"|"critical"|"unanswered">("all"),[domain,setDomain]=useState("TOUS"),[idx,setIdx]=useState(0);
  async function load(){setData(await api.pilotage(campaign.id))}
  useEffect(()=>{load()},[campaign.id]);
@@ -81,7 +82,7 @@ export function PilotagePcif({campaign,establishment,me,onBack}:{campaign:Campai
   {tab==="risks"&&<RiskView qs={qs}/>}
   {tab==="annual"&&<Annual data={data} campaignId={campaign.id} reload={load}/>}
   {tab==="workshops"&&<Workshops data={data} campaignId={campaign.id} reload={load}/>}
-  {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id}/>}
+  {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id} initialView={organisationView}/>} 
  </div>
 }
 
@@ -320,4 +321,3 @@ function Workshops({data,campaignId,reload}:{data:PilotageData;campaignId:string
   </article>
  </section>
 }
-
