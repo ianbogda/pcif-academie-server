@@ -28,6 +28,9 @@ fail(){
 }
 
 log "Arrêt du service ${ENVIRONMENT}"
+if [[ "$ENVIRONMENT" == "demo" ]]; then
+  systemctl stop pcif-academie-demo-reset.timer 2>/dev/null || true
+fi
 systemctl stop "$SERVICE" 2>/dev/null || true
 log "Copie des nouvelles sources"
 rsync -a --delete --exclude node_modules --exclude web/node_modules --exclude dist --exclude web/dist --exclude .git --exclude .env "$SOURCE_DIR/" "$APP/"
@@ -48,6 +51,26 @@ sudo -u "$APP_USER" env VITE_DEPLOYMENT_ENV="$ENVIRONMENT" npm run build
 
 if [[ "$ENVIRONMENT" == "demo" ]]; then
   install -m 0750 -o root -g root "$APP/deploy/reset-demo.sh" /usr/local/sbin/pcif-academie-demo-reset
+  cat >/etc/systemd/system/pcif-academie-demo-reset.service <<EOF
+[Unit]
+Description=Remise à zéro des données PCIF Académie Démo
+After=postgresql.service
+[Service]
+Type=oneshot
+Environment=PCIF_DEMO_APP_DIR=${APP}
+Environment=PCIF_DEMO_SERVICE=${SERVICE}
+ExecStart=/usr/local/sbin/pcif-academie-demo-reset
+EOF
+  cat >/etc/systemd/system/pcif-academie-demo-reset.timer <<'EOF'
+[Unit]
+Description=RAZ horaire de PCIF Académie Démo
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=30
+Unit=pcif-academie-demo-reset.service
+[Install]
+WantedBy=timers.target
+EOF
 fi
 systemctl daemon-reload
 systemctl restart "$SERVICE"
@@ -59,4 +82,7 @@ done
 [[ "${API_OK:-0}" == 1 ]] || fail "L'API ne répond pas après 30 secondes."
 caddy validate --config /etc/caddy/Caddyfile
 systemctl reload caddy
+if [[ "$ENVIRONMENT" == "demo" ]]; then
+  systemctl enable --now pcif-academie-demo-reset.timer
+fi
 echo "Mise à jour ${ENVIRONMENT} terminée : $HEALTH_URL"

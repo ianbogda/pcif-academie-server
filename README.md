@@ -1,4 +1,4 @@
-# PCIF Académie — v0.17.1 — déploiements et certificats Let's Encrypt
+# PCIF Académie — v0.17.2 — déploiements et certificats Let's Encrypt
 
 Première itération exécutable du serveur collaboratif multi-EPLE.
 
@@ -67,6 +67,8 @@ sudo ./deploy/install-debian13.sh --environment demo \
 ```
 
 La remise à zéro horaire est assurée par `pcif-academie-demo-reset.timer`.
+Le timer n'est activé qu'après validation de l'API locale et du domaine HTTPS ;
+il ne déclenche donc plus de remise à zéro concurrente au premier démarrage.
 Le script vérifie simultanément l'environnement, le nom de la base, le
 répertoire et le service avant toute suppression. Il ne peut donc pas cibler
 la production par simple erreur de paramétrage.

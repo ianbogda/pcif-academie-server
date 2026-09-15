@@ -152,7 +152,6 @@ EOF
 Description=RAZ horaire de PCIF Académie Démo
 [Timer]
 OnCalendar=hourly
-Persistent=true
 RandomizedDelaySec=30
 Unit=pcif-academie-demo-reset.service
 [Install]
@@ -193,12 +192,27 @@ EOF
 
 systemctl daemon-reload
 systemctl enable --now "$SERVICE"
-[[ "$ENVIRONMENT" == "demo" ]] && systemctl enable --now pcif-academie-demo-reset.timer
 caddy validate --config /etc/caddy/Caddyfile
 systemctl enable --now caddy
 systemctl reload caddy
-sleep 2
-curl -fsS "http://127.0.0.1:${PORT}/health" >/dev/null
+
+API_READY=0
+for ((attempt=1; attempt<=30; attempt++)); do
+  if curl -fsS "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
+    API_READY=1
+    break
+  fi
+  sleep 1
+done
+if [[ "$API_READY" -ne 1 ]]; then
+  echo "L'API ${ENVIRONMENT} ne répond pas correctement après 30 secondes." >&2
+  systemctl status "$SERVICE" --no-pager -l || true
+  journalctl -u "$SERVICE" -n 80 --no-pager || true
+  exit 1
+fi
 curl -fsS --retry 6 --retry-delay 5 "https://${DOMAIN}/health" >/dev/null
+if [[ "$ENVIRONMENT" == "demo" ]]; then
+  systemctl enable --now pcif-academie-demo-reset.timer
+fi
 echo "Installation ${ENVIRONMENT} terminée : https://${DOMAIN}"
 [[ "$ENVIRONMENT" == "demo" ]] && echo "Prochaine RAZ : systemctl list-timers pcif-academie-demo-reset.timer"
