@@ -1,4 +1,4 @@
-# PCIF Académie — v0.17.2 — déploiements et certificats Let's Encrypt
+# PCIF Académie — v0.17.3 — déploiements et certificats Let's Encrypt
 
 Première itération exécutable du serveur collaboratif multi-EPLE.
 

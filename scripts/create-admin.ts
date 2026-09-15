@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { readFile } from "node:fs/promises";
 import { pool } from "../src/db.js";
 
 const args = process.argv.slice(2);
@@ -8,8 +7,15 @@ const value = (name: string) => {
   const i=args.indexOf(name);
   return i>=0 ? args[i+1] : undefined;
 };
+async function readPasswordFromStdin() {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString("utf8").replace(/[\r\n]+$/, "");
+}
 const password = args.includes("--password-stdin")
-  ? (await readFile("/dev/stdin", "utf8")).replace(/[\r\n]+$/, "")
+  ? await readPasswordFromStdin()
   : value("--password");
 const schema=z.object({
   email:z.string().trim().toLowerCase().email(),
