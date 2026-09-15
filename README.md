@@ -1,4 +1,4 @@
-# PCIF Académie — v0.12.0 — ateliers PCIF persistants
+# PCIF Académie — v0.13.0 — Atelier 1 / constructeur ONF
 
 Première itération exécutable du serveur collaboratif multi-EPLE.
 
@@ -462,3 +462,15 @@ les sessions historisées sans supprimer les données existantes.
 
 Les `package-lock.json` racine et Web doivent être versionnés et synchronisés avec
 leurs `package.json`; le déploiement nominal reste `npm ci`.
+
+## v0.13.0 — Atelier 1 : constructeur ONF
+
+L'atelier 1 est ramené à quatre étapes utiles, le contexte EPLE/agence/campagne étant déjà connu :
+
+1. Acteurs — population ONF et propositions issues des comptes PCIF de l'EPLE et de l'agence ;
+2. Opérations — bibliothèque Fonctiop@le, affectations Réalise / Valide / Contrôle / Supplée ;
+3. Sécurisation — détection des absences de suppléance, dépendances à une personne, conflits de sphère et délégations à documenter ;
+4. ONF — matrice consolidée et validation d'une version datée.
+
+Les acteurs ONF sont distincts des comptes PCIF : un utilisateur connu peut être proposé, mais un acteur métier sans compte peut être ajouté manuellement.
+Les versions validées sont stockées sous forme de snapshots pour permettre la réinterrogation de l'ONF dans l'année.

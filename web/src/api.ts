@@ -34,12 +34,15 @@ export type WorkshopSession = {
 export type PilotageData = {questions:PilotageQuestion[];actions:PcifAction[];workshops:WorkshopProgress[];workshopSessions:WorkshopSession[]};
 
 
-export type OfnActor={id:string;campaign_id:string;name:string;role:string;function_code:string};
-export type OfnAssignment={id:string;campaign_id:string;operation_id:string;actor_id:string;direct_action:boolean;delegation:boolean;substitution:boolean;ring?:string|null;note:string};
+export type OfnActor={id:string;campaign_id:string;name:string;role:string;function_code:string;sphere:"ORDONNATEUR"|"COMPTABLE"|"MIXTE";service:string;source_user_id?:string|null;source:string};
+export type OfnAssignment={id:string;campaign_id:string;operation_id:string;actor_id:string;direct_action:boolean;delegation:boolean;substitution:boolean;validates:boolean;controls:boolean;ring?:string|null;note:string};
 export type OfnOperation={id:string;name:string;category:string;subcategory:string;sphere:string;processIds?:string[]};
 export type PcifProcess={id:string;title:string;domain:string;icon?:string;questionIds:string[];steps:string[];description:string;owner:string;processFamily?:string;macroProcess?:string};
 export type ProcessReview={campaign_id:string;process_id:string;priority:boolean;status:"A_EXAMINER"|"EN_COURS"|"SECURISE";note:string};
-export type OrganisationData={operations:OfnOperation[];processes:PcifProcess[];actors:OfnActor[];assignments:OfnAssignment[];reviews:ProcessReview[]};
+export type OrganisationData={operations:OfnOperation[];processes:PcifProcess[];actors:OfnActor[];assignments:OfnAssignment[];reviews:ProcessReview[];
+ context?:{establishment_name:string;uai:string;agency_name?:string|null;campaign_label:string};
+ suggestedActors?:Array<{user_id:string;name:string;role_code:string;sphere:"ORDONNATEUR"|"COMPTABLE"|"MIXTE"}>;
+ versions?:Array<{id:string;version_no:number;label:string;created_at:string}>};
 
 export type AdminEstablishment = Establishment & {active:boolean;agency_id?:string|null;agency_name?:string|null};
 export type AdminAgency = {id:string;name:string;support_establishment_id:string;support_name?:string;support_uai?:string;active:boolean;establishments:Establishment[]};
@@ -149,6 +152,8 @@ export const api = {
   createOfnActor:(campaignId:string,payload:any)=>request<OfnActor>(`/api/campaigns/${campaignId}/ofn/actors`,{method:"POST",body:JSON.stringify(payload)}),
   deleteOfnActor:(campaignId:string,actorId:string)=>request<void>(`/api/campaigns/${campaignId}/ofn/actors/${actorId}`,{method:"DELETE"}),
   saveOfnAssignment:(campaignId:string,payload:any)=>request<OfnAssignment>(`/api/campaigns/${campaignId}/ofn/assignments`,{method:"PUT",body:JSON.stringify(payload)}),
+  ofnChecks:(campaignId:string)=>request<any[]>(`/api/campaigns/${campaignId}/ofn/checks`),
+  createOfnVersion:(campaignId:string,label:string)=>request<any>(`/api/campaigns/${campaignId}/ofn/versions`,{method:"POST",body:JSON.stringify({label})}),
   deleteOfnAssignment:(campaignId:string,id:string)=>request<void>(`/api/campaigns/${campaignId}/ofn/assignments/${id}`,{method:"DELETE"}),
   saveProcessReview:(campaignId:string,processId:string,payload:any)=>request<ProcessReview>(`/api/campaigns/${campaignId}/processes/${processId}`,{method:"PUT",body:JSON.stringify(payload)}),
   createAction: (campaignId:string,payload:any) => request<PcifAction>(`/api/campaigns/${campaignId}/actions`,{method:"POST",body:JSON.stringify(payload)}),
