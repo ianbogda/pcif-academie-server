@@ -25,7 +25,13 @@ export type PcifAction = {
   period?:string|null; actor?:string|null; status:"A_LANCER"|"PREPARATION"|"EN_COURS"|"REALISEE"; target_date?:string|null; note:string;
 };
 export type WorkshopProgress = {campaign_id:string;workshop_no:number;completed:boolean;notes:string};
-export type PilotageData = {questions:PilotageQuestion[];actions:PcifAction[];workshops:WorkshopProgress[]};
+export type WorkshopSession = {
+  id:string;campaign_id:string;workshop_no:number;session_kind:"INITIALISATION"|"REEXAMEN";
+  status:"A_PREPARER"|"EN_COURS"|"TERMINEE"|"A_REINTERROGER";session_date:string;next_review_date?:string|null;
+  reason:string;participants:string;notes:string;decisions:string;deliverable:string;
+  exit_criteria:Record<string,boolean>;updated_at:string;updated_by_name?:string|null;
+};
+export type PilotageData = {questions:PilotageQuestion[];actions:PcifAction[];workshops:WorkshopProgress[];workshopSessions:WorkshopSession[]};
 
 
 export type OfnActor={id:string;campaign_id:string;name:string;role:string;function_code:string};
@@ -149,6 +155,8 @@ export const api = {
   updateAction: (campaignId:string,actionId:string,payload:any) => request<PcifAction>(`/api/campaigns/${campaignId}/actions/${actionId}`,{method:"PATCH",body:JSON.stringify(payload)}),
   deleteAction: (campaignId:string,actionId:string) => request<void>(`/api/campaigns/${campaignId}/actions/${actionId}`,{method:"DELETE"}),
   saveWorkshop: (campaignId:string,no:number,payload:any) => request<WorkshopProgress>(`/api/campaigns/${campaignId}/workshops/${no}`,{method:"PUT",body:JSON.stringify(payload)}),
+  createWorkshopSession:(campaignId:string,payload:any)=>request<WorkshopSession>(`/api/campaigns/${campaignId}/workshop-sessions`,{method:"POST",body:JSON.stringify(payload)}),
+  updateWorkshopSession:(campaignId:string,sessionId:string,payload:any)=>request<WorkshopSession>(`/api/campaigns/${campaignId}/workshop-sessions/${sessionId}`,{method:"PATCH",body:JSON.stringify(payload)}),
   questions: (campaignId: string) => request<Question[]>(`/api/campaigns/${campaignId}/questions`),
   saveAnswer: (
     campaignId: string,

@@ -49,7 +49,7 @@ log "Dépendances serveur"
 cd "$APP"
 if [[ -f package-lock.json ]]; then
   if ! sudo -u pcif npm ci; then
-    echo "package-lock.json désynchronisé : régénération avec npm install"
+    echo "package-lock.json désynchronisé : régénération avec npm install — package-lock.json À COMMITTER dans Git"
     sudo -u pcif npm install
   fi
 else
@@ -72,7 +72,7 @@ log "Dépendances et build Web"
 cd "$APP/web"
 if [[ -f package-lock.json ]]; then
   if ! sudo -u pcif npm ci; then
-    echo "package-lock.json désynchronisé : régénération avec npm install"
+    echo "package-lock.json désynchronisé : régénération avec npm install — package-lock.json À COMMITTER dans Git"
     sudo -u pcif npm install
   fi
 else

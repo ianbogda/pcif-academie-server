@@ -312,3 +312,35 @@ input:focus,select:focus,textarea:focus{
 @media(max-width:900px){
   .sidebar{box-shadow:none!important;border-bottom:1px solid #e7eaf0!important}
 }
+
+/* v0.12 — ateliers PCIF persistants et réinterrogeables */
+.workshop-selector{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 28px}
+.workshop-selector>button{text-align:left;min-height:190px;padding:18px;border-radius:18px;position:relative;display:flex;flex-direction:column;align-items:flex-start}
+.workshop-selector>button.active{border:2px solid #2563eb!important;background:#eef4ff!important}
+.workshop-selector span{font-size:13px;font-weight:900;color:#2563eb}
+.workshop-selector em{position:absolute;right:16px;top:16px;font-style:normal;font-size:10px;font-weight:800;color:#526174}
+.workshop-selector h3{font-size:17px;margin:16px 0 4px;color:#172033}
+.workshop-selector p{margin:0 0 18px;color:#526174}
+.workshop-selector b{font-size:12px;color:#172033}.workshop-selector b strong{font-weight:500}
+.workshop-selector small{margin-top:auto;color:#748196;font-size:9px}
+.workshop-detail{background:#fff;border:1px solid #e7eaf0;border-radius:20px;padding:28px;box-shadow:0 .25rem .85rem rgba(15,23,42,.04)}
+.workshop-detail>header{display:flex;justify-content:space-between;gap:20px;align-items:start}
+.workshop-detail>header h2{margin:0 0 8px}.workshop-detail>header p{margin:0;color:#455468}
+.workshop-timeline{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}
+.workshop-timeline>div{background:#f8fafc;border-left:4px solid #94a3b8;border-radius:9px;padding:12px 14px;display:flex;flex-direction:column}
+.workshop-timeline b{font-size:16px}.workshop-timeline span{color:#455468}
+.workshop-body{display:grid;grid-template-columns:1fr 1.2fr;gap:24px}
+.workshop-body>div,.exit-box{border:1px solid #e3e8ef;border-radius:14px;padding:18px;background:#fff}
+.workshop-body h3,.exit-box h3{margin-top:0}.workshop-body li{margin:7px 0;color:#455468}
+.session-history{display:flex;flex-direction:column;gap:8px}.session-history button{text-align:left;padding:11px 12px;border-radius:10px;display:grid;grid-template-columns:1fr auto}
+.session-history button small{grid-column:1/-1;margin-top:4px;color:#748196}
+.workshop-editor{margin-top:20px;border-top:1px solid #e7eaf0;padding-top:20px}
+.editor-head{display:flex;justify-content:space-between;align-items:center}.editor-head h3{margin:0}
+.workshop-form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+.workshop-editor label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#526174;margin:10px 0}
+.workshop-columns{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.workshop-editor textarea{min-height:110px}
+.exit-box{margin:16px 0;background:#f8fafc!important}.exit-box label{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:9px;margin:8px 0;font-size:12px}
+.editor-save{display:flex;justify-content:flex-end;margin-top:14px}
+@media(max-width:1050px){.workshop-selector{grid-template-columns:1fr 1fr}.workshop-form-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.workshop-selector,.workshop-timeline,.workshop-body,.workshop-columns,.workshop-form-grid{grid-template-columns:1fr}.workshop-detail>header{flex-direction:column}}

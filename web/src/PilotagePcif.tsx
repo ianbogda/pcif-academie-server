@@ -1,14 +1,22 @@
 import { OrganisationPcif } from "./OrganisationPcif";
 import React,{useEffect,useMemo,useState}from"react";
-import{api,type Campaign,type Establishment,type Me,type PcifAction,type PilotageData,type PilotageQuestion}from"./api";
+import{api,type Campaign,type Establishment,type Me,type PcifAction,type PilotageData,type PilotageQuestion,type WorkshopSession}from"./api";
 
 const DOMAINS=["Organisation","Exécution budgétaire","Comptabilité Générale","Régies","Contentieux","Patrimoine stocks Domaine"];
 const BADGE_LABELS=["Découverte","Sensibilisation","Initiation","Pratique","Confirmé","Maîtrise"];
 const workshops=[
- ["Organisation & acteurs","Construire l’ONF réel et identifier délégations, suppléances et contrôles."],
- ["Processus & procédures","Décrire les circuits réels et sélectionner les procédures à sécuriser."],
- ["Risques & maîtrise","Objectiver les risques et réaliser le diagnostic PCIF."],
- ["Plan d’action","Prioriser, attribuer, échéancer et définir les preuves."]
+ {title:"Qui fait quoi ?",subtitle:"Organisation réelle",deliverable:"Organigramme fonctionnel nominatif + responsabilités",
+  phases:[["5 min","Lancement"],["15 min","Situation terrain"],["30 min","Acteurs, délégations, suppléances"],["10 min","Arbitrage & validation"]],
+  criteria:["Acteurs clés identifiés","Responsabilités et suppléances explicitées","Délégations / habilitations à vérifier repérées","Organigramme fonctionnel exploitable"]},
+ {title:"Comment travaillons-nous ?",subtitle:"Processus",deliverable:"Cartographie des processus + procédures prioritaires",
+  phases:[["5 min","Lancement"],["15 min","Parcours d’un flux réel"],["30 min","Étapes, contrôles, ruptures et interfaces"],["10 min","Priorisation"]],
+  criteria:["Processus clés identifiés","Étapes et interfaces décrites","Contrôles existants repérés","Procédures prioritaires à sécuriser choisies"]},
+ {title:"Où sont nos risques ?",subtitle:"Risques & maîtrise",deliverable:"Cartographie des risques + niveau de maîtrise",
+  phases:[["5 min","Cadrage"],["15 min","Constats issus du diagnostic"],["30 min","Cotation et maîtrise"],["10 min","Arbitrage des priorités"]],
+  criteria:["Risques significatifs identifiés","Gravité et occurrence discutées","Maîtrise existante objectivée","Priorités de traitement validées"]},
+ {title:"Qu’allons-nous faire ?",subtitle:"Plan d’action",deliverable:"Plan d’action annuel + PCIF consolidé",
+  phases:[["5 min","Rappel des priorités"],["15 min","Mesures possibles"],["30 min","Pilotes, échéances et preuves"],["10 min","Validation"]],
+  criteria:["Mesures correctives retenues","Pilotes désignés","Échéances fixées","Indicateurs / preuves de réalisation définis"]}
 ] as const;
 
 function factor(v?:number|null){return v===3?0:v===2?.5:v===1?1:null}
@@ -256,6 +264,60 @@ function Annual({data,campaignId,reload}:{data:PilotageData;campaignId:string;re
  })}</div></section>
 }
 function Workshops({data,campaignId,reload}:{data:PilotageData;campaignId:string;reload:()=>Promise<void>}){
- async function save(no:number,completed:boolean,notes:string){await api.saveWorkshop(campaignId,no,{completed,notes});await reload()}
- return <section><div className="section-title"><div><h2>Ateliers PCIF · 4 × 60 minutes</h2><p>Du terrain vers le référentiel : chaque atelier produit une brique validée.</p></div></div><div className="workshop-grid">{workshops.map((w,i)=>{const no=i+1,s=data.workshops.find(x=>x.workshop_no===no),done=!!s?.completed;return <article className={`workshop-card ${done?"done":""}`} key={no}><span className="workshop-no">{no}</span><h3>{w[0]}</h3><p>{w[1]}</p><textarea defaultValue={s?.notes||""} id={`ws-${no}`} placeholder="Notes et livrables de l’atelier…"/><button onClick={()=>save(no,!done,(document.getElementById(`ws-${no}`) as HTMLTextAreaElement).value)}>{done?"✓ Atelier validé":"Valider l’atelier"}</button></article>})}</div></section>
+ const [selected,setSelected]=useState(1);
+ const [editing,setEditing]=useState<WorkshopSession|null>(null);
+ const w=workshops[selected-1];
+ const sessions=(data.workshopSessions||[]).filter(s=>s.workshop_no===selected);
+ const latest=sessions[0];
+ const statusLabel=(s?:WorkshopSession["status"])=>s==="A_PREPARER"?"À préparer":s==="EN_COURS"?"En cours":s==="TERMINEE"?"Session terminée":s==="A_REINTERROGER"?"À réinterroger":"Jamais réalisé";
+ function fresh(kind:"INITIALISATION"|"REEXAMEN"){
+   const today=new Date().toISOString().slice(0,10);
+   setEditing({id:"",campaign_id:campaignId,workshop_no:selected,session_kind:kind,status:"A_PREPARER",session_date:today,next_review_date:null,reason:kind==="REEXAMEN"?"Réinterrogation en cours d’année":"Démarrage du PCIF",participants:"",notes:"",decisions:"",deliverable:"",exit_criteria:{},updated_at:""} as WorkshopSession)
+ }
+ async function save(){
+   if(!editing)return;
+   const payload={workshopNo:selected,sessionKind:editing.session_kind,status:editing.status,sessionDate:editing.session_date,
+     nextReviewDate:editing.next_review_date||null,reason:editing.reason,participants:editing.participants,notes:editing.notes,
+     decisions:editing.decisions,deliverable:editing.deliverable,exitCriteria:editing.exit_criteria};
+   if(editing.id)await api.updateWorkshopSession(campaignId,editing.id,payload);else await api.createWorkshopSession(campaignId,payload);
+   setEditing(null);await reload();
+ }
+ function patch(k:keyof WorkshopSession,v:any){if(editing)setEditing({...editing,[k]:v})}
+ return <section className="workshops-v2">
+  <div className="section-title"><div><h2>Ateliers PCIF · 4 × 60 minutes</h2><p>À utiliser pour lancer le PCIF ou pour le réinterroger pendant l’année. Chaque session est datée et conservée.</p></div></div>
+  <div className="workshop-selector">{workshops.map((x,i)=>{
+    const no=i+1,ss=(data.workshopSessions||[]).filter(s=>s.workshop_no===no),last=ss[0];
+    return <button className={selected===no?"active":""} onClick={()=>{setSelected(no);setEditing(null)}} key={no}>
+      <span>ATELIER {no}</span><em>{statusLabel(last?.status)}</em><h3>{x.title}</h3><p>{x.subtitle}</p><b>Livrable : <strong>{x.deliverable}</strong></b>
+      {last&&<small>Dernière session : {last.session_date}{last.next_review_date?` · revue ${last.next_review_date}`:""}</small>}
+    </button>
+  })}</div>
+  <article className="workshop-detail">
+   <header><div><h2>Atelier {selected}/4 — {w.title}</h2><p><b>Livrable :</b> {w.deliverable}</p></div><div className="workshop-actions"><button className="primary" onClick={()=>fresh(sessions.length?"REEXAMEN":"INITIALISATION")}>{sessions.length?"+ Nouvelle session de réexamen":"+ Démarrer l’atelier"}</button></div></header>
+   <div className="workshop-timeline">{w.phases.map(([time,label])=><div key={time+label}><b>{time}</b><span>{label}</span></div>)}</div>
+   {editing&&<div className="workshop-editor">
+    <div className="editor-head"><h3>{editing.id?"Modifier la session":editing.session_kind==="REEXAMEN"?"Nouvelle session de réexamen":"Session initiale"}</h3><button onClick={()=>setEditing(null)}>Fermer</button></div>
+    <div className="workshop-form-grid">
+      <label>Date<input type="date" value={editing.session_date} onChange={e=>patch("session_date",e.target.value)}/></label>
+      <label>Nature<select value={editing.session_kind} onChange={e=>patch("session_kind",e.target.value)}><option value="INITIALISATION">Initialisation</option><option value="REEXAMEN">Réexamen</option></select></label>
+      <label>État<select value={editing.status} onChange={e=>patch("status",e.target.value)}><option value="A_PREPARER">À préparer</option><option value="EN_COURS">En cours</option><option value="TERMINEE">Session terminée</option><option value="A_REINTERROGER">À réinterroger</option></select></label>
+      <label>Prochaine revue<input type="date" value={editing.next_review_date||""} onChange={e=>patch("next_review_date",e.target.value||null)}/></label>
+    </div>
+    <label>Motif / déclencheur<input value={editing.reason} onChange={e=>patch("reason",e.target.value)} placeholder="Démarrage du PCIF, changement d’organisation, incident, revue périodique…"/></label>
+    <label>Participants<input value={editing.participants} onChange={e=>patch("participants",e.target.value)} placeholder="CE, SGE, agent comptable, fondé de pouvoir, gestionnaire…"/></label>
+    <div className="workshop-columns">
+      <label><b>Notes et constats</b><textarea value={editing.notes} onChange={e=>patch("notes",e.target.value)} placeholder="Situation de terrain, écarts, points de vigilance…"/></label>
+      <label><b>Décisions / arbitrages</b><textarea value={editing.decisions} onChange={e=>patch("decisions",e.target.value)} placeholder="Décisions prises, responsabilités, suites à donner…"/></label>
+    </div>
+    <div className="exit-box"><h3>Critères de sortie</h3>{w.criteria.map(c=><label key={c}><input type="checkbox" checked={!!editing.exit_criteria[c]} onChange={e=>patch("exit_criteria",{...editing.exit_criteria,[c]:e.target.checked})}/>{c}</label>)}</div>
+    <label><b>Livrable / synthèse produite</b><textarea value={editing.deliverable} onChange={e=>patch("deliverable",e.target.value)} placeholder={w.deliverable}/></label>
+    <div className="editor-save"><button className="primary" onClick={save}>Enregistrer la session</button></div>
+   </div>}
+   {!editing&&<div className="workshop-body">
+    <div><h3>Critères de sortie attendus</h3><ul>{w.criteria.map(c=><li key={c}>{c}</li>)}</ul></div>
+    <div><h3>Historique des sessions</h3>{sessions.length===0?<p className="empty">Aucune session réalisée. L’atelier peut être utilisé pour initialiser le PCIF.</p>:<div className="session-history">{sessions.map(s=><button key={s.id} onClick={()=>setEditing(s)}><span>{s.session_kind==="REEXAMEN"?"Réexamen":"Initialisation"} · {s.session_date}</span><b>{statusLabel(s.status)}</b><small>{s.reason||"Sans motif précisé"}{s.updated_by_name?` · ${s.updated_by_name}`:""}</small></button>)}</div>}</div>
+   </div>}
+  </article>
+ </section>
 }
+

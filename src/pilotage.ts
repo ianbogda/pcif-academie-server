@@ -35,7 +35,10 @@ export async function registerPilotage(app:FastifyInstance){
 
     const actions=await pool.query(`SELECT * FROM pcif_actions WHERE campaign_id=$1 ORDER BY priority,target_date NULLS LAST,created_at`,[id]);
     const workshops=await pool.query(`SELECT * FROM pcif_workshops WHERE campaign_id=$1 ORDER BY workshop_no`,[id]);
-    return {questions:q.rows,actions:actions.rows,workshops:workshops.rows};
+    const workshopSessions=await pool.query(`SELECT s.*,u.display_name AS updated_by_name
+      FROM pcif_workshop_sessions s LEFT JOIN users u ON u.id=s.updated_by
+      WHERE s.campaign_id=$1 ORDER BY s.workshop_no,s.session_date DESC,s.created_at DESC`,[id]);
+    return {questions:q.rows,actions:actions.rows,workshops:workshops.rows,workshopSessions:workshopSessions.rows};
   });
 
   const actionSchema=z.object({
@@ -91,6 +94,59 @@ export async function registerPilotage(app:FastifyInstance){
     if(!ca.access.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
     await pool.query(`DELETE FROM pcif_actions WHERE id=$1 AND campaign_id=$2`,[actionId,campaignId]);
     return reply.code(204).send();
+  });
+
+
+  const workshopSessionSchema=z.object({
+    workshopNo:z.number().int().min(1).max(4),
+    sessionKind:z.enum(["INITIALISATION","REEXAMEN"]).default("INITIALISATION"),
+    status:z.enum(["A_PREPARER","EN_COURS","TERMINEE","A_REINTERROGER"]).default("A_PREPARER"),
+    sessionDate:z.string().date(),
+    nextReviewDate:z.string().date().nullable().optional(),
+    reason:z.string().max(1000).default(""),
+    participants:z.string().max(3000).default(""),
+    notes:z.string().max(20000).default(""),
+    decisions:z.string().max(20000).default(""),
+    deliverable:z.string().max(10000).default(""),
+    exitCriteria:z.record(z.string(),z.boolean()).default({})
+  });
+
+  app.post("/api/campaigns/:campaignId/workshop-sessions",async(request,reply)=>{
+    const user=await requireUser(request),{campaignId}=request.params as any;
+    const ca=await campaignAccess(user.sub,campaignId);
+    if(!ca) return reply.code(404).send({error:"NOT_FOUND"});
+    if(!ca.access.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
+    const parsed=workshopSessionSchema.safeParse(request.body);
+    if(!parsed.success) return reply.code(400).send({error:"INVALID_BODY",details:parsed.error.flatten()});
+    const d=parsed.data;
+    const {rows}=await pool.query(`INSERT INTO pcif_workshop_sessions
+      (campaign_id,workshop_no,session_kind,status,session_date,next_review_date,reason,participants,notes,decisions,deliverable,exit_criteria,created_by,updated_by)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$13) RETURNING *`,
+      [campaignId,d.workshopNo,d.sessionKind,d.status,d.sessionDate,d.nextReviewDate??null,d.reason,d.participants,d.notes,d.decisions,d.deliverable,JSON.stringify(d.exitCriteria),user.sub]);
+    return reply.code(201).send(rows[0]);
+  });
+
+  app.patch("/api/campaigns/:campaignId/workshop-sessions/:sessionId",async(request,reply)=>{
+    const user=await requireUser(request),{campaignId,sessionId}=request.params as any;
+    const ca=await campaignAccess(user.sub,campaignId);
+    if(!ca) return reply.code(404).send({error:"NOT_FOUND"});
+    if(!ca.access.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
+    const parsed=workshopSessionSchema.partial().omit({workshopNo:true}).safeParse(request.body);
+    if(!parsed.success) return reply.code(400).send({error:"INVALID_BODY",details:parsed.error.flatten()});
+    const d=parsed.data;
+    const {rows}=await pool.query(`UPDATE pcif_workshop_sessions SET
+      session_kind=COALESCE($1,session_kind),status=COALESCE($2,status),
+      session_date=COALESCE($3,session_date),next_review_date=CASE WHEN $4::boolean THEN $5::date ELSE next_review_date END,
+      reason=COALESCE($6,reason),participants=COALESCE($7,participants),notes=COALESCE($8,notes),
+      decisions=COALESCE($9,decisions),deliverable=COALESCE($10,deliverable),
+      exit_criteria=COALESCE($11::jsonb,exit_criteria),updated_by=$12,updated_at=now()
+      WHERE id=$13 AND campaign_id=$14 RETURNING *`,
+      [d.sessionKind??null,d.status??null,d.sessionDate??null,
+       Object.prototype.hasOwnProperty.call(d,"nextReviewDate"),d.nextReviewDate??null,
+       d.reason??null,d.participants??null,d.notes??null,d.decisions??null,d.deliverable??null,
+       d.exitCriteria?JSON.stringify(d.exitCriteria):null,user.sub,sessionId,campaignId]);
+    if(!rows.length) return reply.code(404).send({error:"NOT_FOUND"});
+    return rows[0];
   });
 
   app.put("/api/campaigns/:campaignId/workshops/:no",async(request,reply)=>{
