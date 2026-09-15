@@ -150,6 +150,7 @@ export const api = {
   pilotage: (id:string) => request<PilotageData>(`/api/campaigns/${id}/pilotage`),
   organisation: (id:string) => request<OrganisationData>(`/api/campaigns/${id}/organisation`),
   createOfnActor:(campaignId:string,payload:any)=>request<OfnActor>(`/api/campaigns/${campaignId}/ofn/actors`,{method:"POST",body:JSON.stringify(payload)}),
+  updateOfnActor:(campaignId:string,actorId:string,payload:any)=>request<OfnActor>(`/api/campaigns/${campaignId}/ofn/actors/${actorId}`,{method:"PATCH",body:JSON.stringify(payload)}),
   deleteOfnActor:(campaignId:string,actorId:string)=>request<void>(`/api/campaigns/${campaignId}/ofn/actors/${actorId}`,{method:"DELETE"}),
   saveOfnAssignment:(campaignId:string,payload:any)=>request<OfnAssignment>(`/api/campaigns/${campaignId}/ofn/assignments`,{method:"PUT",body:JSON.stringify(payload)}),
   bulkOfnAssignments:(campaignId:string,payload:any)=>request<any>(`/api/campaigns/${campaignId}/ofn/assignments/bulk`,{method:"PUT",body:JSON.stringify(payload)}),

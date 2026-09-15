@@ -582,3 +582,12 @@ L'affectation en masse complète l'existant au lieu de l'écraser : les exceptio
 - séparation visuelle des sphères ordonnateur / comptable ;
 - qualification des cinq états Fonctiop@le de rupture / supervision ;
 - restitution des ruptures dans l’aperçu, l’impression/PDF, l’export HTML et le tableur.
+
+## v0.18.0 — Atelier 1 prêt à animer
+
+- ajout, modification et suppression des acteurs ONF, avec suppression contrôlée de leurs affectations ;
+- fonctions usuelles Fonctiop@le proposées dans une liste, tout en autorisant un intitulé libre ;
+- contrôle des changements de sphère lorsqu’un acteur possède déjà des affectations ;
+- saisie complète Réalise / Délègue / Valide / Contrôle / Supplée ;
+- observations enregistrées à la sortie du champ afin de garder une frappe fluide ;
+- export autonome Fonctiop@le V5 contenant le catalogue complet des 181 opérations.

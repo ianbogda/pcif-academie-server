@@ -62,10 +62,36 @@ export async function registerOrganisation(app:FastifyInstance){
   return reply.code(201).send(rows[0]);
  });
 
+ app.patch("/api/campaigns/:campaignId/ofn/actors/:actorId",async(request,reply)=>{
+  const user=await requireUser(request),{campaignId,actorId}=request.params as any,a=await access(user.sub,campaignId);
+  if(!a)return reply.code(404).send({error:"NOT_FOUND"}); if(!a.canWrite)return reply.code(403).send({error:"FORBIDDEN"});
+  const p=z.object({name:z.string().min(2).max(160),role:z.string().max(160).default(""),functionCode:z.string().max(80).default(""),
+    sphere:z.enum(["ORDONNATEUR","COMPTABLE","MIXTE"]),service:z.string().max(160).default("")}).safeParse(request.body);
+  if(!p.success)return reply.code(400).send({error:"INVALID_BODY",details:p.error.flatten()});
+  const assigned=(await pool.query(`SELECT operation_id FROM pcif_ofn_assignments WHERE campaign_id=$1 AND actor_id=$2`,[campaignId,actorId])).rows;
+  const opById=new Map(operations.map((o:any)=>[o.id,o]));
+  const incompatible=p.data.sphere==="MIXTE"?0:assigned.filter((x:any)=>{
+   const op:any=opById.get(x.operation_id);
+   return op&&((op.sphere==="ordonnateur"&&p.data.sphere!=="ORDONNATEUR")||(op.sphere==="comptable"&&p.data.sphere!=="COMPTABLE"));
+  }).length;
+  if(incompatible)return reply.code(409).send({error:"ACTOR_SPHERE_HAS_INCOMPATIBLE_ASSIGNMENTS",count:incompatible});
+  const {rows}=await pool.query(`UPDATE pcif_ofn_actors SET name=$1,role=$2,function_code=$3,sphere=$4,service=$5,updated_at=now()
+    WHERE id=$6 AND campaign_id=$7 AND active=true RETURNING *`,
+    [p.data.name,p.data.role,p.data.functionCode,p.data.sphere,p.data.service,actorId,campaignId]);
+  if(!rows.length)return reply.code(404).send({error:"ACTOR_NOT_FOUND"});
+  return rows[0];
+ });
+
  app.delete("/api/campaigns/:campaignId/ofn/actors/:actorId",async(request,reply)=>{
   const user=await requireUser(request),{campaignId,actorId}=request.params as any,a=await access(user.sub,campaignId);
   if(!a)return reply.code(404).send({error:"NOT_FOUND"}); if(!a.canWrite)return reply.code(403).send({error:"FORBIDDEN"});
-  await pool.query(`UPDATE pcif_ofn_actors SET active=false,updated_at=now() WHERE id=$1 AND campaign_id=$2`,[actorId,campaignId]);
+  const client=await pool.connect();
+  try{
+   await client.query("BEGIN");
+   await client.query(`DELETE FROM pcif_ofn_assignments WHERE actor_id=$1 AND campaign_id=$2`,[actorId,campaignId]);
+   await client.query(`UPDATE pcif_ofn_actors SET active=false,updated_at=now() WHERE id=$1 AND campaign_id=$2`,[actorId,campaignId]);
+   await client.query("COMMIT");
+  }catch(e){await client.query("ROLLBACK");throw e}finally{client.release()}
   return reply.code(204).send();
  });
 
