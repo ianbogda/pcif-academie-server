@@ -1,4 +1,4 @@
-# PCIF Académie — v0.13.0 — Atelier 1 / constructeur ONF
+# PCIF Académie — v0.14.0 — ONF par domaine et processus
 
 Première itération exécutable du serveur collaboratif multi-EPLE.
 
@@ -474,3 +474,17 @@ L'atelier 1 est ramené à quatre étapes utiles, le contexte EPLE/agence/campag
 
 Les acteurs ONF sont distincts des comptes PCIF : un utilisateur connu peut être proposé, mais un acteur métier sans compte peut être ajouté manuellement.
 Les versions validées sont stockées sous forme de snapshots pour permettre la réinterrogation de l'ONF dans l'année.
+
+
+## v0.14.0 — ONF : travailler par domaine et processus
+
+L'étape 2 de l'atelier 1 est réorganisée pour éviter une saisie opération par opération :
+
+- filtres Domaine > Processus / sous-catégorie > Recherche opération ;
+- compteurs de couverture par domaine ;
+- filtres de sphère et « opérations non couvertes uniquement » ;
+- affectation en masse d'un acteur et d'un rôle à toutes les opérations compatibles d'un processus ;
+- quatre rôles : Réalise, Valide, Contrôle, Supplée ;
+- conservation de l'ajustement fin au niveau de chaque opération.
+
+L'affectation en masse complète l'existant au lieu de l'écraser : les exceptions restent modifiables opération par opération.

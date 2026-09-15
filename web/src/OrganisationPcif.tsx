@@ -11,13 +11,28 @@ export function OrganisationPcif({campaignId}:{campaignId:string}){
 }
 
 function OfnBuilder({data,campaignId,reload}:any){
- const[step,setStep]=useState(1),[domain,setDomain]=useState("TOUS"),[sphere,setSphere]=useState("both");
+ const[step,setStep]=useState(1),[domain,setDomain]=useState("TOUS"),[processFilter,setProcessFilter]=useState("TOUS"),[search,setSearch]=useState(""),[sphere,setSphere]=useState("both"),[incompleteOnly,setIncompleteOnly]=useState(false);
  const[actorName,setActorName]=useState(""),[actorRole,setActorRole]=useState(""),[actorSphere,setActorSphere]=useState("ORDONNATEUR"),[service,setService]=useState("");
  const[checks,setChecks]=useState<any[]>([]);
  const domains=["TOUS",...Array.from(new Set(data.operations.map((o:any)=>o.category)))];
- const ops=data.operations.filter((o:any)=>(domain==="TOUS"||o.category===domain)&&(sphere==="both"||o.sphere===sphere));
- const covered=new Set(data.assignments.map((a:any)=>a.operation_id)).size;
+ const processes=["TOUS",...Array.from(new Set(data.operations.filter((o:any)=>domain==="TOUS"||o.category===domain).map((o:any)=>o.subcategory)))];
+ const assignedOps=new Set(data.assignments.map((a:any)=>a.operation_id));
+ const visibleOps=data.operations.filter((o:any)=>{
+   const q=search.trim().toLowerCase();
+   return (domain==="TOUS"||o.category===domain)
+     &&(processFilter==="TOUS"||o.subcategory===processFilter)
+     &&(sphere==="both"||o.sphere===sphere)
+     &&(!q||`${o.name} ${o.category} ${o.subcategory}`.toLowerCase().includes(q))
+     &&(!incompleteOnly||!assignedOps.has(o.id));
+ });
+ const covered=assignedOps.size;
  const steps=[["1","Acteurs","Qui intervient réellement ?"],["2","Opérations","Qui fait quoi ?"],["3","Sécurisation","Délégations, habilitations, suppléances"],["4","ONF","Contrôler, consolider, valider"]];
+ function coverage(cat:string,sub?:string){
+   const all=data.operations.filter((o:any)=>(cat==="TOUS"||o.category===cat)&&(!sub||o.subcategory===sub));
+   const done=all.filter((o:any)=>assignedOps.has(o.id)).length;
+   return {done,total:all.length,pct:all.length?Math.round(done*100/all.length):0};
+ }
+ function resetFilters(){setDomain("TOUS");setProcessFilter("TOUS");setSearch("");setSphere("both");setIncompleteOnly(false)}
  async function addActor(){if(!actorName.trim())return;await api.createOfnActor(campaignId,{name:actorName,role:actorRole,functionCode:"",sphere:actorSphere,service,source:"MANUAL"});setActorName("");setActorRole("");setService("");await reload()}
  async function addSuggested(s:any){await api.createOfnActor(campaignId,{name:s.name,role:roleLabel(s.role_code),functionCode:s.role_code,sphere:s.sphere,service:data.context?.agency_name&&s.sphere==="COMPTABLE"?data.context.agency_name:data.context?.establishment_name||"",sourceUserId:s.user_id,source:"PCIF_USER"});await reload()}
  async function analyse(){setChecks(await api.ofnChecks(campaignId));setStep(3)}
@@ -31,10 +46,19 @@ function OfnBuilder({data,campaignId,reload}:any){
    <div className="actor-form"><label>Nom / prénom<input value={actorName} onChange={e=>setActorName(e.target.value)} placeholder="Ex. Marie Dupont"/></label><label>Fonction<input value={actorRole} onChange={e=>setActorRole(e.target.value)} placeholder="Ex. Secrétaire général"/></label><label>Sphère<select value={actorSphere} onChange={e=>setActorSphere(e.target.value)}><option>ORDONNATEUR</option><option>COMPTABLE</option><option>MIXTE</option></select></label><label>Établissement / service<input value={service} onChange={e=>setService(e.target.value)} placeholder={data.context?.establishment_name}/></label></div><button className="primary-action" onClick={addActor}>+ Ajouter l’acteur</button>
    <div className="actor-list">{data.actors.map((a:any)=><div key={a.id}><b>{a.name}</b><span>{a.role||"Fonction non précisée"}</span><small>{a.sphere} · {a.service||"Service non précisé"}{a.source==="PCIF_USER"?" · compte PCIF":""}</small></div>)}</div>
    <footer><span/><button className="primary-action" onClick={()=>setStep(2)}>Positionner sur les opérations →</button></footer></section>}
-  {step===2&&<section className="onf-stage"><header><span>ÉTAPE 2</span><h2>Qui fait quoi réellement ?</h2><p>La bibliothèque des opérations est fournie. Pour chaque acteur, précisez s’il réalise, valide, contrôle ou supplée.</p></header>
-   <div className="org-filter"><select value={domain} onChange={e=>setDomain(e.target.value)}>{domains.map((d:any)=><option key={d}>{d}</option>)}</select><button className={sphere==="both"?"active":""} onClick={()=>setSphere("both")}>Les deux sphères</button><button className={sphere==="ordonnateur"?"active ord":""} onClick={()=>setSphere("ordonnateur")}>Ordonnateur</button><button className={sphere==="comptable"?"active cpt":""} onClick={()=>setSphere("comptable")}>Comptable</button></div>
-   <div className="operation-list">{ops.map((o:any)=><OperationBuilder key={o.id} o={o} data={data} campaignId={campaignId} reload={reload}/>)}</div>
-   <footer><button onClick={()=>setStep(1)}>← Acteurs</button><button className="primary-action" onClick={analyse}>Analyser la sécurisation →</button></footer></section>}
+  {step===2&&<section className="onf-stage"><header><span>ÉTAPE 2</span><h2>Qui fait quoi réellement ?</h2><p>Travaillez d’abord par domaine et processus. Affectez un schéma d’acteurs au processus, puis ne corrigez que les exceptions opération par opération.</p></header>
+   <div className="onf-filter-panel">
+    <label>Domaine<select value={domain} onChange={e=>{setDomain(e.target.value);setProcessFilter("TOUS")}}><option value="TOUS">Tous les domaines</option>{domains.filter((d:any)=>d!=="TOUS").map((d:any)=><option key={d}>{d}</option>)}</select></label>
+    <label>Processus / sous-catégorie<select value={processFilter} onChange={e=>setProcessFilter(e.target.value)}><option value="TOUS">Tous les processus</option>{processes.filter((d:any)=>d!=="TOUS").map((d:any)=><option key={d}>{d}</option>)}</select></label>
+    <label>Recherche opération<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="service fait, bourses, trésorerie…"/></label>
+    <button onClick={resetFilters}>Effacer filtres</button>
+   </div>
+   <div className="coverage-chips">{domains.filter((d:any)=>d!=="TOUS").map((d:any)=>{const c=coverage(d);return <button key={d} className={domain===d?"active":""} onClick={()=>{setDomain(d);setProcessFilter("TOUS")}}><b>{d}</b> · {c.done}/{c.total} · {c.pct}%</button>})}</div>
+   <div className="onf-filter-row"><div><button className={sphere==="both"?"active":""} onClick={()=>setSphere("both")}>Les deux sphères</button><button className={sphere==="ordonnateur"?"active ord":""} onClick={()=>setSphere("ordonnateur")}>Ordonnateur</button><button className={sphere==="comptable"?"active cpt":""} onClick={()=>setSphere("comptable")}>Comptable</button></div><label><input type="checkbox" checked={incompleteOnly} onChange={e=>setIncompleteOnly(e.target.checked)}/> Opérations non couvertes uniquement</label></div>
+   <ProcessBulkPanel data={data} campaignId={campaignId} domain={domain} processFilter={processFilter} reload={reload}/>
+   <div className="operation-list">{visibleOps.map((o:any)=><OperationBuilder key={o.id} o={o} data={data} campaignId={campaignId} reload={reload}/>)}</div>
+   {!visibleOps.length&&<div className="notice">Aucune opération ne correspond aux filtres sélectionnés.</div>}
+   <footer><button onClick={()=>setStep(1)}>← Acteurs</button><span>{visibleOps.length} opération(s) affichée(s) · {covered}/{data.operations.length} couvertes</span><button className="primary-action" onClick={analyse}>Analyser la sécurisation →</button></footer></section>}
   {step===3&&<section className="onf-stage"><header><span>ÉTAPE 3</span><h2>Sécuriser l’organisation réelle</h2><p>PCIF Académie confronte l’ONF déclaré aux règles de suppléance, de séparation des sphères et de formalisation.</p></header>
    <div className="security-summary"><b>{checks.filter(x=>x.severity==="MAJEUR").length}</b><span>anomalies majeures</span><b>{checks.filter(x=>x.severity==="VIGILANCE").length}</b><span>points de vigilance</span></div>
    <div className="finding-list">{checks.length?checks.map((x:any,i:number)=><article className={x.severity.toLowerCase()} key={i}><b>{x.severity}</b><span>{x.label}</span><small>{x.code==="NO_SUBSTITUTE"?"Identifier un suppléant ou documenter l’absence justifiée.":x.code==="SPHERE_CONFLICT"?"Vérifier la séparation ordonnateur/comptable et corriger l’affectation.":x.code==="DELEGATION_EVIDENCE"?"Renseigner la preuve ou la référence de délégation.":"Réduire la dépendance à une personne unique."}</small></article>):<div className="notice">Aucune anomalie détectée sur les opérations renseignées.</div>}</div>
@@ -45,7 +69,26 @@ function OfnBuilder({data,campaignId,reload}:any){
    <footer><button onClick={()=>setStep(3)}>← Sécurisation</button><button className="primary-action" onClick={validate}>✓ Valider une version de l’ONF</button></footer></section>}
  </div>
 }
-function roleLabel(c:string){return ({HEAD:"Chef d’établissement",SECRETARY_GENERAL:"Secrétaire général",AGENCY_ACCOUNTANT:"Agent comptable",AGENCY_DEPUTY:"Fondé de pouvoir",AUDITOR:"Auditeur"} as any)[c]||c||"Utilisateur PCIF"}
+
+function ProcessBulkPanel({data,campaignId,domain,processFilter,reload}:any){
+ const processOps=data.operations.filter((o:any)=>(domain==="TOUS"||o.category===domain)&&(processFilter==="TOUS"||o.subcategory===processFilter));
+ const[actor,setActor]=useState(""),[action,setAction]=useState("directAction");
+ useEffect(()=>{if(!data.actors.some((a:any)=>a.id===actor))setActor(data.actors[0]?.id||"")},[data.actors.length]);
+ if(processFilter==="TOUS")return <div className="bulk-hint"><b>Gain de temps :</b> choisissez un processus pour affecter un même rôle à toutes ses opérations, puis ajustez seulement les exceptions.</div>;
+ async function apply(){
+   if(!actor||!processOps.length)return;
+   for(const o of processOps){
+     const a=data.actors.find((x:any)=>x.id===actor);
+     const compatible=a&&(a.sphere==="MIXTE"||(o.sphere==="ordonnateur"&&a.sphere==="ORDONNATEUR")||(o.sphere==="comptable"&&a.sphere==="COMPTABLE"));
+     if(!compatible)continue;
+     const ex=data.assignments.find((x:any)=>x.operation_id===o.id&&x.actor_id===actor);
+     await api.saveOfnAssignment(campaignId,{operationId:o.id,actorId:actor,directAction:action==="directAction"||!!ex?.direct_action,delegation:!!ex?.delegation,substitution:action==="substitution"||!!ex?.substitution,validates:action==="validates"||!!ex?.validates,controls:action==="controls"||!!ex?.controls,ring:ex?.ring||null,note:ex?.note||""});
+   }
+   await reload();
+ }
+ const done=processOps.filter((o:any)=>data.assignments.some((a:any)=>a.operation_id===o.id)).length;
+ return <div className="bulk-process"><div><span>AFFECTATION PAR PROCESSUS</span><h3>{processFilter}</h3><p>{done}/{processOps.length} opérations couvertes. L’affectation s’applique aux opérations compatibles avec la sphère de l’acteur.</p></div><select value={actor} onChange={e=>setActor(e.target.value)}><option value="">Choisir un acteur</option>{data.actors.map((a:any)=><option key={a.id} value={a.id}>{a.name} · {a.sphere}</option>)}</select><select value={action} onChange={e=>setAction(e.target.value)}><option value="directAction">Réalise</option><option value="validates">Valide</option><option value="controls">Contrôle</option><option value="substitution">Supplée</option></select><button className="primary-action" onClick={apply}>Appliquer au processus</button></div>
+}
 
 function OperationBuilder({o,data,campaignId,reload}:any){
  const existing=data.assignments.filter((a:any)=>a.operation_id===o.id);
