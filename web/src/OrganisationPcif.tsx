@@ -117,3 +117,13 @@ function Flow({steps}:{steps:string[]}){
  const W=900,H=Math.max(180,steps.length*92+70);
  return <svg className="flow-svg" viewBox={`0 0 ${W} ${H}`}>{steps.map((s,i)=>{const y=35+i*92,isFirst=i===0,isLast=i===steps.length-1;return <g key={i}>{i>0&&<><line x1="450" y1={y-32} x2="450" y2={y-8} stroke="#6d7cff" strokeWidth="2"/><polygon points={`445,${y-12} 455,${y-12} 450,${y-5}`} fill="#6d7cff"/></>}<rect x="195" y={y} width="510" height="54" rx={isFirst||isLast?27:9} fill={isFirst?"#14372d":isLast?"#26335d":"#0b1a2a"} stroke={isFirst?"#23c483":isLast?"#6d7cff":"#29415d"} strokeWidth="2"/><text x="450" y={y+32} textAnchor="middle" fill="#e8eef6" fontSize="15">{s.length>68?s.slice(0,65)+"…":s}</text></g>})}</svg>
 }
+function roleLabel(code: string) {
+  return ({
+    HEAD: "Chef d’établissement",
+    SECRETARY_GENERAL: "Secrétaire général",
+    AGENCY_ACCOUNTANT: "Agent comptable",
+    AGENCY_DEPUTY: "Fondé de pouvoir",
+    AUDITOR: "Auditeur",
+    PLATFORM_ADMIN: "Administrateur",
+  } as Record<string, string>)[code] || code || "Utilisateur PCIF";
+}
