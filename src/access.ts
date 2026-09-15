@@ -25,7 +25,12 @@ export async function establishmentAccess(userId:string, establishmentId:string)
 
   const directRoles=direct.rows.map(r=>r.code as RoleCode);
   const agencyRoles=agency.rows.map(r=>r.code as RoleCode);
-  const roles=[...new Set([...directRoles,...agencyRoles,...(admin?["PLATFORM_ADMIN" as RoleCode]:[])])];
+  const scoped=await pool.query(`SELECT 1 FROM auditor_scopes s JOIN establishments e ON e.id=$2
+    LEFT JOIN agency_establishments ae ON ae.establishment_id=e.id AND ae.active=true
+    WHERE s.user_id=$1 AND s.valid_from<=CURRENT_DATE AND (s.valid_until IS NULL OR s.valid_until>=CURRENT_DATE)
+      AND ((s.scope_type='ESTABLISHMENT' AND s.establishment_id=e.id) OR (s.scope_type='AGENCY' AND s.agency_id=ae.agency_id)
+        OR (s.scope_type='DEPARTMENT' AND s.department_code=e.department_code) OR (s.scope_type='ACADEMY' AND s.academy_code=e.academy_code)) LIMIT 1`,[userId,establishmentId]);
+  const roles=[...new Set([...directRoles,...agencyRoles,...(scoped.rowCount?["AUDITOR" as RoleCode]:[]),...(admin?["PLATFORM_ADMIN" as RoleCode]:[])])];
   return {
     canRead:admin||roles.length>0,
     canWrite:admin||roles.some(r=>WRITE_ROLES.includes(r)),

@@ -114,6 +114,7 @@ export async function registerAdmin(app:FastifyInstance){
     if(!await adminOnly(request,reply)) return;
     const {rows}=await pool.query(`
       SELECT u.id,u.email,u.display_name,u.active,u.is_platform_admin,u.created_at,u.deleted_at,
+      COALESCE((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.valid_from DESC) FROM auditor_scopes s WHERE s.user_id=u.id),'[]'::jsonb) audit_scopes,
       COALESCE(jsonb_agg(DISTINCT jsonb_build_object(
         'establishmentId',e.id,'establishmentName',e.name,'uai',e.uai,'roleCode',r.code,'roleLabel',r.label
       )) FILTER(WHERE e.id IS NOT NULL),'[]'::jsonb) assignments
@@ -124,6 +125,16 @@ export async function registerAdmin(app:FastifyInstance){
       WHERE u.deleted_at IS NULL
       GROUP BY u.id ORDER BY u.display_name`);
     return rows;
+  });
+  app.get("/api/admin/users/:id/auditor-scopes",async(request,reply)=>{
+    if(!await adminOnly(request,reply))return;const id=(request.params as any).id;
+    const {rows}=await pool.query(`SELECT s.*,e.name establishment_name,a.name agency_name FROM auditor_scopes s LEFT JOIN establishments e ON e.id=s.establishment_id LEFT JOIN accounting_agencies a ON a.id=s.agency_id WHERE s.user_id=$1 ORDER BY s.valid_from DESC`,[id]);return rows;
+  });
+  app.put("/api/admin/users/:id/auditor-scopes",async(request,reply)=>{
+    if(!await adminOnly(request,reply))return;const id=(request.params as any).id;
+    const scope=z.object({scopeType:z.enum(["ESTABLISHMENT","AGENCY","DEPARTMENT","ACADEMY"]),establishmentId:z.string().uuid().nullable().optional(),agencyId:z.string().uuid().nullable().optional(),departmentCode:z.string().max(5).nullable().optional(),academyCode:z.string().max(5).nullable().optional(),validFrom:z.string().date(),validUntil:z.string().date().nullable().optional(),observationsAllowed:z.boolean().default(true)});
+    const p=z.object({scopes:z.array(scope).max(100)}).safeParse(request.body);if(!p.success)return reply.code(400).send({error:"INVALID_AUDITOR_SCOPES",details:p.error.flatten()});
+    const result=await tx(async c=>{await c.query(`DELETE FROM auditor_scopes WHERE user_id=$1`,[id]);for(const s of p.data.scopes)await c.query(`INSERT INTO auditor_scopes(user_id,scope_type,establishment_id,agency_id,department_code,academy_code,valid_from,valid_until,observations_allowed) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[id,s.scopeType,s.establishmentId??null,s.agencyId??null,s.departmentCode??null,s.academyCode??null,s.validFrom,s.validUntil??null,s.observationsAllowed]);return{updated:p.data.scopes.length}});return result;
   });
   app.post("/api/admin/users",async(request,reply)=>{
     const admin=await adminOnly(request,reply); if(!admin) return;

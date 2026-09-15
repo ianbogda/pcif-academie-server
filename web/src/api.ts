@@ -1,5 +1,5 @@
 export type Me = {
-  user: { sub: string; email: string; displayName: string; isPlatformAdmin?: boolean };
+  user: { sub: string; email: string; displayName: string; isPlatformAdmin?: boolean; isAuditor?:boolean };
   establishments: Array<{ id: string; uai: string; name: string; role: string }>;
   agencies: Array<{ id: string; name: string; role: string }>;
 };
@@ -8,7 +8,7 @@ export type Me = {
 export type UserAssignment = { establishmentId:string; establishmentName?:string; uai?:string; roleCode:string; roleLabel?:string };
 export type AdminUser = {
   id:string; email:string; display_name:string; active:boolean; is_platform_admin:boolean;
-  created_at:string; assignments:UserAssignment[];
+  created_at:string; assignments:UserAssignment[];audit_scopes?:any[];
 };
 
 
@@ -34,6 +34,7 @@ export type WorkshopSession = {
 export type PilotageData = {questions:PilotageQuestion[];actions:PcifAction[];workshops:WorkshopProgress[];workshopSessions:WorkshopSession[]};
 export type BenchmarkData={current:number|null;agency:BenchmarkCohort;department:BenchmarkCohort;academy:BenchmarkCohort};
 export type BenchmarkCohort={count:number;average:number|null;values:number[]};
+export type AuditData={campaign:any;observationsAllowed:boolean;findings:{withoutEvidence:any[];divergences:any[];risksWithoutAction:any[];overdueActions:any[];progressions:any[];processesWithoutFormalisation:number;unassignedOperations:number};observations:any[]};
 
 
 export type OfnActor={id:string;campaign_id:string;name:string;role:string;function_code:string;sphere:"ORDONNATEUR"|"COMPTABLE"|"MIXTE";service:string;source_user_id?:string|null;source:string};
@@ -149,6 +150,8 @@ export const api = {
   updateUser: (id:string,payload:any) => request<any>(`/api/admin/users/${id}`,{method:"PATCH",body:JSON.stringify(payload)}),
   deleteUser: (id:string) => request<void>(`/api/admin/users/${id}`,{method:"DELETE"}),
   resetUserPassword: (id:string,password?:string) => request<any>(`/api/admin/users/${id}/reset-password`,{method:"POST",body:JSON.stringify(password?{password}:{})}),
+  auditorScopes:(id:string)=>request<any[]>(`/api/admin/users/${id}/auditor-scopes`),
+  saveAuditorScopes:(id:string,scopes:any[])=>request<any>(`/api/admin/users/${id}/auditor-scopes`,{method:"PUT",body:JSON.stringify({scopes})}),
   agencies: () => request<Array<{ id: string; name: string }>>("/api/agencies"),
   agencyDashboard: (id: string) => request<any[]>(`/api/agencies/${id}/dashboard`),
   campaigns: (establishmentId: string) =>
@@ -156,6 +159,9 @@ export const api = {
   campaign: (id: string) => request<Campaign>(`/api/campaigns/${id}`),
   pilotage: (id:string) => request<PilotageData>(`/api/campaigns/${id}/pilotage`),
   benchmark:(establishmentId:string)=>request<BenchmarkData>(`/api/establishments/${establishmentId}/benchmark`),
+  audit:(campaignId:string)=>request<AuditData>(`/api/campaigns/${campaignId}/audit`),
+  createAuditObservation:(campaignId:string,payload:any)=>request<any>(`/api/campaigns/${campaignId}/audit/observations`,{method:"POST",body:JSON.stringify(payload)}),
+  respondAuditObservation:(campaignId:string,id:string,payload:any)=>request<any>(`/api/campaigns/${campaignId}/audit/observations/${id}`,{method:"PATCH",body:JSON.stringify(payload)}),
   organisation: (id:string) => request<OrganisationData>(`/api/campaigns/${id}/organisation`),
   createOfnActor:(campaignId:string,payload:any)=>request<OfnActor>(`/api/campaigns/${campaignId}/ofn/actors`,{method:"POST",body:JSON.stringify(payload)}),
   updateOfnActor:(campaignId:string,actorId:string,payload:any)=>request<OfnActor>(`/api/campaigns/${campaignId}/ofn/actors/${actorId}`,{method:"PATCH",body:JSON.stringify(payload)}),

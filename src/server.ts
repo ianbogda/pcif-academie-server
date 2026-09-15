@@ -10,6 +10,7 @@ import { establishmentAccess, canWriteSphere, isPlatformAdmin } from "./access.j
 import { registerAdmin } from "./admin.js";
 import { registerPilotage } from "./pilotage.js";
 import { registerOrganisation } from "./organisation.js";
+import { registerAudit } from "./audit.js";
 import { z } from "zod";
 
 const packageVersion = JSON.parse(readFileSync("package.json", "utf8")).version;
@@ -25,6 +26,7 @@ await registerAuth(app);
 await registerAdmin(app);
 await registerPilotage(app);
 await registerOrganisation(app);
+await registerAudit(app);
 
 app.get("/health", async () => {
   await pool.query("SELECT 1");
@@ -50,7 +52,8 @@ app.get("/api/me", async (request) => {
       WHERE uar.user_id=$1 ORDER BY a.name`,
     [user.sub]
   );
-  return { user: {...user, isPlatformAdmin: await isPlatformAdmin(user.sub)}, establishments: memberships.rows, agencies: agencies.rows };
+  const auditor=(await pool.query(`SELECT 1 FROM user_establishment_roles uer JOIN roles r ON r.id=uer.role_id WHERE uer.user_id=$1 AND r.code='AUDITOR' UNION SELECT 1 FROM auditor_scopes WHERE user_id=$1 LIMIT 1`,[user.sub])).rowCount;
+  return { user: {...user, isPlatformAdmin: await isPlatformAdmin(user.sub), isAuditor:!!auditor}, establishments: memberships.rows, agencies: agencies.rows };
 });
 
 app.get("/api/establishments", async (request) => {
@@ -68,6 +71,9 @@ app.get("/api/establishments", async (request) => {
        LEFT JOIN user_agency_roles uar
          ON uar.agency_id=ae.agency_id AND uar.user_id=$1
       WHERE uer.user_id IS NOT NULL OR uar.user_id IS NOT NULL
+        OR EXISTS(SELECT 1 FROM auditor_scopes s WHERE s.user_id=$1 AND s.valid_from<=CURRENT_DATE AND (s.valid_until IS NULL OR s.valid_until>=CURRENT_DATE)
+          AND ((s.scope_type='ESTABLISHMENT' AND s.establishment_id=e.id) OR (s.scope_type='AGENCY' AND s.agency_id=ae.agency_id)
+            OR (s.scope_type='DEPARTMENT' AND s.department_code=e.department_code) OR (s.scope_type='ACADEMY' AND s.academy_code=e.academy_code)))
       ORDER BY e.name`,
     [user.sub]
   );

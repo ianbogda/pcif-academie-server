@@ -1,6 +1,6 @@
 import { OrganisationPcif } from "./OrganisationPcif";
 import React,{useEffect,useMemo,useState}from"react";
-import{api,type Campaign,type Establishment,type Me,type PcifAction,type PilotageData,type PilotageQuestion,type WorkshopSession}from"./api";
+import{api,type AuditData,type Campaign,type Establishment,type Me,type PcifAction,type PilotageData,type PilotageQuestion,type WorkshopSession}from"./api";
 
 const DOMAINS=["Organisation","Exécution budgétaire","Comptabilité Générale","Régies","Contentieux","Patrimoine stocks Domaine"];
 const BADGE_LABELS=["Découverte","Sensibilisation","Initiation","Pratique","Confirmé","Maîtrise"];
@@ -27,7 +27,7 @@ function residual(q:PilotageQuestion){const f=factor(q.value);return f===null?0:
 function sev(n:number){return n>=6?["crit","Critique"]:n>=4?["high","Élevé"]:n>=2?["med","Modéré"]:["low","Faible"]}
 
 export type PilotageTab="dashboard"|"diagnostic"|"risks"|"annual"|"workshops"|"organisation";
-export type WorkspaceSection="pilotage"|"workshops"|"onf"|"processes";
+export type WorkspaceSection="pilotage"|"workshops"|"onf"|"processes"|"audit";
 export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashboard",section="pilotage",onNavigate}:{campaign:Campaign;establishment:Establishment;me:Me;onBack:()=>void;initialTab?:PilotageTab;section?:WorkspaceSection;onNavigate?:(section:WorkspaceSection,tab?:PilotageTab)=>void}){
  const firstTab=section==="workshops"?"workshops":section==="onf"||section==="processes"?"organisation":initialTab;
  const[data,setData]=useState<PilotageData|null>(null),[tab,setTab]=useState<PilotageTab>(firstTab);
@@ -67,6 +67,7 @@ export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashb
    return{domain:d,total:dqs.length,done,coverage:c,mastery:m,effective:e,level:e===100?5:Math.min(5,Math.floor(e/20))}
  });
 
+ if(section==="audit")return <AuditMode campaign={campaign} establishment={establishment} onBack={onBack}/>;
  const sectionTitle=section==="workshops"?"Ateliers PCIF":section==="onf"?"Organigramme fonctionnel":section==="processes"?"Processus & logigrammes":"Pilotage du PCIF";
  const historical=["VALIDATED","ARCHIVED"].includes(campaign.status);
  return <div className="pilot-shell">
@@ -88,6 +89,14 @@ export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashb
   {tab==="workshops"&&<Workshops data={data} campaignId={campaign.id} reload={load}/>}
   {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id} initialView={section==="processes"?"process":"ofn"} showTabs={false}/>} 
  </div>
+}
+
+function AuditMode({campaign,establishment,onBack}:{campaign:Campaign;establishment:Establishment;onBack:()=>void}){
+ const[data,setData]=useState<AuditData|null>(null),[body,setBody]=useState(""),[filter,setFilter]=useState("attention");async function load(){setData(await api.audit(campaign.id))}useEffect(()=>{load()},[campaign.id]);
+ if(!data)return <div className="pcif-loading">Analyse de la chaîne de maîtrise…</div>;
+ const f=data.findings,cards=[{k:"withoutEvidence",n:f.withoutEvidence.length,t:"Maîtrisés sans justification",c:"amber"},{k:"divergences",n:f.divergences.length,t:"Écarts ordonnateur / comptable",c:"purple"},{k:"risksWithoutAction",n:f.risksWithoutAction.length,t:"Risques sans action",c:"red"},{k:"overdueActions",n:f.overdueActions.length,t:"Actions échues",c:"orange"},{k:"progressions",n:f.progressions.length,t:"Progressions à documenter",c:"green"},{k:"ofn",n:f.unassignedOperations,t:"Responsabilités non attribuées",c:"blue"}];
+ const lists:any={withoutEvidence:f.withoutEvidence,divergences:f.divergences,risksWithoutAction:f.risksWithoutAction,overdueActions:f.overdueActions,progressions:f.progressions};
+ return <div className="audit-mode"><button className="text-btn" onClick={onBack}>← Tableau de bord</button><header><div><span>MODE AUDIT · LECTURE ET OBSERVATION</span><h1>Chaîne de maîtrise</h1><p>{establishment.name} · {campaign.label}</p></div><strong>{cards.reduce((s,x)=>s+x.n,0)}<small> points d’attention</small></strong></header><div className="audit-principle">L’outil ne conclut pas qu’une déclaration est fausse. Il signale les endroits où il est pertinent de regarder et de demander la preuve.</div><div className="audit-cards">{cards.map(x=><button key={x.k} className={`${x.c} ${filter===x.k?"active":""}`} onClick={()=>setFilter(x.k)}><strong>{x.n}</strong><span>{x.t}</span></button>)}</div><section className="audit-findings"><h2>Points à examiner</h2>{(lists[filter]||[]).length?(lists[filter]||[]).map((x:any,i:number)=><article key={x.id||i}><div><b>{x.code||x.action_text||`Point ${i+1}`}</b><span>{x.label||x.domain||x.actor||"Élément de la campagne"}</span></div>{data.observationsAllowed&&<button onClick={()=>setBody(`Observation relative à ${x.code||x.action_text||"cet élément"} : `)}>Observer</button>}</article>):<p>Aucun élément détaillé dans cette catégorie.</p>}</section><section className="audit-observations"><div><h2>Observations d’audit</h2><p>Elles restent séparées des réponses et scores produits par l’établissement.</p></div>{data.observationsAllowed?<><textarea value={body} onChange={e=>setBody(e.target.value)} placeholder="Rédiger une observation factuelle…"/><button className="primary" disabled={body.trim().length<5} onClick={async()=>{await api.createAuditObservation(campaign.id,{body,subjectType:"CAMPAIGN"});setBody("");await load()}}>Déposer l’observation</button></>:<div className="historical-banner">Cette mission autorise la consultation, sans dépôt d’observation.</div>}{data.observations.map((o:any)=><article key={o.id}><header><b>{o.auditor_name}</b><span>{new Date(o.created_at).toLocaleDateString("fr-FR")} · {o.status}</span></header><p>{o.body}</p>{o.response&&<blockquote><b>Réponse de l’établissement</b>{o.response}</blockquote>}</article>)}</section></div>
 }
 
 function HistoricalActionPlan({data}:{data:PilotageData}){

@@ -161,6 +161,8 @@ sudo journalctl -u pcif-academie-demo -n 100 --no-pager
 
 En démonstration, trois campagnes réelles de test — 2024-2025, 2025-2026 et 2026-2027 — alimentent le tableau de bord. Les campagnes historiques sont validées, consultables en lecture seule et contiennent des plans d’action fictifs avec différents niveaux de réalisation.
 
+Le rôle Auditeur dispose d’un mode dédié : analyse des points d’attention, navigation en lecture seule dans la chaîne de maîtrise et observations séparées des données produites par l’établissement. Son périmètre de mission peut viser des EPLE, une agence, un département ou une académie, avec dates de validité.
+
 La matrice technique des rôles est documentée dans `docs/MATRICE-DES-DROITS.md`.
 
-Version actuelle : **0.24.0**.
+Version actuelle : **0.25.0**.

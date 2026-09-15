@@ -1,10 +1,10 @@
 # Matrice des droits PCIF Académie
 
-Cette matrice décrit les droits réellement appliqués par l’API en v0.24.0.
+Cette matrice décrit les droits réellement appliqués par l’API en v0.25.0.
 
 | Fonction | Admin plateforme | Agent comptable | Fondé de pouvoir | Chef d’établissement | Secrétaire général | Contributeur | Lecteur | Auditeur |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Périmètre | Tous les EPLE | Agence comptable | Agence comptable | EPLE rattaché | EPLE rattaché | EPLE rattaché | EPLE rattaché | EPLE rattaché |
+| Périmètre | Tous les EPLE | Agence comptable | Agence comptable | EPLE rattaché | EPLE rattaché | EPLE rattaché | EPLE rattaché | Mission : EPLE, agence, département ou académie + dates |
 | Consulter tableau de bord et campagnes | Oui | Oui | Oui | Oui | Oui | Oui | Oui | Oui |
 | Consulter diagnostic, risques et actions | Oui | Oui | Oui | Oui | Oui | Oui | Oui | Oui |
 | Répondre pour la sphère ordonnateur | Oui | Non | Non | Oui | Oui | Oui | Non | Non |
@@ -13,19 +13,16 @@ Cette matrice décrit les droits réellement appliqués par l’API en v0.24.0.
 | Gérer actions et ateliers | Oui | Oui | Oui | Oui | Oui | Oui | Non | Non |
 | Modifier ONF et revues de processus | Oui | Oui | Oui | Oui | Oui | Oui | Non | Non |
 | Consulter les comparaisons anonymisées | Oui | Oui | Oui | Oui | Oui | Oui | Oui | Oui |
+| Accéder au mode Audit orienté points d’attention | Oui | Non | Non | Non | Non | Non | Non | Oui |
+| Déposer une observation séparée | Non | Non | Non | Non | Non | Non | Non | Oui |
 | Administrer utilisateurs, EPLE et agences | Oui | Non | Non | Non | Non | Non | Non | Non |
 | Modifier une campagne validée ou archivée | Non | Non | Non | Non | Non | Non | Non | Non |
 
-## Point à arbitrer : Lecteur ou Auditeur ?
+## Distinction Lecteur / Auditeur
 
-Dans l’existant, les rôles **Lecteur** et **Auditeur** sont techniquement identiques. Cette duplication doit être tranchée avant d’ajouter de nouveaux droits.
+Le rôle **Auditeur** est désormais distinct du Lecteur : il conserve une lecture complète mais dispose en plus du mode Audit et du droit de déposer des observations séparées. Il ne peut modifier aucune donnée métier.
 
-Deux options cohérentes :
-
-1. supprimer le rôle Lecteur et conserver Auditeur comme profil de consultation contrôlée ;
-2. conserver Lecteur pour la consultation courante et réserver Auditeur à une future vue d’audit : historique, preuves, journal des modifications et exports, sans aucune écriture.
-
-La seconde option est la plus utile si PCIF Académie doit accueillir des auditeurs internes, autorités académiques ou missions de contrôle. Elle exige toutefois un véritable journal consultable et une gestion explicite de l’accès aux pièces justificatives.
+Le Lecteur consulte les restitutions courantes. L’Auditeur dispose d’une mission bornée par un périmètre et des dates, d’un mode d’analyse dédié et, lorsque sa mission l’autorise, du dépôt d’observations. Ces observations ne modifient jamais les réponses, scores ou actions de l’établissement.
 
 ## Limite actuelle à corriger
 
