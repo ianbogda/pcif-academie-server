@@ -1,4 +1,4 @@
-# PCIF Académie — v0.14.0 — ONF par domaine et processus
+# PCIF Académie — v0.17.1 — déploiements et certificats Let's Encrypt
 
 Première itération exécutable du serveur collaboratif multi-EPLE.
 
@@ -38,7 +38,66 @@ Client Web / Electron
 
 Le serveur est volontairement indépendant d'Electron : Electron est un client API.
 
-## Installation Debian 13
+## Déploiements Debian 13
+
+Deux instances strictement séparées peuvent cohabiter sur le même VPS :
+
+| Environnement | URL | Port local | Base | Données |
+|---|---|---:|---|---|
+| Production | `https://pcif.eple-tools.fr` | 3000 | `pcif_academie_prod` | aucune donnée de démo |
+| Démonstration | `https://demopcif.eple-tools.fr` | 3001 | `pcif_academie_demo` | RAZ automatique chaque heure |
+
+Installation de production (l'email et le nom sont passés en paramètres ; le mot de passe est demandé sans être affiché) :
+
+```bash
+sudo ./deploy/install-debian13.sh --environment prod \
+  --admin-email admin@eple-tools.fr \
+  --admin-name "Administrateur PCIF Académie" \
+  --acme-email certificats@eple-tools.fr
+```
+
+L'installation crée l'administrateur initial. Elle refuse cet amorçage si un
+administrateur actif existe déjà.
+
+Installation de la démonstration :
+
+```bash
+sudo ./deploy/install-debian13.sh --environment demo \
+  --acme-email certificats@eple-tools.fr
+```
+
+La remise à zéro horaire est assurée par `pcif-academie-demo-reset.timer`.
+Le script vérifie simultanément l'environnement, le nom de la base, le
+répertoire et le service avant toute suppression. Il ne peut donc pas cibler
+la production par simple erreur de paramétrage.
+
+### Certificats TLS
+
+Caddy obtient et renouvelle automatiquement les certificats auprès de
+Let's Encrypt. Avant l'installation, les enregistrements DNS A/AAAA des deux
+domaines doivent pointer vers le VPS et les ports TCP 80 et 443 doivent être
+accessibles publiquement. Le script valide la configuration Caddy puis vérifie
+chaque domaine en HTTPS.
+
+Contrôles utiles :
+
+```bash
+sudo journalctl -u caddy --since "30 minutes ago"
+sudo caddy validate --config /etc/caddy/Caddyfile
+curl -I https://pcif.eple-tools.fr
+curl -I https://demopcif.eple-tools.fr
+```
+
+Le renouvellement est géré par Caddy ; aucun cron Certbot ne doit être ajouté.
+
+Mise à jour ciblée :
+
+```bash
+sudo ./deploy/update-debian13.sh --environment prod
+sudo ./deploy/update-debian13.sh --environment demo
+```
+
+## Installation locale de développement
 
 ```bash
 sudo apt update
@@ -498,3 +557,11 @@ L'affectation en masse complète l'existant au lieu de l'écraser : les exceptio
 - sortie PDF via l'aperçu d'impression A4 paysage du navigateur ;
 - export tableur Excel XML `.xls`, sans dépendance applicative supplémentaire ;
 - conservation des codes action directe, délégation, suppléance, validation et contrôle.
+
+
+## v0.16.0
+- correction définitive de `roleLabel` ;
+- cartouche ONF enrichi : établissement, UAI, agence, date, CE, SGE, AC, fondé de pouvoir, campagne et version ;
+- séparation visuelle des sphères ordonnateur / comptable ;
+- qualification des cinq états Fonctiop@le de rupture / supervision ;
+- restitution des ruptures dans l’aperçu, l’impression/PDF, l’export HTML et le tableur.

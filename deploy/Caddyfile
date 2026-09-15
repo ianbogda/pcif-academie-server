@@ -1,10 +1,15 @@
-pcif.example.fr {
+pcif.eple-tools.fr {
     encode zstd gzip
+    tls {
+        issuer acme {
+            email certificats@eple-tools.fr
+        }
+    }
 
     @api path /api/* /health
     reverse_proxy @api 127.0.0.1:3000
 
-    root * /opt/pcif-academie/web/dist
+    root * /opt/pcif-academie-prod/web/dist
     try_files {path} /index.html
     file_server
 
@@ -13,4 +18,18 @@ pcif.example.fr {
         Referrer-Policy strict-origin-when-cross-origin
         Permissions-Policy "camera=(), microphone=(), geolocation=()"
     }
+}
+
+demopcif.eple-tools.fr {
+    encode zstd gzip
+    tls {
+        issuer acme {
+            email certificats@eple-tools.fr
+        }
+    }
+    @api path /api/* /health
+    reverse_proxy @api 127.0.0.1:3001
+    root * /opt/pcif-academie-demo/web/dist
+    try_files {path} /index.html
+    file_server
 }

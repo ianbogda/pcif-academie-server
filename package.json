@@ -1,6 +1,6 @@
 {
   "name": "pcif-academie-server",
-  "version": "0.15.0",
+  "version": "0.17.1",
   "private": true,
   "description": "Première itération serveur multi-utilisateur de PCIF Académie / EPLE Core",
   "scripts": {
@@ -16,6 +16,7 @@
     "admin:create": "tsx scripts/create-admin.ts",
     "db:reference": "tsx scripts/import-pcif-267.ts",
     "db:demo-sync": "tsx scripts/sync-demo.ts",
+    "db:demo-reset": "bash deploy/reset-demo.sh",
     "db:reference-check": "tsx scripts/check-reference.ts"
   },
   "dependencies": {

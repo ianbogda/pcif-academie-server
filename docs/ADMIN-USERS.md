@@ -3,6 +3,11 @@
 Le compte administrateur plateforme n'est pas lié à un EPLE. Il dispose d'un droit global explicite
 `is_platform_admin` et doit être créé via le script `admin:create`.
 
+En production, l'auto-installateur crée ce premier compte. Son mot de passe est
+lu sur l'entrée standard et n'apparaît ni dans la commande ni dans les fichiers.
+L'option `--initial` interdit un second amorçage lorsqu'un administrateur actif
+existe déjà.
+
 Chaque utilisateur métier :
 - possède un email syntaxiquement valide et unique ;
 - possède au moins un rattachement établissement ;

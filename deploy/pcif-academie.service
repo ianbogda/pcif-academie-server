@@ -1,21 +1,21 @@
 [Unit]
-Description=PCIF Académie Server
+Description=PCIF Académie Server (production)
 After=network.target postgresql.service
 
 [Service]
 Type=simple
-User=pcif
-Group=pcif
-WorkingDirectory=/opt/pcif-academie
-EnvironmentFile=/opt/pcif-academie/.env
-ExecStart=/usr/bin/node /opt/pcif-academie/dist/src/server.js
+User=pcif-prod
+Group=pcif-prod
+WorkingDirectory=/opt/pcif-academie-prod
+EnvironmentFile=/opt/pcif-academie-prod/.env
+ExecStart=/usr/bin/node /opt/pcif-academie-prod/dist/src/server.js
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/pcif-academie
+ReadWritePaths=/opt/pcif-academie-prod
 
 [Install]
 WantedBy=multi-user.target

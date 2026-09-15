@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { readFile } from "node:fs/promises";
 import { pool } from "../src/db.js";
 
 const args = process.argv.slice(2);
@@ -7,18 +8,31 @@ const value = (name: string) => {
   const i=args.indexOf(name);
   return i>=0 ? args[i+1] : undefined;
 };
+const password = args.includes("--password-stdin")
+  ? (await readFile("/dev/stdin", "utf8")).replace(/[\r\n]+$/, "")
+  : value("--password");
 const schema=z.object({
   email:z.string().trim().toLowerCase().email(),
   name:z.string().trim().min(2),
   password:z.string().min(12)
 });
 const parsed=schema.safeParse({
-  email:value("--email"), name:value("--name"), password:value("--password")
+  email:value("--email"), name:value("--name"), password
 });
 if(!parsed.success){
-  console.error("Usage: npm run admin:create -- --email admin@domaine.fr --name \"Administrateur\" --password \"MotDePasseSolide!\"");
+  console.error("Usage: printf '%s' \"$PASSWORD\" | npm run admin:create -- --email admin@domaine.fr --name \"Administrateur\" --password-stdin");
   console.error(parsed.error.flatten());
   process.exit(1);
+}
+if(args.includes("--initial")){
+  const existing=await pool.query(
+    `SELECT 1 FROM users WHERE is_platform_admin=true AND active=true AND deleted_at IS NULL LIMIT 1`
+  );
+  if(existing.rowCount){
+    console.error("Amorçage refusé : un administrateur plateforme actif existe déjà.");
+    await pool.end();
+    process.exit(1);
+  }
 }
 const hash=await bcrypt.hash(parsed.data.password,12);
 const {rows}=await pool.query(

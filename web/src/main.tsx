@@ -3,10 +3,11 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import React,{useEffect,useMemo,useState} from "react";
 import{createRoot}from"react-dom/client";
 import{api,clearToken,getToken,setToken,type AdminUser,type Campaign,type Establishment,type Me,type Question}from"./api";
+import { demoProfiles as demo } from "./demoProfiles";
 import"./styles.css";
 
 type View={kind:"home"}|{kind:"campaign";campaign:Campaign;establishment:Establishment}|{kind:"admin"};
-const demo=[["AC","ac@example.test","ChangeMe-AC-2026!"],["FP","fp@example.test","ChangeMe-FP-2026!"],["CE","ce@example.test","ChangeMe-CE-2026!"],["SGE","sge@example.test","ChangeMe-SGE-2026!"],["Auditeur","auditeur@example.test","ChangeMe-AUDIT-2026!"],["Admin","admin@example.test","ChangeMe-ADMIN-2026!"]] as const;
+const isDemo=import.meta.env.VITE_DEPLOYMENT_ENV==="demo";
 
 function Logo(){return <div className="pcif-logo"><div className="logo-shield">✓</div><div><b>PCIF Académie</b><small>Pilotage du contrôle interne financier</small></div></div>}
 function App(){
@@ -46,9 +47,9 @@ function App(){
  </div>
 }
 function Login({onLogin}:{onLogin:()=>Promise<void>}){
- const[email,setEmail]=useState("ac@example.test"),[password,setPassword]=useState("ChangeMe-AC-2026!"),[err,setErr]=useState("");
+ const[email,setEmail]=useState(demo[0]?.[1]??""),[password,setPassword]=useState(demo[0]?.[2]??""),[err,setErr]=useState("");
  async function go(e:React.FormEvent){e.preventDefault();try{const r=await api.login(email,password);setToken(r.accessToken);await onLogin()}catch{setErr("Identifiants incorrects ou compte indisponible.")}}
- return <div className="login"><section><Logo/><h1>Bienvenue</h1><p>Retrouvez PCIF Académie dans son environnement métier, désormais collaboratif et multi‑établissements.</p><form onSubmit={go}><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Mot de passe<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>{err&&<div className="error">{err}</div>}<button className="primary">Se connecter</button></form></section><aside><b>Profils de démonstration</b>{demo.map(([l,m,p])=><button key={m} onClick={()=>{setEmail(m);setPassword(p)}}><span>{l}</span><small>{m}</small></button>)}</aside></div>
+ return <div className="login"><section><Logo/><h1>Bienvenue</h1><p>Retrouvez PCIF Académie dans son environnement métier, désormais collaboratif et multi‑établissements.</p><form onSubmit={go}><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Mot de passe<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>{err&&<div className="error">{err}</div>}<button className="primary">Se connecter</button></form></section>{isDemo&&<aside><b>Profils de démonstration</b>{demo.map(([l,m,p])=><button key={m} onClick={()=>{setEmail(m);setPassword(p)}}><span>{l}</span><small>{m}</small></button>)}</aside>}</div>
 }
 function Dashboard({establishment,onOpen}:{establishment:Establishment|null;onOpen:(c:Campaign,e:Establishment)=>void}){
  const[camps,setCamps]=useState<Campaign[]>([]);useEffect(()=>{establishment?api.campaigns(establishment.id).then(setCamps):setCamps([])},[establishment?.id]);
