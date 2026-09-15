@@ -488,3 +488,13 @@ L'étape 2 de l'atelier 1 est réorganisée pour éviter une saisie opération p
 - conservation de l'ajustement fin au niveau de chaque opération.
 
 L'affectation en masse complète l'existant au lieu de l'écraser : les exceptions restent modifiables opération par opération.
+
+## v0.15.0 — ONF opérationnel & exports
+
+- affectation multiple d'un acteur à une sélection d'opérations, en ajout ou retrait ;
+- sélection de toutes les opérations du filtre courant ;
+- aperçu final de l'ONF sous forme de matrice opérations × acteurs, avant impression ;
+- export HTML compatible avec la présentation Fonctiop@le ;
+- sortie PDF via l'aperçu d'impression A4 paysage du navigateur ;
+- export tableur Excel XML `.xls`, sans dépendance applicative supplémentaire ;
+- conservation des codes action directe, délégation, suppléance, validation et contrôle.

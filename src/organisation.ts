@@ -90,6 +90,27 @@ export async function registerOrganisation(app:FastifyInstance){
   return rows[0];
  });
 
+ app.put("/api/campaigns/:campaignId/ofn/assignments/bulk",async(request,reply)=>{
+  const user=await requireUser(request),{campaignId}=request.params as any,a=await access(user.sub,campaignId);
+  if(!a)return reply.code(404).send({error:"NOT_FOUND"}); if(!a.canWrite)return reply.code(403).send({error:"FORBIDDEN"});
+  const p=z.object({operationIds:z.array(z.string().min(1)).min(1).max(250),actorId:z.string().uuid(),action:z.enum(["directAction","delegation","substitution","validates","controls"]),mode:z.enum(["ADD","REMOVE"]).default("ADD")}).safeParse(request.body);
+  if(!p.success)return reply.code(400).send({error:"INVALID_BODY",details:p.error.flatten()});
+  const actor=(await pool.query(`SELECT * FROM pcif_ofn_actors WHERE id=$1 AND campaign_id=$2 AND active=true`,[p.data.actorId,campaignId])).rows[0];
+  if(!actor)return reply.code(404).send({error:"ACTOR_NOT_FOUND"});
+  const allowed=new Set(operations.filter((o:any)=>p.data.operationIds.includes(o.id) && (actor.sphere==='MIXTE'||(o.sphere==='ordonnateur'&&actor.sphere==='ORDONNATEUR')||(o.sphere==='comptable'&&actor.sphere==='COMPTABLE'))).map((o:any)=>o.id));
+  let changed=0;
+  for(const operationId of allowed){
+    const ex=(await pool.query(`SELECT * FROM pcif_ofn_assignments WHERE campaign_id=$1 AND operation_id=$2 AND actor_id=$3`,[campaignId,operationId,p.data.actorId])).rows[0];
+    const state={direct_action:!!ex?.direct_action,delegation:!!ex?.delegation,substitution:!!ex?.substitution,validates:!!ex?.validates,controls:!!ex?.controls};
+    const col:{[key:string]:keyof typeof state}={directAction:'direct_action',delegation:'delegation',substitution:'substitution',validates:'validates',controls:'controls'}; state[col[p.data.action]]=p.data.mode==='ADD';
+    if(!Object.values(state).some(Boolean)){ if(ex){await pool.query(`DELETE FROM pcif_ofn_assignments WHERE id=$1`,[ex.id]);changed++} continue; }
+    await pool.query(`INSERT INTO pcif_ofn_assignments(campaign_id,operation_id,actor_id,direct_action,delegation,substitution,validates,controls,ring,note,updated_by)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT(campaign_id,operation_id,actor_id) DO UPDATE SET direct_action=excluded.direct_action,delegation=excluded.delegation,substitution=excluded.substitution,validates=excluded.validates,controls=excluded.controls,updated_by=excluded.updated_by,updated_at=now()`,
+      [campaignId,operationId,p.data.actorId,state.direct_action,state.delegation,state.substitution,state.validates,state.controls,ex?.ring??null,ex?.note??'',user.sub]); changed++;
+  }
+  return {requested:p.data.operationIds.length,compatible:allowed.size,changed};
+ });
+
  app.delete("/api/campaigns/:campaignId/ofn/assignments/:assignmentId",async(request,reply)=>{
   const user=await requireUser(request),{campaignId,assignmentId}=request.params as any,a=await access(user.sub,campaignId);
   if(!a)return reply.code(404).send({error:"NOT_FOUND"}); if(!a.canWrite)return reply.code(403).send({error:"FORBIDDEN"});

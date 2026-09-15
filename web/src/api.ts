@@ -152,6 +152,7 @@ export const api = {
   createOfnActor:(campaignId:string,payload:any)=>request<OfnActor>(`/api/campaigns/${campaignId}/ofn/actors`,{method:"POST",body:JSON.stringify(payload)}),
   deleteOfnActor:(campaignId:string,actorId:string)=>request<void>(`/api/campaigns/${campaignId}/ofn/actors/${actorId}`,{method:"DELETE"}),
   saveOfnAssignment:(campaignId:string,payload:any)=>request<OfnAssignment>(`/api/campaigns/${campaignId}/ofn/assignments`,{method:"PUT",body:JSON.stringify(payload)}),
+  bulkOfnAssignments:(campaignId:string,payload:any)=>request<any>(`/api/campaigns/${campaignId}/ofn/assignments/bulk`,{method:"PUT",body:JSON.stringify(payload)}),
   ofnChecks:(campaignId:string)=>request<any[]>(`/api/campaigns/${campaignId}/ofn/checks`),
   createOfnVersion:(campaignId:string,label:string)=>request<any>(`/api/campaigns/${campaignId}/ofn/versions`,{method:"POST",body:JSON.stringify({label})}),
   deleteOfnAssignment:(campaignId:string,id:string)=>request<void>(`/api/campaigns/${campaignId}/ofn/assignments/${id}`,{method:"DELETE"}),

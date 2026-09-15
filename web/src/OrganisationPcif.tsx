@@ -13,7 +13,7 @@ export function OrganisationPcif({campaignId}:{campaignId:string}){
 function OfnBuilder({data,campaignId,reload}:any){
  const[step,setStep]=useState(1),[domain,setDomain]=useState("TOUS"),[processFilter,setProcessFilter]=useState("TOUS"),[search,setSearch]=useState(""),[sphere,setSphere]=useState("both"),[incompleteOnly,setIncompleteOnly]=useState(false);
  const[actorName,setActorName]=useState(""),[actorRole,setActorRole]=useState(""),[actorSphere,setActorSphere]=useState("ORDONNATEUR"),[service,setService]=useState("");
- const[checks,setChecks]=useState<any[]>([]);
+ const[checks,setChecks]=useState<any[]>([]),[selectedOps,setSelectedOps]=useState<Set<string>>(new Set());
  const domains=["TOUS",...Array.from(new Set(data.operations.map((o:any)=>o.category)))];
  const processes=["TOUS",...Array.from(new Set(data.operations.filter((o:any)=>domain==="TOUS"||o.category===domain).map((o:any)=>o.subcategory)))];
  const assignedOps=new Set(data.assignments.map((a:any)=>a.operation_id));
@@ -55,8 +55,8 @@ function OfnBuilder({data,campaignId,reload}:any){
    </div>
    <div className="coverage-chips">{domains.filter((d:any)=>d!=="TOUS").map((d:any)=>{const c=coverage(d);return <button key={d} className={domain===d?"active":""} onClick={()=>{setDomain(d);setProcessFilter("TOUS")}}><b>{d}</b> · {c.done}/{c.total} · {c.pct}%</button>})}</div>
    <div className="onf-filter-row"><div><button className={sphere==="both"?"active":""} onClick={()=>setSphere("both")}>Les deux sphères</button><button className={sphere==="ordonnateur"?"active ord":""} onClick={()=>setSphere("ordonnateur")}>Ordonnateur</button><button className={sphere==="comptable"?"active cpt":""} onClick={()=>setSphere("comptable")}>Comptable</button></div><label><input type="checkbox" checked={incompleteOnly} onChange={e=>setIncompleteOnly(e.target.checked)}/> Opérations non couvertes uniquement</label></div>
-   <ProcessBulkPanel data={data} campaignId={campaignId} domain={domain} processFilter={processFilter} reload={reload}/>
-   <div className="operation-list">{visibleOps.map((o:any)=><OperationBuilder key={o.id} o={o} data={data} campaignId={campaignId} reload={reload}/>)}</div>
+   <MultiAssignPanel data={data} campaignId={campaignId} visibleOps={visibleOps} selectedOps={selectedOps} setSelectedOps={setSelectedOps} reload={reload}/>
+   <div className="operation-list">{visibleOps.map((o:any)=><div className="selectable-op" key={o.id}><label className="op-selector"><input type="checkbox" checked={selectedOps.has(o.id)} onChange={e=>setSelectedOps(prev=>{const n=new Set(prev);e.target.checked?n.add(o.id):n.delete(o.id);return n})}/><span>Sélectionner</span></label><OperationBuilder o={o} data={data} campaignId={campaignId} reload={reload}/></div>)}</div>
    {!visibleOps.length&&<div className="notice">Aucune opération ne correspond aux filtres sélectionnés.</div>}
    <footer><button onClick={()=>setStep(1)}>← Acteurs</button><span>{visibleOps.length} opération(s) affichée(s) · {covered}/{data.operations.length} couvertes</span><button className="primary-action" onClick={analyse}>Analyser la sécurisation →</button></footer></section>}
   {step===3&&<section className="onf-stage"><header><span>ÉTAPE 3</span><h2>Sécuriser l’organisation réelle</h2><p>PCIF Académie confronte l’ONF déclaré aux règles de suppléance, de séparation des sphères et de formalisation.</p></header>
@@ -65,29 +65,19 @@ function OfnBuilder({data,campaignId,reload}:any){
    <footer><button onClick={()=>setStep(2)}>← Opérations</button><button className="primary-action" onClick={()=>setStep(4)}>Consolider l’ONF →</button></footer></section>}
   {step===4&&<section className="onf-stage"><header><span>ÉTAPE 4</span><h2>Contrôler, consolider et valider</h2><p>Cette synthèse constitue le livrable de l’atelier. La validation crée une version datée et immuable de l’ONF.</p></header>
    <div className="org-kpis">{[[data.actors.length,"acteurs"],[covered,"opérations couvertes"],[data.assignments.filter((a:any)=>a.substitution).length,"suppléances"],[checks.length,"points à examiner"]].map((x:any)=><div key={x[1]}><b>{x[0]}</b><span>{x[1]}</span></div>)}</div>
-   <OfnMatrix data={data}/><div className="version-box"><h3>Versions de l’ONF</h3>{data.versions?.length?data.versions.map((v:any)=><div key={v.id}><b>Version {v.version_no}</b><span>{v.label}</span><small>{new Date(v.created_at).toLocaleString("fr-FR")}</small></div>):<p>Aucune version validée.</p>}</div>
+   <OfnPreview data={data}/><div className="version-box"><h3>Versions de l’ONF</h3>{data.versions?.length?data.versions.map((v:any)=><div key={v.id}><b>Version {v.version_no}</b><span>{v.label}</span><small>{new Date(v.created_at).toLocaleString("fr-FR")}</small></div>):<p>Aucune version validée.</p>}</div>
    <footer><button onClick={()=>setStep(3)}>← Sécurisation</button><button className="primary-action" onClick={validate}>✓ Valider une version de l’ONF</button></footer></section>}
  </div>
 }
 
-function ProcessBulkPanel({data,campaignId,domain,processFilter,reload}:any){
- const processOps=data.operations.filter((o:any)=>(domain==="TOUS"||o.category===domain)&&(processFilter==="TOUS"||o.subcategory===processFilter));
- const[actor,setActor]=useState(""),[action,setAction]=useState("directAction");
+function MultiAssignPanel({data,campaignId,visibleOps,selectedOps,setSelectedOps,reload}:any){
+ const[actor,setActor]=useState(data.actors[0]?.id||""),[action,setAction]=useState("directAction"),[busy,setBusy]=useState(false);
  useEffect(()=>{if(!data.actors.some((a:any)=>a.id===actor))setActor(data.actors[0]?.id||"")},[data.actors.length]);
- if(processFilter==="TOUS")return <div className="bulk-hint"><b>Gain de temps :</b> choisissez un processus pour affecter un même rôle à toutes ses opérations, puis ajustez seulement les exceptions.</div>;
- async function apply(){
-   if(!actor||!processOps.length)return;
-   for(const o of processOps){
-     const a=data.actors.find((x:any)=>x.id===actor);
-     const compatible=a&&(a.sphere==="MIXTE"||(o.sphere==="ordonnateur"&&a.sphere==="ORDONNATEUR")||(o.sphere==="comptable"&&a.sphere==="COMPTABLE"));
-     if(!compatible)continue;
-     const ex=data.assignments.find((x:any)=>x.operation_id===o.id&&x.actor_id===actor);
-     await api.saveOfnAssignment(campaignId,{operationId:o.id,actorId:actor,directAction:action==="directAction"||!!ex?.direct_action,delegation:!!ex?.delegation,substitution:action==="substitution"||!!ex?.substitution,validates:action==="validates"||!!ex?.validates,controls:action==="controls"||!!ex?.controls,ring:ex?.ring||null,note:ex?.note||""});
-   }
-   await reload();
- }
- const done=processOps.filter((o:any)=>data.assignments.some((a:any)=>a.operation_id===o.id)).length;
- return <div className="bulk-process"><div><span>AFFECTATION PAR PROCESSUS</span><h3>{processFilter}</h3><p>{done}/{processOps.length} opérations couvertes. L’affectation s’applique aux opérations compatibles avec la sphère de l’acteur.</p></div><select value={actor} onChange={e=>setActor(e.target.value)}><option value="">Choisir un acteur</option>{data.actors.map((a:any)=><option key={a.id} value={a.id}>{a.name} · {a.sphere}</option>)}</select><select value={action} onChange={e=>setAction(e.target.value)}><option value="directAction">Réalise</option><option value="validates">Valide</option><option value="controls">Contrôle</option><option value="substitution">Supplée</option></select><button className="primary-action" onClick={apply}>Appliquer au processus</button></div>
+ const selected=visibleOps.filter((o:any)=>selectedOps.has(o.id));
+ function selectVisible(){setSelectedOps(new Set(visibleOps.map((o:any)=>o.id)))}
+ function clear(){setSelectedOps(new Set())}
+ async function apply(mode:"ADD"|"REMOVE") {if(!actor||!selected.length)return;setBusy(true);try{await api.bulkOfnAssignments(campaignId,{operationIds:selected.map((o:any)=>o.id),actorId:actor,action,mode});await reload()}finally{setBusy(false)}}
+ return <div className="multi-assign"><div className="multi-head"><div><span>AFFECTATION MULTIPLE</span><h3>{selected.length} opération(s) sélectionnée(s)</h3><p>La sélection porte sur le résultat filtré courant. Les opérations incompatibles avec la sphère de l’acteur sont ignorées.</p></div><div><button onClick={selectVisible}>Tout sélectionner ({visibleOps.length})</button><button onClick={clear}>Vider</button></div></div><div className="multi-controls"><select value={actor} onChange={e=>setActor(e.target.value)}><option value="">Choisir un acteur</option>{data.actors.map((a:any)=><option key={a.id} value={a.id}>{a.name} · {a.sphere}</option>)}</select><select value={action} onChange={e=>setAction(e.target.value)}><option value="directAction">Action directe</option><option value="delegation">Délégation</option><option value="substitution">Suppléance</option><option value="validates">Validation</option><option value="controls">Contrôle</option></select><button className="primary-action" disabled={busy||!selected.length} onClick={()=>apply("ADD")}>{busy?"Application…":"Affecter à la sélection"}</button><button disabled={busy||!selected.length} onClick={()=>apply("REMOVE")}>Retirer de la sélection</button></div></div>
 }
 
 function OperationBuilder({o,data,campaignId,reload}:any){
@@ -99,7 +89,21 @@ function OperationBuilder({o,data,campaignId,reload}:any){
  async function toggle(a:any,k:string){await api.saveOfnAssignment(campaignId,{operationId:o.id,actorId:a.actor_id,directAction:k==="direct_action"?!a.direct_action:a.direct_action,delegation:a.delegation,substitution:k==="substitution"?!a.substitution:a.substitution,validates:k==="validates"?!a.validates:a.validates,controls:k==="controls"?!a.controls:a.controls,ring:a.ring||null,note:a.note||""});await reload()}
  return <article className={`operation ${o.sphere==="ordonnateur"?"ord":"cpt"}`}><div className="op-title"><b>{o.name}</b><small>{o.category} › {o.subcategory} · {o.sphere}</small></div><div className="op-assign">{existing.map((a:any)=>{const ac=data.actors.find((x:any)=>x.id===a.actor_id);return <div className="assignment-row assignment-rich" key={a.id}><span><b>{ac?.name||"—"}</b><small>{ac?.role}</small></span><div className="role-buttons"><button className={a.direct_action?"on":""} onClick={()=>toggle(a,"direct_action")}>Réalise</button><button className={a.validates?"on":""} onClick={()=>toggle(a,"validates")}>Valide</button><button className={a.controls?"on":""} onClick={()=>toggle(a,"controls")}>Contrôle</button><button className={a.substitution?"on":""} onClick={()=>toggle(a,"substitution")}>Supplée</button></div></div>})}<div className="add-assignment"><select value={actor} onChange={e=>setActor(e.target.value)}>{compatible.map((a:any)=><option key={a.id} value={a.id}>{a.name} · {a.sphere}</option>)}</select><button onClick={add}>+ intervenant</button></div></div></article>
 }
-function OfnMatrix({data}:any){return <div className="table-scroll"><table className="ofn-matrix-react"><thead><tr><th>Opération</th><th>Sphère</th><th>Acteur</th><th>Réalise</th><th>Valide</th><th>Contrôle</th><th>Supplée</th></tr></thead><tbody>{data.assignments.map((a:any)=>{const o=data.operations.find((x:any)=>x.id===a.operation_id),ac=data.actors.find((x:any)=>x.id===a.actor_id);return <tr key={a.id}><td>{o?.name}</td><td>{o?.sphere}</td><td><b>{ac?.name}</b><small>{ac?.role}</small></td><td>{a.direct_action?"✓":"—"}</td><td>{a.validates?"✓":"—"}</td><td>{a.controls?"✓":"—"}</td><td>{a.substitution?"✓":"—"}</td></tr>})}</tbody></table></div>}
+function OfnPreview({data}:any){
+ const actorIds=data.actors.map((a:any)=>a.id);
+ const assigned=new Set(data.assignments.map((a:any)=>a.operation_id));
+ const ops=data.operations.filter((o:any)=>assigned.has(o.id));
+ const symbol=(o:any,a:any)=>{const x=data.assignments.find((z:any)=>z.operation_id===o.id&&z.actor_id===a.id);if(!x)return "";return [x.direct_action?"●":"",x.delegation?"D":"",x.substitution?"S":"",x.validates?"V":"",x.controls?"C":""].filter(Boolean).join(" ")};
+ function htmlDocument(){const rows=ops.map((o:any)=>`<tr class="${o.sphere}"><td>${esc(o.category)}</td><td>${esc(o.subcategory)}</td><td>${esc(o.name)}</td>${data.actors.map((a:any)=>`<td>${symbol(o,a)}</td>`).join("")}</tr>`).join("");return `<!doctype html><html><head><meta charset="utf-8"><title>ONF - ${esc(data.context?.establishment_name||"")}</title><style>@page{size:A4 landscape;margin:8mm}body{font:10px Arial;color:#111}h1{font-size:18px;margin:0}.meta{margin:6px 0 12px}.legend{margin:8px 0}table{width:100%;border-collapse:collapse}th,td{border:1px solid #777;padding:3px;text-align:center}th:nth-child(-n+3),td:nth-child(-n+3){text-align:left}.ordonnateur td:first-child{border-left:5px solid #2e7d32}.comptable td:first-child{border-left:5px solid #0070c0}thead{display:table-header-group}tr{break-inside:avoid}</style></head><body><h1>ORGANIGRAMME FONCTIONNEL NOMINATIF</h1><div class="meta"><b>${esc(data.context?.establishment_name||"")}</b> · UAI ${esc(data.context?.uai||"")} · ${esc(data.context?.agency_name||"")} · ${esc(data.context?.campaign_label||"")}</div><div class="legend">● Action directe · D Délégation · S Suppléance · V Validation · C Contrôle</div><table><thead><tr><th>Domaine</th><th>Processus</th><th>Opération</th>${data.actors.map((a:any)=>`<th>${esc(a.name)}<br><small>${esc(a.role||a.sphere)}</small></th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></body></html>`}
+ function previewPrint(){const w=window.open("","_blank");if(!w)return;w.document.write(htmlDocument());w.document.close();setTimeout(()=>w.print(),250)}
+ function exportFonctiopale(){download(`ONF-Fonctiopale-${data.context?.uai||"export"}.html`,htmlDocument(),"text/html;charset=utf-8")}
+ function exportTableur(){const head=["Domaine","Processus","Opération","Sphère",...data.actors.map((a:any)=>`${a.name} (${a.role||a.sphere})`)];const rows=ops.map((o:any)=>[o.category,o.subcategory,o.name,o.sphere,...data.actors.map((a:any)=>symbol(o,a))]);const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="ONF"><Table>${[head,...rows].map((r:any[],i:number)=>`<Row>${r.map(v=>`<Cell><Data ss:Type="String">${xmlEsc(String(v??""))}</Data></Cell>`).join("")}</Row>`).join("")}</Table></Worksheet></Workbook>`;download(`ONF-${data.context?.uai||"export"}.xls`,xml,"application/vnd.ms-excel")}
+ return <div className="ofn-final"><div className="export-bar"><div><b>Aperçu final de l’ONF</b><small>Vue documentaire avant impression et export.</small></div><button onClick={exportFonctiopale}>Export Fonctiop@le</button><button onClick={previewPrint}>PDF / imprimer</button><button onClick={exportTableur}>Tableur (.xls)</button></div><div className="paper-preview"><div className="paper-head"><div><span>ORGANIGRAMME FONCTIONNEL NOMINATIF</span><h3>{data.context?.establishment_name}</h3></div><dl><div><dt>UAI</dt><dd>{data.context?.uai}</dd></div><div><dt>Agence</dt><dd>{data.context?.agency_name||"—"}</dd></div><div><dt>Campagne</dt><dd>{data.context?.campaign_label}</dd></div></dl></div><div className="paper-legend">● Action directe · D Délégation · S Suppléance · V Validation · C Contrôle</div><div className="table-scroll"><table className="ofn-source-matrix"><thead><tr><th>Domaine / processus / opération</th>{data.actors.map((a:any)=><th key={a.id}><b>{a.name}</b><small>{a.role||a.sphere}</small></th>)}</tr></thead><tbody>{ops.map((o:any)=><tr key={o.id} className={o.sphere}><td><small>{o.category} › {o.subcategory}</small><b>{o.name}</b></td>{data.actors.map((a:any)=><td key={a.id}>{symbol(o,a)}</td>)}</tr>)}</tbody></table></div></div></div>
+}
+function esc(v:string){return v.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]||c))}
+function xmlEsc(v:string){return esc(v)}
+function download(name:string,content:string,type:string){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+
 
 function Processes({data,campaignId,reload}:any){
  const[domain,setDomain]=useState("TOUS"),[selected,setSelected]=useState<PcifProcess|null>(null);
@@ -116,14 +120,4 @@ function ProcessModal({p,data,campaignId,close,reload}:any){
 function Flow({steps}:{steps:string[]}){
  const W=900,H=Math.max(180,steps.length*92+70);
  return <svg className="flow-svg" viewBox={`0 0 ${W} ${H}`}>{steps.map((s,i)=>{const y=35+i*92,isFirst=i===0,isLast=i===steps.length-1;return <g key={i}>{i>0&&<><line x1="450" y1={y-32} x2="450" y2={y-8} stroke="#6d7cff" strokeWidth="2"/><polygon points={`445,${y-12} 455,${y-12} 450,${y-5}`} fill="#6d7cff"/></>}<rect x="195" y={y} width="510" height="54" rx={isFirst||isLast?27:9} fill={isFirst?"#14372d":isLast?"#26335d":"#0b1a2a"} stroke={isFirst?"#23c483":isLast?"#6d7cff":"#29415d"} strokeWidth="2"/><text x="450" y={y+32} textAnchor="middle" fill="#e8eef6" fontSize="15">{s.length>68?s.slice(0,65)+"…":s}</text></g>})}</svg>
-}
-function roleLabel(code: string) {
-  return ({
-    HEAD: "Chef d’établissement",
-    SECRETARY_GENERAL: "Secrétaire général",
-    AGENCY_ACCOUNTANT: "Agent comptable",
-    AGENCY_DEPUTY: "Fondé de pouvoir",
-    AUDITOR: "Auditeur",
-    PLATFORM_ADMIN: "Administrateur",
-  } as Record<string, string>)[code] || code || "Utilisateur PCIF";
 }
