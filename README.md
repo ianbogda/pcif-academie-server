@@ -2,7 +2,7 @@
 
 Application collaborative de pilotage du contrôle interne financier des EPLE.
 
-Version courante : **0.27.0**.
+Version courante : **0.27.1**.
 
 La version actuelle propose le référentiel PCIF de 267 contrôles, le diagnostic partagé ordonnateur/comptable, la cartographie des risques, les ateliers, le plan d’action et la construction de l’organigramme fonctionnel nominatif (ONF).
 

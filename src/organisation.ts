@@ -39,12 +39,14 @@ export async function registerOrganisation(app:FastifyInstance){
     LEFT JOIN roles r ON r.id=uer.role_id
     LEFT JOIN users u ON u.id=uer.user_id
     WHERE c.id=$1 AND u.active=true AND u.deleted_at IS NULL
+      AND r.code IN ('HEAD','SECRETARY_GENERAL','CONTRIBUTOR','AGENCY_ACCOUNTANT','AGENCY_DEPUTY')
     UNION
     SELECT DISTINCT u.id,u.display_name,r.code,'COMPTABLE'
     FROM campaigns c JOIN agency_establishments ae ON ae.establishment_id=c.establishment_id AND ae.active=true
     JOIN user_agency_roles uar ON uar.agency_id=ae.agency_id JOIN roles r ON r.id=uar.role_id
     JOIN users u ON u.id=uar.user_id
-    WHERE c.id=$1 AND u.active=true AND u.deleted_at IS NULL`,[id])).rows;
+    WHERE c.id=$1 AND u.active=true AND u.deleted_at IS NULL
+      AND r.code IN ('AGENCY_ACCOUNTANT','AGENCY_DEPUTY')`,[id])).rows;
   const versions=(await pool.query(`SELECT id,version_no,label,created_at FROM pcif_ofn_versions WHERE campaign_id=$1 ORDER BY version_no DESC`,[id])).rows;
   return {operations,processes:processRef.processes,actors:actors.rows,assignments:assignments.rows,reviews:reviews.rows,context,suggestedActors:suggested,versions};
  });
@@ -56,6 +58,17 @@ export async function registerOrganisation(app:FastifyInstance){
     sphere:z.enum(["ORDONNATEUR","COMPTABLE","MIXTE"]).default("MIXTE"),service:z.string().max(160).default(""),
     sourceUserId:z.string().uuid().nullable().optional(),source:z.enum(["MANUAL","PCIF_USER"]).default("MANUAL")}).safeParse(request.body);
   if(!p.success)return reply.code(400).send({error:"INVALID_BODY"});
+  if(p.data.source==="PCIF_USER"){
+   if(!p.data.sourceUserId)return reply.code(400).send({error:"SOURCE_USER_REQUIRED"});
+   const eligible=await pool.query(`SELECT 1 FROM campaigns c JOIN establishments e ON e.id=c.establishment_id
+     LEFT JOIN user_establishment_roles ur ON ur.establishment_id=e.id AND ur.user_id=$2
+     LEFT JOIN roles r ON r.id=ur.role_id
+     LEFT JOIN agency_establishments ae ON ae.establishment_id=e.id AND ae.active=true
+     LEFT JOIN user_agency_roles uar ON uar.agency_id=ae.agency_id AND uar.user_id=$2
+     LEFT JOIN roles ar ON ar.id=uar.role_id
+     WHERE c.id=$1 AND (r.code IN('HEAD','SECRETARY_GENERAL','CONTRIBUTOR','AGENCY_ACCOUNTANT','AGENCY_DEPUTY') OR ar.code IN('AGENCY_ACCOUNTANT','AGENCY_DEPUTY')) LIMIT 1`,[id,p.data.sourceUserId]);
+   if(!eligible.rowCount)return reply.code(403).send({error:"OFN_SOURCE_USER_NOT_ELIGIBLE"});
+  }
   const {rows}=await pool.query(`INSERT INTO pcif_ofn_actors(campaign_id,name,role,function_code,sphere,service,source_user_id,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,[id,p.data.name,p.data.role,p.data.functionCode,p.data.sphere,p.data.service,p.data.sourceUserId??null,p.data.source]);
   return reply.code(201).send(rows[0]);
  });
