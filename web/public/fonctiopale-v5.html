@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FONCTIOP@LE WEB V5.0 – Organigramme Fonctionnel EPLE</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#0070C0;--ord-bg:#D4EDDA;--ord-bdr:#28A745;--cpt-bg:#CCE5FF;--cpt-bdr:#0070C0;--gray:#F5F5F5;--border:#CCCCCC}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:16px}
+
+/* ─── LAYOUT PRINCIPAL ─── */
+.app{max-width:100%;margin:0 auto;background:white;border-radius:12px;box-shadow:0 16px 50px rgba(0,0,0,.35);overflow-x:hidden;overflow-y:visible}
+
+/* ─── HEADER ─── */
+.header{background:var(--primary);color:white;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.header h1{font-size:22px;font-weight:700}
+.header .sub{font-size:12px;opacity:.85;margin-top:4px}
+
+/* ─── ONGLETS ─── */
+.tabs-bar{display:flex;background:#1a1a2e;overflow-x:auto;gap:0;padding:0 8px}
+.tab{padding:10px 18px;color:#aaa;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s}
+.tab:hover{color:white;background:rgba(255,255,255,.05)}
+.tab.active{color:white;border-bottom-color:var(--primary);background:rgba(0,112,192,.15)}
+.tab.stats-tab{color:#FFD700}
+.tab.stats-tab.active{border-bottom-color:#FFD700;background:rgba(255,215,0,.1)}
+.tab-add{padding:10px 14px;color:#4CAF50;font-size:18px;cursor:pointer;border:none;background:transparent;font-weight:bold}
+.tab-add:hover{color:#81C784}
+
+/* ─── TOOLBAR ─── */
+.cartouche{padding:10px 32px 12px;background:var(--gray);border-bottom:1px solid var(--border)}
+.carto-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:7px}
+.carto-row:last-child{margin-bottom:0}
+.cf{display:flex;flex-direction:column;gap:3px}
+.cf.grow{flex:1;min-width:130px}
+.cf label{font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#555;white-space:nowrap}
+.cf input{padding:5px 9px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;background:white;width:100%;box-sizing:border-box;min-width:0}
+.cf input:focus{outline:none;border-color:var(--primary)}
+.btn{padding:7px 16px;background:var(--primary);color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn:hover{background:#005a9e;transform:translateY(-1px)}
+.btn.danger{background:#e53935}
+.btn.danger:hover{background:#b71c1c}
+.btn.btn-ord{background:#2E7D32}
+.btn.btn-ord:hover{background:#1B5E20}
+
+/* ─── LÉGENDE ─── */
+.legend{padding:12px 32px;background:#FAFAFA;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.legend-title{font-size:13px;font-weight:700;color:var(--primary);margin-right:4px}
+.li{display:flex;align-items:center;gap:6px;font-size:11px}
+.ls{width:52px;height:20px;border-radius:3px;border:1px solid #ddd;position:relative;overflow:hidden;flex-shrink:0}
+.ls.ord{background:var(--ord-bg);border-left:4px solid var(--ord-bdr)}
+.ls.cpt{background:var(--cpt-bg);border-left:4px solid var(--cpt-bdr)}
+.ls.min{background:var(--ord-bg)}
+.ls.min::before{content:'';position:absolute;left:0;top:0;width:12px;height:100%;background:repeating-linear-gradient(0deg,#999 0,#999 4px,transparent 4px,transparent 8px);border-right:1px dashed #777}
+.ls.maj{background:var(--ord-bg)}
+.ls.maj::before{content:'';position:absolute;left:0;top:0;width:12px;height:100%;background:#222}
+.ls.jus{background:var(--ord-bg)}
+.ls.jus::before{content:'✓';position:absolute;left:0;top:0;width:12px;height:100%;background:#4CAF50;color:white;font-size:9px;display:flex;align-items:center;justify-content:center}
+.ls.cor{background:var(--cpt-bg)}
+.ls.cor::before{content:'✗';position:absolute;left:0;top:0;width:12px;height:100%;background:#F44336;color:white;font-size:9px;display:flex;align-items:center;justify-content:center}
+
+/* ─── PANEL ─── */
+.panel{display:none}
+.panel.active{display:block}
+.print-etab-title{display:none}
+
+/* ─── TABLE ─── */
+.tbl-wrap{overflow-x:auto;overflow-y:auto;height:calc(100vh - 280px);padding:16px 32px}
+table{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
+th,td{border:1px solid var(--border);padding:5px 4px}
+th{background:var(--primary);color:white;font-weight:600;position:sticky;top:0;z-index:20;white-space:nowrap;text-align:center;font-size:10px}
+th:first-child{text-align:left;width:180px;min-width:160px;font-size:11px;vertical-align:middle}
+th.role-ord{background:#2E7D32;white-space:normal;vertical-align:top;padding:5px 3px;width:80px}
+th.role-cpt{background:var(--primary);white-space:normal;vertical-align:top;padding:5px 3px;width:80px}
+th.role-ord-free{background:#2E7D32;white-space:normal;vertical-align:top;padding:5px 3px;width:80px}
+th.role-cpt-free{background:var(--primary);white-space:normal;vertical-align:top;padding:5px 3px;width:80px}
+th.role-add-btn{background:#333;vertical-align:middle;text-align:center;padding:3px;width:28px;cursor:pointer}
+th.role-add-btn button{background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.5);color:white;border-radius:50%;width:22px;height:22px;font-size:16px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;margin:auto;transition:background .15s}
+th.role-add-btn button:hover{background:rgba(255,255,255,.4)}
+th.role-free-del{font-size:9px;cursor:pointer;opacity:.6;float:right;background:none;border:none;color:white;padding:0;line-height:1}
+th.role-free-del:hover{opacity:1}
+th .th-label{display:inline;font-weight:700;font-size:10px;line-height:1.2}
+th .th-label-wrap{display:block;min-height:28px;margin-bottom:3px;position:relative}
+th .th-edit-btn{background:none;border:none;cursor:pointer;font-size:7px;opacity:.5;color:white;padding:0 0 0 2px;vertical-align:middle;transition:opacity .15s;line-height:1}
+th .th-edit-btn:hover{opacity:1!important}
+.cf-edit-btn{background:none;border:none;cursor:pointer;font-size:7px;opacity:.4;color:#555;padding:0 0 0 2px;line-height:1;transition:opacity .15s}
+.cf-edit-btn:hover{opacity:1}
+th .th-label-input{display:none;width:100%;background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.6);border-radius:3px;color:white;font-size:10px;font-weight:700;padding:1px 4px;box-sizing:border-box;text-align:center}
+th .th-label-input::placeholder{color:rgba(255,255,255,.5)}
+th .th-input{display:block;width:100%;box-sizing:border-box;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);border-radius:3px;color:white;font-size:9px;font-style:italic;font-weight:400;padding:2px 3px;text-align:center;outline:none;transition:background .15s;min-width:0}
+th .th-input::placeholder{color:rgba(255,255,255,.45);font-style:italic}
+th .th-input:focus{background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.75)}
+td.cat{background:var(--primary);color:white;font-weight:700;font-size:14px;padding:8px 10px;text-align:center;text-transform:uppercase;letter-spacing:.5px}
+td.sub{background:#E8F0F8;color:var(--primary);font-weight:700;font-size:13px;padding:6px 10px;text-align:center;text-transform:lowercase}
+td.sub::first-letter{text-transform:uppercase}
+td.op{position:relative;padding:5px 8px;cursor:default;white-space:normal;word-break:break-word;line-height:1.3}
+td.op.ord{background:var(--ord-bg)}
+td.op.cpt{background:var(--cpt-bg)}
+
+
+
+/* Cases rôles */
+td.chk{text-align:center;cursor:pointer;user-select:none;font-size:14px;font-weight:700;transition:background .1s;vertical-align:middle;padding:0;background:#FFFDE7;position:relative;height:30px}
+td.chk.chk-free-ord{background:#FFFDE7}
+td.chk.chk-free-cpt{background:#FFFDE7}
+td.chk-btn-spacer{background:#333;width:28px;min-width:28px;padding:0}
+td.chk:hover{background:#ececec}
+td.chk.s-check{background:#FDD835}
+td.chk.s-deleg{background:#FFF9C4}
+td.chk.s-suppl{background:#E3F2FD}
+/* Cerclages manuels sur les cases */
+td.chk.ring-solid{outline:3px solid #C62828;outline-offset:-2px}
+td.chk.ring-dash{outline:2px dashed #C62828;outline-offset:-2px}
+td.chk.ring-major{outline:3px solid #111;outline-offset:-2px}
+td.chk.ring-minor{outline:2px dashed #888;outline-offset:-2px}
+td.chk.ring-superv{outline:3px solid #4A148C;outline-offset:-2px}
+/* Menu cerclage */
+.menu-sep{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.5px;padding:6px 8px 3px;border-top:1px solid #eee;margin-top:4px}
+.menu-rings{display:flex;flex-direction:column;gap:4px;padding:4px 8px 6px}
+.ring-btn{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:transparent;border-radius:4px;cursor:pointer;font-size:12px;text-align:left;transition:background .12s}
+.ring-btn:hover{background:#F5F5F5}
+.ring-btn.active{background:#e8f0f8}
+.ring-btn .ring-swatch{width:20px;height:20px;border-radius:3px;flex-shrink:0;background:white}
+
+/* Mini-menu contextuel */
+.cell-menu{position:absolute;background:white;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.22);z-index:99999;display:none;min-width:200px;padding:8px;max-height:90vh;overflow-y:auto;box-sizing:border-box}
+.cell-menu.open{display:block}
+.cell-menu .menu-checks{display:flex;flex-direction:column;gap:4px}
+.cell-menu label{display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer;border-radius:4px;transition:background .12s;font-size:12px}
+.cell-menu label:hover{background:#F5F5F5}
+.cell-menu input[type=checkbox]{cursor:pointer;width:15px;height:15px;flex-shrink:0}
+.cell-menu .cbadge{width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0}
+.cell-menu button{width:100%;border:none;background:transparent;padding:7px 8px;text-align:center;cursor:pointer;font-size:11px;border-radius:4px;transition:background .12s}
+.cell-menu button:hover{background:#F5F5F5}
+
+/* ─── BOUTON AIDE ─── */
+.btn-help{padding:7px 16px;background:rgba(255,255,255,.18);color:white;border:1.5px solid rgba(255,255,255,.5);border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;letter-spacing:.3px}
+.btn-help:hover{background:rgba(255,255,255,.32);border-color:white;transform:translateY(-1px)}
+/* Overlay */
+.help-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:11000;display:none;align-items:center;justify-content:center}
+.help-overlay.open{display:flex}
+/* Boîte modale : taille fixe, flex colonne */
+.help-modal{
+  display:flex;flex-direction:column;
+  width:min(880px,94vw);
+  height:min(600px,88vh);
+  background:white;border-radius:14px;
+  box-shadow:0 24px 70px rgba(0,0,0,.4);
+  overflow:hidden;
+  animation:modalIn .2s ease;
+}
+/* En-tête */
+.help-hd{
+  flex-shrink:0;
+  background:var(--primary);color:white;
+  padding:15px 22px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;
+}
+.help-hd h2{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.help-hd .hclose{flex-shrink:0;background:rgba(255,255,255,.2);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.help-hd .hclose:hover{background:rgba(255,255,255,.38)}
+/* Corps : nav + contenu côte à côte — chacun scroll indépendamment */
+.help-bd{flex:1;min-height:0;display:flex;overflow:hidden}
+/* Nav latérale gauche */
+.help-nav{
+  flex-shrink:0;width:180px;
+  background:#1a1a2e;
+  overflow-y:auto;overflow-x:hidden;
+  padding:6px 0;
+}
+.help-nav button{
+  display:flex;align-items:center;gap:9px;
+  width:100%;padding:10px 14px;
+  color:#9aa;font-size:12px;font-weight:600;
+  border:none;background:transparent;text-align:left;
+  border-left:3px solid transparent;
+  cursor:pointer;transition:all .15s;
+  /* Pas de white-space:nowrap : le texte wrap si besoin */
+  word-break:break-word;line-height:1.3;
+}
+.help-nav button:hover{color:#fff;background:rgba(255,255,255,.07)}
+.help-nav button.active{color:#fff;border-left-color:var(--primary);background:rgba(0,112,192,.22)}
+.help-nav button .ico{font-size:14px;flex-shrink:0;line-height:1}
+/* Zone contenu */
+.help-panes{flex:1;min-width:0;overflow-y:auto;overflow-x:hidden}
+.help-pane{display:none;padding:22px 26px;font-size:13px;color:#333;line-height:1.72}
+.help-pane.active{display:block}
+.help-pane h3{font-size:14px;font-weight:700;color:var(--primary);margin:20px 0 8px;display:flex;align-items:center;gap:7px}
+.help-pane h3:first-child{margin-top:0}
+.help-pane p{margin-bottom:9px}
+.help-pane ul{margin:4px 0 10px 16px}
+.help-pane ul li{margin-bottom:4px}
+.help-pane strong{color:#1a1a1a}
+.help-pane code{background:#f0f0f0;padding:1px 5px;border-radius:3px;font-size:12px}
+.htbl{width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:12px}
+.htbl th{background:var(--primary);color:white;padding:6px 10px;text-align:left;font-weight:600}
+.htbl td{border:1px solid var(--border);padding:6px 10px;vertical-align:middle}
+.htbl tr:nth-child(even) td{background:#F9F9F9}
+.hsw{display:inline-flex;align-items:center;justify-content:center;width:34px;height:20px;border-radius:4px;font-weight:700;font-size:11px;border:1px solid #ddd;flex-shrink:0;vertical-align:middle;margin-right:5px}
+.htip{background:#EFF8FF;border-left:4px solid var(--primary);border-radius:0 6px 6px 0;padding:9px 13px;margin:10px 0;font-size:12px}
+.htip strong{color:var(--primary)}
+.hwarn{background:#FFF3E0;border-left:4px solid #F57C00;border-radius:0 6px 6px 0;padding:9px 13px;margin:10px 0;font-size:12px}
+/* Pied */
+.help-ft{flex-shrink:0;padding:12px 22px;background:#F5F5F5;border-top:1px solid #E0E0E0;display:flex;justify-content:flex-end}
+/* ─── MODAL GÉNÉRIQUE ─── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:white;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(520px,92vw);overflow:hidden;animation:modalIn .2s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(.94) translateY(-10px)}to{opacity:1;transform:none}}
+.modal-head{background:var(--primary);color:white;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.modal-head h3{font-size:16px;font-weight:700}
+.modal-head .modal-close{background:rgba(255,255,255,.2);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.modal-head .modal-close:hover{background:rgba(255,255,255,.35)}
+.modal-body{padding:24px;font-size:14px;color:#333;line-height:1.6}
+.modal-body p{margin-bottom:12px}
+.modal-body p:last-child{margin-bottom:0}
+.modal-foot{padding:14px 24px;background:#F5F5F5;border-top:1px solid #E0E0E0;display:flex;gap:10px;justify-content:flex-end}
+.modal-foot .btn-sec{padding:7px 18px;background:white;color:var(--primary);border:1.5px solid var(--primary);border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.modal-foot .btn-sec:hover{background:#E8F0F8}
+/* Variantes de modal */
+.modal-head.danger{background:#e53935}
+.modal-head.warn{background:#F57C00}
+.modal-head.success{background:#2E7D32}
+.modal-head.ord{background:#2E7D32}
+.modal-head.cpt{background:#0070C0}
+
+/* ─── STATS ─── */
+.stats-wrap{padding:24px 32px}
+.stats-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.stats-header h2{font-size:20px;color:var(--primary)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{background:var(--gray);border-radius:10px;padding:16px;text-align:center;border:1px solid var(--border)}
+.stat-card .val{font-size:36px;font-weight:700;color:var(--primary)}
+.stat-card .lbl{font-size:12px;color:#666;margin-top:4px}
+.stats-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:28px}
+.stats-table th{background:var(--primary);color:white;padding:8px 10px;text-align:left;font-weight:600}
+.stats-table td{border:1px solid var(--border);padding:7px 10px}
+.stats-table tr:nth-child(even) td{background:#F9F9F9}
+.stats-table td.pct-cell{font-weight:600}
+.pct-bar{height:8px;background:#E0E0E0;border-radius:4px;overflow:hidden;margin-top:3px}
+.pct-fill{height:100%;background:var(--primary);border-radius:4px;transition:width .5s}
+.pct-fill.ord{background:var(--ord-bdr)}
+.pct-fill.cpt{background:var(--cpt-bdr)}
+.coverage-section h3{font-size:16px;color:var(--primary);margin-bottom:12px}
+.etab-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.etab-stat-card{border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.etab-stat-card .card-head{background:var(--primary);color:white;padding:8px 14px;font-size:13px;font-weight:600}
+.etab-stat-card .card-body{padding:12px 14px}
+.mini-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px}
+.mini-bar-row .mini-label{width:130px;flex-shrink:0;color:#555}
+.mini-bar{flex:1;height:6px;background:#E0E0E0;border-radius:3px;overflow:hidden}
+.mini-fill{height:100%;border-radius:3px}
+.mini-fill.o{background:var(--ord-bdr)}
+.mini-fill.c{background:var(--cpt-bdr)}
+.mini-fill.r{background:#FF9800}
+.mini-val{width:32px;text-align:right;color:#333;font-weight:600}
+
+/* ─── IMPRESSION ─── */
+@media print{
+  body{background:white;padding:0;margin:0}
+  .app{box-shadow:none;border-radius:0}
+  /* Masquer uniquement les éléments interactifs/navigation */
+  .tabs-bar,.stats-wrap,.print-hide{display:none!important}
+  .panel{display:none!important}
+  .panel.print-target{display:block!important}
+  .panel.print-target + .panel.print-target{page-break-before:always!important}
+  /* Bandeau bleu : conserver, compacté */
+  .header{padding:8px 14px!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .header h1{font-size:13px!important}
+  .header .sub{font-size:9px!important}
+  /* Légende : afficher compacte */
+  .legend{display:flex!important;flex-wrap:wrap!important;gap:6px 12px!important;padding:5px 14px!important;border-bottom:1px solid #ddd!important;font-size:8px!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .legend .li{gap:3px!important;font-size:8px!important}
+  .legend .ls{width:12px!important;height:12px!important;flex-shrink:0!important}
+  .legend-title{font-size:9px!important}
+  /* Cartouche : afficher en lecture seule */
+  .cartouche{display:block!important;padding:5px 14px 3px!important;background:#f5f5f5!important;border-bottom:1px solid #ddd!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .cartouche .carto-row{display:flex!important;flex-wrap:wrap!important;gap:6px 12px!important;margin-bottom:3px!important}
+  .cartouche .cf label{font-size:7px!important;margin-bottom:1px!important}
+  .cartouche input[type="text"],.cartouche input[type="date"]{border:none!important;background:transparent!important;padding:0!important;font-size:8px!important;font-weight:600!important;color:#000!important;width:auto!important;min-width:50px!important;box-shadow:none!important}
+  /* Tableau */
+    .print-etab-title{display:block!important;font-size:9px!important;font-weight:700!important;padding:2px 8px!important;color:#333!important;border-bottom:1px solid #ccc!important;margin-bottom:2px!important}
+  .tbl-wrap{height:auto!important;max-height:none!important;overflow:visible!important;padding:3px 6px!important}
+  table{width:100%!important;table-layout:fixed!important;font-size:7px!important;border-collapse:collapse!important}
+  th,td{border:1px solid #888!important}
+  td.chk{border:1px solid #aaa!important}
+  th{position:static!important;font-size:7px!important;padding:2px 2px!important;white-space:normal!important;word-break:break-word!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  th .th-input{background:transparent!important;border-color:transparent!important;color:white!important;font-size:7px!important;padding:0!important;width:100%!important}
+  th .th-label{font-size:7px!important;margin-bottom:1px!important}
+  th:first-child{width:22%!important}
+  th.role-ord,th.role-cpt,th.role-ord-free,th.role-cpt-free,.th-free-col{width:5%!important}
+  th.role-add-btn,.chk-btn-spacer{display:none!important}
+  td{padding:2px 2px!important;font-size:7px!important}
+  td.op{padding:2px 4px!important;white-space:normal!important;word-break:break-word!important;overflow:visible!important}
+  
+  td.chk{height:18px!important;font-size:9px!important}
+  td.chk-btn-spacer{display:none!important}
+  td.ord,td.cpt,th.role-ord,th.role-cpt{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  td.chk.s-check,td.chk.s-deleg,td.chk.s-suppl{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  tr.subcat-header{page-break-inside:avoid!important;page-break-after:avoid!important}
+  tr{page-break-inside:avoid!important}
+  @page{size:A4 landscape;margin:5mm 6mm}
+}
+</style>
+<script id="fonctiopale-data" type="application/json">[]</script>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ MODALS ══ -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-head" id="modal-head">
+      <h3 id="modal-title"></h3>
+      <button class="modal-close" onclick="_doCloseModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<!-- ══ MENU CASES ══ -->
+<!-- Menu contextuel cases -->
+<div class="cell-menu" id="cell-menu">
+  <div class="menu-checks">
+    <label><input type="checkbox" id="chk-check" onchange="toggleState('check')"><span class="cbadge" style="background:#FDD835;display:inline-block"></span> Action directe</label>
+    <label><input type="checkbox" id="chk-deleg" onchange="toggleState('deleg')"><span class="cbadge" style="background:#FFF9C4;color:#E65100">D</span> Délégation</label>
+    <label><input type="checkbox" id="chk-suppl" onchange="toggleState('suppl')"><span class="cbadge" style="background:#E3F2FD;color:#0D47A1">S</span> Suppléance</label>
+  </div>
+  <div class="menu-sep">Cerclage</div>
+  <div class="menu-rings">
+    <button class="ring-btn" id="ring-none"  onclick="setRing('')"><span class="ring-swatch" style="border:1px solid #ddd;color:#aaa;font-size:11px;display:flex;align-items:center;justify-content:center">∅</span> Aucun</button>
+    <button class="ring-btn" id="ring-solid" onclick="setRing('ring-solid')"><span class="ring-swatch" style="border:3px solid #C62828"></span> Rupture maj. avec émargement</button>
+    <button class="ring-btn" id="ring-dash"  onclick="setRing('ring-dash')"><span class="ring-swatch" style="border:2px dashed #C62828"></span> Rupture sans émargement</button>
+    <button class="ring-btn" id="ring-major" onclick="setRing('ring-major')"><span class="ring-swatch" style="border:3px solid #111"></span> Absence de rupture à corriger</button>
+    <button class="ring-btn" id="ring-minor" onclick="setRing('ring-minor')"><span class="ring-swatch" style="border:2px dashed #888"></span> Absence de rupture justifiée</button>
+    <button class="ring-btn" id="ring-superv" onclick="setRing('ring-superv')"><span class="ring-swatch" style="border:3px solid #4A148C"></span> Contrôle de supervision</button>
+  </div>
+  <button onclick="clearAllStates()" style="border-top:1px solid #ddd;color:#999;margin-top:4px">× Tout effacer</button>
+</div>
+
+
+
+<div class="help-overlay" id="help-overlay" onclick="closeHelp(event)">
+  <div class="help-modal">
+    <div class="help-hd">
+      <h2>❓ Guide d'utilisation — FONCTIOP@LE WEB V 5.0</h2>
+      <button class="hclose" onclick="event.stopPropagation();closeHelp()">✕</button>
+    </div>
+    <div class="help-bd">
+      <nav class="help-nav">
+      <button class="active" onclick="switchHelp(0,this)"><span class="ico">🚀</span>Démarrage</button>
+      <button class="" onclick="switchHelp(1,this)"><span class="ico">📋</span>Tableau</button>
+      <button class="" onclick="switchHelp(2,this)"><span class="ico">🔗</span>Ruptures de chaîne</button>
+      <button class="" onclick="switchHelp(3,this)"><span class="ico">🏫</span>Établissements rattachés</button>
+      <button class="" onclick="switchHelp(4,this)"><span class="ico">📊</span>Statistiques</button>
+      <button class="" onclick="switchHelp(5,this)"><span class="ico">💾</span>Sauvegarde</button>
+      <button class="" onclick="switchHelp(6,this)"><span class="ico">🖨️</span>Impression</button>
+      </nav>
+      <div class="help-panes">
+      <div class="help-pane active" id="hp-0">
+<h3>🎯 À quoi sert cet outil ?</h3>
+      <p>FONCTIOP@LE WEB est un outil numérique de cartographie des responsabilités fonctionnelles au sein d'une agence comptable d'EPLE, conformément à l'instruction codificatrice <strong>M9.6 Op@le (janvier 2026)</strong>.</p>
+      <p>Il permet de formaliser, pour chaque opération comptable et budgétaire, <strong>qui fait quoi</strong> (action directe, délégation, suppléance) et d'identifier les <strong>ruptures de chaîne de séparation ordonnateur/comptable</strong>.</p>
+      <div class="help-tip"><strong>💡 Conseil de démarrage :</strong> Commencez par renseigner le nom de votre établissement et de l'Agent Comptable dans la barre d'outils, puis parcourez les opérations domaine par domaine.</div>
+
+      <h3>🗺️ Organisation de l'écran</h3>
+      <table class="help-table">
+        <tr><th>Zone</th><th>Rôle</th></tr>
+        <tr><td><strong>Bandeau bleu</strong></td><td>Titre, version, boutons globaux (aide, impression, sauvegarde)</td></tr>
+        <tr><td><strong>Barre d'onglets noire</strong></td><td>Navigation entre le Siège, les établissements rattachés et les statistiques</td></tr>
+        <tr><td><strong>Légende</strong></td><td>Rappel des codes couleur utilisés dans le tableau</td></tr>
+        <tr><td><strong>Barre d'outils</strong></td><td>Nom de l'établissement, Agent Comptable, date CA, bouton suppression</td></tr>
+        <tr><td><strong>Tableau</strong></td><td>Les 165 opérations EPLE organisées par domaine, avec une colonne par rôle</td></tr>
+      </table>
+      </div>
+      <div class="help-pane " id="hp-1">
+<h3>📋 Lire le tableau</h3>
+      <p>Chaque ligne représente une <strong>opération comptable ou budgétaire</strong>. La couleur de fond indique la sphère :</p>
+      <table class="htbl">
+        <tr><th>Couleur</th><th>Signification</th></tr>
+        <tr><td><span class="hsw" style="background:#D4EDDA;border-left:4px solid #28A745"></span></td><td>Sphère <strong>ordonnateur</strong> — colonnes en-tête <strong>vert</strong></td></tr>
+        <tr><td><span class="hsw" style="background:#CCE5FF;border-left:4px solid #0070C0"></span></td><td>Sphère <strong>comptable</strong> — colonnes en-tête <strong>bleu</strong></td></tr>
+      </table>
+
+      <h3>👤 En-têtes de colonnes</h3>
+      <p>Chaque colonne correspond à un acteur. L'en-tête contient :</p>
+      <ul>
+        <li>Le <strong>libellé de la fonction</strong> — modifiable avec le crayon <strong>✏️</strong> (ex. : "La fondée de pouvoir")</li>
+        <li>Un champ <strong>Nom prénom</strong> pour identifier la personne</li>
+      </ul>
+      <p>Les boutons <span style="background:#2E7D32;color:white;border-radius:50%;display:inline-block;width:16px;height:16px;text-align:center;line-height:16px;font-size:11px">+</span> <strong>Ord</strong> et <span style="background:#0070C0;color:white;border-radius:50%;display:inline-block;width:16px;height:16px;text-align:center;line-height:16px;font-size:11px">+</span> <strong>Cpt</strong> permettent d'<strong>ajouter une colonne libre</strong> dans chaque sphère. Chaque colonne ajoutée peut être supprimée avec le bouton ✕ dans son en-tête.</p>
+
+      <h3>✏️ Renseigner les cases (fond jaune)</h3>
+      <p><strong>Cliquez sur une case jaune</strong> pour ouvrir le menu. Chaque case peut contenir <strong>plusieurs symboles simultanément</strong> :</p>
+      <table class="htbl">
+        <tr><th>Symbole</th><th>Valeur</th><th>Signification</th></tr>
+        <tr><td><span class="hsw" style="background:#FDD835"></span></td><td>Action directe — fond jaune plein (+ D et/ou S affichés par-dessus si cumul)</td><td>L'agent réalise lui-même l'opération</td></tr>
+        <tr><td><span class="hsw" style="background:#FFF9C4;color:#E65100">D</span></td><td>Délégation</td><td>Opération exercée par délégation formalisée</td></tr>
+        <tr><td><span class="hsw" style="background:#E3F2FD;color:#0D47A1">S</span></td><td>Suppléance</td><td>Remplacement pour les opérations majeures</td></tr>
+      </table>
+      <div class="htip"><strong>💡 Cumul :</strong> Quand action directe et D ou S sont combinés, le fond reste jaune plein et les lettres D/S s'affichent par-dessus. Sans action directe, le fond reste neutre.</div>
+      <div class="htip"><strong>💡 Cerclage manuel :</strong> Le menu propose 5 types de cerclage : rouge plein (rupture maj. avec émargement), rouge pointillé (sans émargement), noir plein (absence à corriger), gris pointillé (absence justifiée), violet (contrôle de supervision). Indépendant de l'état coché.</div>
+      <div class="htip"><strong>💡 Effacement :</strong> Le bouton "Tout effacer" vide la case et supprime le cerclage.</div>
+      <h3>📝 Modifications récentes des opérations (V5.0)</h3>
+      <ul>
+        <li><strong>Organisation</strong> : lignes ordonnateur ajoutées dans "Gestion des délégations" et "Archivage classement"</li>
+        <li><strong>Dépenses</strong> : renommages domiciliations, prise en charge, paiement ; ajout "Règlement des Demandes de paiement"</li>
+        <li><strong>Paies</strong> : "Approbation CA" → "Contrôle de la compétence/plafonds"</li>
+        <li><strong>Encaissement chèques/espèces</strong> : toutes les lignes passées en sphère comptable</li>
+        <li><strong>Régie d'avance</strong> : saisie décaissements → comptable, "Régularisation budgétaire", "Réapprovisionnement"</li>
+        <li><strong>Régie de recettes</strong> : ajout "Dépôt des fonds à la Banque Postale"</li>
+        <li><strong>Inventaire stocks</strong> : "Pointage" → "Contrôle" (4 occurrences)</li>
+      </ul>
+      </div>
+      <div class="help-pane " id="hp-2">
+<h3>🔗 Qu'est-ce qu'une rupture de chaîne ?</h3>
+      <p>La <strong>séparation ordonnateur/comptable</strong> est un principe fondamental de la comptabilité publique. Une rupture de chaîne survient lorsqu'une même personne intervient dans la partie ordonnateur ET dans la partie comptable d'une même opération.</p>
+
+      <h3>✏️ Marquer une rupture sur une opération</h3>
+      <p><strong>Survolez une ligne d'opération</strong> : des petits boutons colorés apparaissent à droite. Cliquez sur le bouton correspondant au type de rupture :</p>
+      <table class="htbl">
+        <tr><th>Visuel</th><th>Type</th><th>Description</th></tr>
+        <tr>
+          <td><span style="display:inline-block;width:18px;height:18px;background:repeating-linear-gradient(0deg,#999 0,#999 4px,transparent 4px,transparent 8px);border-radius:2px;vertical-align:middle"></span></td>
+          <td><strong>Absence de rupture justifiée</strong></td>
+          <td>Pas de rupture de chaîne — situation régulière et documentée</td>
+        </tr>
+        <tr>
+          <td><span style="display:inline-block;width:18px;height:18px;background:#222;border-radius:2px;vertical-align:middle"></span></td>
+          <td><strong>Absence de rupture à corriger</strong></td>
+          <td>Absence de rupture à régulariser impérativement</td>
+        </tr>
+        <tr>
+          <td><span style="display:inline-block;width:18px;height:18px;background:white;border:3px solid #C62828;box-sizing:border-box;border-radius:2px;vertical-align:middle"></span></td>
+          <td><strong>Rupture majeure avec émargement formalisé</strong></td>
+          <td>Cerclé rouge épais — émargement formalisé en place</td>
+        </tr>
+        <tr>
+          <td><span style="display:inline-block;width:18px;height:18px;background:white;border:2px dashed #C62828;box-sizing:border-box;border-radius:2px;vertical-align:middle"></span></td>
+          <td><strong>Rupture sans émargement formalisé</strong></td>
+          <td>Cerclé rouge pointillé — pas d'émargement formalisé</td>
+        </tr>
+
+      </table>
+      <div class="help-warn">⚠️ Le marquage apparaît sous forme d'un <strong>badge coloré sur le bord gauche</strong> de la cellule opération. La couleur de sphère (vert/bleu) reste toujours visible.</div>
+
+      
+      </div>
+      <div class="help-pane " id="hp-3">
+<h3>🏫 Siège et établissements rattachés</h3>
+      <p>L'outil gère jusqu'à <strong>13 entités</strong> : le Siège de l'agence comptable et 12 établissements rattachés (ER). Chaque entité dispose de son propre tableau indépendant.</p>
+
+      <h3>➕ Ajouter un établissement rattaché</h3>
+      <p>Cliquez sur le bouton <strong>＋</strong> à droite de la barre d'onglets. Si le Siège contient déjà des données, une fenêtre vous propose :</p>
+      <ul>
+        <li><strong>Tableau vide</strong> : l'ER part d'une page blanche</li>
+        <li><strong>Reprendre les ruptures du Siège</strong> : les marqueurs de rupture de chaîne du tableau du Siège sont copiés dans ce nouvel ER — les attributions de rôles (✓, D, S) restent toujours vierges, propres à chaque établissement</li>
+      </ul>
+
+      <h3>✏️ Personnaliser un établissement</h3>
+      <p>Le cartouche de chaque onglet permet de renseigner :</p>
+      <ul>
+        <li><strong>Nom de l'établissement</strong>, <strong>N° UAI</strong>, <strong>Agence comptable/Groupement</strong></li>
+        <li><strong>Date de réalisation</strong>, noms de l'Agent Comptable, du Fondé de Pouvoir, du Secrétaire Général, du Chef d'Établissement</li>
+        <li><strong>Présenté au Conseil d'Administration</strong> : champ date optionnel, activé/masqué par le bouton <strong>+/−</strong></li>
+        <li>Les <strong>libellés</strong> de ces fonctions sont modifiables avec le crayon <strong>✏️</strong> pour adapter le genre ou l'intitulé (ex. "La fondée de pouvoir")</li>
+        <li>Dans le tableau, les <strong>noms de chaque colonne acteur</strong> sont aussi saisissables directement dans l'en-tête</li>
+      </ul>
+
+      <h3>🗑️ Supprimer un établissement rattaché</h3>
+      <p>Le bouton <strong>Supprimer</strong> (rouge) dans la barre d'outils de l'ER déclenche une confirmation. <span style="color:#e53935">Le Siège ne peut jamais être supprimé.</span></p>
+      <div class="help-warn">⚠️ La suppression d'un ER est définitive. Pensez à sauvegarder votre travail avant toute suppression.</div>
+      </div>
+      <div class="help-pane " id="hp-4">
+<h3>📊 Page de statistiques consolidées</h3>
+      <p>L'onglet <strong>📊 Statistiques</strong> agrège les données de <em>tous</em> les établissements et présente :</p>
+      <ul>
+        <li><strong>Indicateurs clés</strong> : nombre d'établissements, d'opérations, d'actions directes, délégations, suppléances, ruptures à corriger</li>
+        <li><strong>Tableau des ruptures par établissement</strong> : comparaison ligne à ligne des marqueurs pour chaque entité, avec ligne de total consolidé</li>
+        <li><strong>Taux de renseignement par domaine</strong> : progression visuelle du remplissage pour chaque catégorie d'opérations (Organisation, Budget, Dépenses, etc.)</li>
+      </ul>
+      <div class="help-tip"><strong>💡 Les statistiques se recalculent automatiquement</strong> à chaque ouverture de l'onglet — elles reflètent toujours l'état le plus récent de vos données.</div>
+      </div>
+      <div class="help-pane " id="hp-5">
+<h3>💾 Sauvegarder votre travail</h3>
+      <p>Cliquez sur <strong>💾 Sauvegarder</strong> dans le bandeau en haut. Un fichier <code>.json</code> est téléchargé sur votre poste, nommé automatiquement :</p>
+      <p style="font-family:monospace;background:#f5f5f5;padding:8px 12px;border-radius:6px;font-size:12px">Fonctiop@le-v5.0-JJ-MM-AAAA.json</p>
+      <p>Ce fichier contient l'intégralité de votre travail : tous les établissements, toutes les coches, tous les marqueurs de rupture, les noms et dates.</p>
+
+      <h3>📂 Reprendre un travail sauvegardé</h3>
+      <p>Cliquez sur <strong>📂 Charger</strong> et sélectionnez un fichier <code>.json</code> précédemment exporté. Toutes vos données sont restaurées intégralement.</p>
+      <div class="help-warn">⚠️ Le chargement d'un fichier remplace toutes les données actuellement affichées. Sauvegardez d'abord si nécessaire.</div>
+
+      <h3>🔄 Partager entre collègues</h3>
+      <p>Le fichier <code>.json</code> peut être transmis par messagerie ou déposé sur un espace partagé. Votre collègue n'a qu'à le charger dans l'outil pour retrouver exactement le même état.</p>
+      </div>
+      <div class="help-pane " id="hp-6">
+<h3>🖨️ Impression globale</h3>
+      <p>Le bouton <strong>🖨️ Imprimer</strong> imprime <strong>tous les établissements</strong> (Siège + tous les ER) en une seule fois, chacun commençant sur une nouvelle page. Le format est <strong>A4 paysage</strong> avec marges réduites.</p>
+      <div class="hwarn">⚠️ Si vous avez ajouté beaucoup de colonnes libres (au-delà de 20 colonnes au total), un avertissement s'affiche car le tableau risque de déborder en largeur. Réduisez le nombre de colonnes libres pour une impression optimale.</div>
+
+            <h3>📊 Imprimer les statistiques</h3>
+      <p>Depuis l'onglet <strong>📊 Statistiques</strong>, un bouton Imprimer dédié permet d'exporter la page de synthèse consolidée.</p>
+
+      <div class="help-tip"><strong>💡 Export PDF :</strong> Dans la boîte de dialogue d'impression de votre navigateur, sélectionnez <strong>« Enregistrer au format PDF »</strong> comme imprimante pour obtenir un fichier PDF directement utilisable.</div>
+      <div class="help-warn">⚠️ Les boutons, menus et éléments d'interface sont automatiquement masqués à l'impression — seul le contenu utile apparaît sur la page imprimée.</div>
+    </div>
+
+    </div><!-- /help-panes -->
+    </div><!-- /help-bd -->
+  </div>
+</div>
+
+<div class="header">
+  <div>
+    <h1>ORGANIGRAMME FONCTIONNEL NOMINATIF</h1>
+    <div class="sub">Fonctiopale V5.0 &nbsp;|&nbsp; Instruction codificatrice M9.6 Op@le – Janvier 2026</div>
+    <div class="sub" style="margin-top:8px;font-size:13px;line-height:1.5">
+      <div><strong>Isabelle CHAMBRIER</strong> <span style="font-size:11px;opacity:.75">Académie de Grenoble</span> &nbsp;·&nbsp; <strong>Jean-Marie COLLOMB</strong> <span style="font-size:11px;opacity:.75">Académie de Lyon</span></div>
+      <div style="margin-top:3px;font-size:12px">Développé avec l'aide d'une IA par <strong>Maxime GONZALES</strong> <span style="font-size:10px;opacity:.75">Académie de Bordeaux</span></div>
+    </div>
+    <div class="sub" style="margin-top:6px;opacity:.85;font-size:11px">
+      <a href="https://espaceple.fr/articles/art_ad0b9536a966126e78af7f749cf3deff" style="color:white">Fonctiop@le-V5.0</a> © 2026 by <a href="https://example.com" style="color:white">Isabelle CHAMBRIER Jean Marie COLLOMB Maxime GONZALES</a> is licensed under <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" style="color:white">CC BY-NC-ND 4.0</a><img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style="max-width:1em;max-height:1em;margin-left:.2em;vertical-align:middle"><img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="" style="max-width:1em;max-height:1em;margin-left:.2em;vertical-align:middle"><img src="https://mirrors.creativecommons.org/presskit/icons/nc.svg" alt="" style="max-width:1em;max-height:1em;margin-left:.2em;vertical-align:middle"><img src="https://mirrors.creativecommons.org/presskit/icons/nd.svg" alt="" style="max-width:1em;max-height:1em;margin-left:.2em;vertical-align:middle">
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <button class="btn-help print-hide" onclick="openHelp()">❓ Aide</button>
+    <button class="btn print-hide" onclick="printCurrent()">🖨️ Imprimer</button>
+    <button class="btn print-hide" onclick="saveAll()">💾 Sauvegarder</button>
+    <button class="btn print-hide" onclick="importData()">📥 Importer</button>
+  </div>
+</div>
+
+<div class="tabs-bar" id="tabs-bar">
+  <!-- Onglets générés dynamiquement -->
+</div>
+
+<div class="legend">
+  <span class="legend-title">Légende :</span>
+  <div class="li"><div class="ls ord"></div><span>Sphère ordonnateur</span></div>
+  <div class="li"><div class="ls cpt"></div><span>Sphère comptable</span></div>
+
+  <div class="li"><div class="ls" style="background:white;border:3px solid #C62828;box-sizing:border-box"></div><span>Rupture majeure avec émargement formalisé</span></div>
+  <div class="li"><div class="ls" style="background:white;border:2px dashed #C62828;box-sizing:border-box"></div><span>Rupture sans émargement formalisé</span></div>
+  <div class="li"><div class="ls" style="background:white;border:3px solid #111;box-sizing:border-box"></div><span>Absence de rupture à corriger</span></div>
+  <div class="li"><div class="ls" style="background:white;border:2px dashed #888;box-sizing:border-box"></div><span>Absence de rupture justifiée</span></div>
+  <div class="li"><div class="ls chk-leg" style="background:#FDD835"></div><span>Action directe</span></div>
+  <div class="li"><div class="ls chk-leg" style="background:#FFF9C4;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#E65100">D</div><span>Délégation formalisée</span></div>
+  <div class="li"><div class="ls chk-leg" style="background:#E3F2FD;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#0D47A1">S</div><span>Suppléance (op. majeures)</span></div>
+  <div class="li"><div class="ls" style="background:white;border:3px solid #4A148C;box-sizing:border-box"></div><span>Contrôle de supervision</span></div>
+</div>
+
+<div id="panels">
+  <!-- Panels générés dynamiquement -->
+</div>
+
+</div><!-- .app -->
+
+<script>
+const DATA = [{"category":"Organisation","subcategories":[{"name":"Gestion des délégations","operations":[{"name":"Attribution des délégations et des mandats de l'ordonnateur","sphere":"ordonnateur"},{"name":"Attribution des délégations et des mandats de l'Agent Comptable","sphere":"comptable"},{"name":"Saisie des délégations dans les progiciels","sphere":"ordonnateur"},{"name":"Rapprochement des actes de délégations et des délégations informatiques","sphere":"ordonnateur"},{"name":"Rapprochement des actes de délégations et des délégations informatiques","sphere":"comptable"},{"name":"Mise à jour annuel des profils des personnels des services de gestion budgétaire","sphere":"ordonnateur"},{"name":"Mise à jour annuel des profils des personnels de l'agence comptable","sphere":"comptable"}]},{"name":"ARCHIVAGE CLASSEMENT SECURITE","operations":[{"name":"Classement des archives numériques","sphere":"ordonnateur"},{"name":"Classement des archives numériques","sphere":"comptable"},{"name":"Elaboration et mise à jour du plan d'archives","sphere":"ordonnateur"},{"name":"Elaboration et mise à jour du plan d'archives","sphere":"comptable"},{"name":"Sauvegarde informatique de la comptabilité auxiliaire PRESTO ou EASYLIS","sphere":"ordonnateur"},{"name":"Sauvegarde informatique de la comptabilité auxiliaire GESATEL","sphere":"ordonnateur"},{"name":"Sauvegarde informatique de la comptabilité auxiliaire Porte Monnaies Electroniques","sphere":"ordonnateur"},{"name":"Sauvegarde informatique des données administratives","sphere":"comptable"}]}]},{"category":"Exécution Budgétaire","subcategories":[{"name":"BUDGET","operations":[{"name":"Elaboration BUDGET et DBM niveau 3","sphere":"ordonnateur"},{"name":"Validation saisie budget et DBM pour vote","sphere":"ordonnateur"},{"name":"Décisions de l'ordonnateur et DBM pour information","sphere":"ordonnateur"},{"name":"Mise en exécution budgétaire (vote actes,publicité, mise en exécution)","sphere":"ordonnateur"}]},{"name":"DEPENSES","operations":[{"name":"Mise en concurrence / Marchés Publics","sphere":"ordonnateur"},{"name":"Création d'un tiers fournisseur","sphere":"ordonnateur"},{"name":"Mise à jour des domiciliations bancaires tiers fournisseur","sphere":"ordonnateur"},{"name":"Validation des mises à jour des domiciliations bancaires tiers fournisseurs","sphere":"comptable"},{"name":"Engagement juridique de la dépense","sphere":"ordonnateur"},{"name":"Engagement comptable de la dépense - Saisie EJ / EJM","sphere":"ordonnateur"},{"name":"Validation des EJ / EJM","sphere":"ordonnateur"},{"name":"Saisie et contrôle du service fait","sphere":"ordonnateur"},{"name":"Liquidation des Demandes de Paiement (rapprochement factures et EJ, ajout de PJ)","sphere":"ordonnateur"},{"name":"Supervision et validation des liquidations des Demandes de Paiement","sphere":"ordonnateur"},{"name":"Ordonnancement des intérêts moratoires","sphere":"ordonnateur"},{"name":"Validation des DP et de demandes de comptabilisation","sphere":"comptable"},{"name":"Bordereau de contrôle + transmission à l'Etablissement Rattaché","sphere":"comptable"},{"name":"Notification du dépassement du Délai Global de Paiement","sphere":"comptable"},{"name":"Prise en charge des Demandes de Paiement et des Demandes de comptabilisation","sphere":"comptable"},{"name":"Rapprochement Demandes de Paiement et Demandes de Reversement","sphere":"comptable"},{"name":"Paiement des demandes de paiement","sphere":"comptable"},{"name":"Règlement des Demandes de paiement","sphere":"comptable"},{"name":"Paiement à l'étranger","sphere":"comptable"},{"name":"Suivi des factures non parvenues et des contrôles bloquants à la clôture des dépenses","sphere":"ordonnateur"},{"name":"Demande de versement de l'ordonnateur","sphere":"ordonnateur"},{"name":"Instruction et contrôle de la demande de versement de l'ordonnateur","sphere":"comptable"},{"name":"Validation de la demande de versement de l'ordonnateur","sphere":"comptable"},{"name":"Règlement des demandes de versement de l'ordonnateur","sphere":"comptable"}]},{"name":"Recettes","operations":[{"name":"Création d'un tiers client","sphere":"ordonnateur"},{"name":"Mise à jour des domiciliations bancaires du tiers client","sphere":"comptable"},{"name":"Validation des mises à jour des domiciliations bancaires des tiers clients","sphere":"comptable"},{"name":"Constatation des droits","sphere":"ordonnateur"},{"name":"Contrôle et validation des liquidations des titres de recette","sphere":"ordonnateur"},{"name":"Validation des Titres de Recette","sphere":"ordonnateur"},{"name":"Bordereau de contrôle + transmission à l'Etablissement Rattaché","sphere":"comptable"},{"name":"Prise en charge des ordres de recette","sphere":"comptable"},{"name":"Vérification et déclassement des avances","sphere":"comptable"},{"name":"Rapprochement et mise à jour des développements de solde","sphere":"comptable"}]},{"name":"Paies","operations":[{"name":"Contrôle de la compétence du CA en matière de recrutement de personnels","sphere":"ordonnateur"},{"name":"Contrôle des plafonds et des taux horaires des heures supplémentaires (UFA, FC, ERASMUS) votés par le CA","sphere":"ordonnateur"},{"name":"Suivi administratif des contrats des AED / AESH","sphere":"ordonnateur"},{"name":"Contrôle et transmission des HS transmis au façonnier","sphere":"ordonnateur"},{"name":"Transmission et conservation des documents de paie","sphere":"ordonnateur"},{"name":"Gestion de la fin des contrats","sphere":"ordonnateur"}]}]},{"category":"Droits constatés et Bourses","subcategories":[{"name":"TIERS OP@LE","operations":[{"name":"Saisie et vérification de la base élève (SIECLE BEE)","sphere":"ordonnateur"},{"name":"Mise à jour des régimes dans SIECLE BEE","sphere":"ordonnateur"},{"name":"Vérification import Base élève dans OP@LE","sphere":"ordonnateur"},{"name":"Correction des logs erronés","sphere":"ordonnateur"},{"name":"Validation des domiciliations bancaires initiales","sphere":"comptable"},{"name":"Mise à jour des domiciliations bancaires tiers élèves","sphere":"ordonnateur"},{"name":"Validation des mises à jour des domiciliations bancaires des tiers élèves","sphere":"comptable"}]},{"name":"Constatation","operations":[{"name":"Constatation des droits","sphere":"ordonnateur"},{"name":"Constatation des droits dans GFE","sphere":"ordonnateur"},{"name":"Reception et contrôle du flux GFE dans opale","sphere":"ordonnateur"},{"name":"Liquidation des Titres de Recette","sphere":"ordonnateur"},{"name":"Validation des Titres de Recette","sphere":"ordonnateur"},{"name":"Bordereau de contrôle + transmission ER","sphere":"comptable"},{"name":"Prise en charge des ordres de recette","sphere":"comptable"},{"name":"Génération et envoi des ASAP (factures à payer)","sphere":"comptable"}]},{"name":"Opérations pour le compte de tiers - Bourses","operations":[{"name":"Communication auprès des familles","sphere":"ordonnateur"},{"name":"Gestion de DIAMAN","sphere":"ordonnateur"},{"name":"Attribution des droits","sphere":"ordonnateur"},{"name":"Contrôle du flux entrant de boursiers","sphere":"comptable"},{"name":"Saisie des régularisations de bourses","sphere":"comptable"},{"name":"Compensation sur créances trimestre courant","sphere":"comptable"},{"name":"Compensation sur créances trimestre antérieur","sphere":"comptable"},{"name":"Echantillonage et contrôle aléatoire de dossiers","sphere":"comptable"},{"name":"Paiement / Règlement","sphere":"comptable"},{"name":"Suivi et paiement des tiers sans RIB","sphere":"comptable"},{"name":"Déclaration des soldes à l'autorité académique","sphere":"comptable"}]},{"name":"Encaissement en chèques et en espèces","operations":[{"name":"Encaissement et scan des chèques","sphere":"comptable"},{"name":"Contrôle et remise en banque des chèques (mandataire)","sphere":"comptable"},{"name":"Encaissement des espèces et remise des quittances","sphere":"comptable"},{"name":"Tenue du PV de caisse et contrôle des cumuls d'encaisse","sphere":"comptable"},{"name":"Encaissement et scan des chèques (mandataire)","sphere":"comptable"},{"name":"Remise en banque des chèques (mandataire)","sphere":"comptable"},{"name":"PV de réception des encaissements du mandataire","sphere":"comptable"},{"name":"Remise de chèques dans OP@LE","sphere":"comptable"}]},{"name":"Encaissement dématérialisé","operations":[{"name":"Saisie des mandats SEPA (AC ou ER)","sphere":"comptable"},{"name":"Campagne de prélèvement SEPA","sphere":"comptable"},{"name":"Gestion du flux TS-paiement: envoi des créances et réception des encaissements.","sphere":"comptable"}]}]},{"category":"Régies","subcategories":[{"name":"REGIE AVANCE","operations":[{"name":"Elaboration de l'arrêté","sphere":"ordonnateur"},{"name":"Validation de l'arrêté","sphere":"comptable"},{"name":"Agrément régisseur","sphere":"comptable"},{"name":"Saisie des décaissements","sphere":"comptable"},{"name":"Instruction et contrôle de la demande de versement de l'ordonnateur","sphere":"comptable"},{"name":"Régularisation budgétaire des dépenses effectuées en régie","sphere":"ordonnateur"},{"name":"Suivi des délais de régularisation","sphere":"ordonnateur"},{"name":"Prise en charge et vérification comptable","sphere":"comptable"},{"name":"Réapprovisionnement de la régie d'avance","sphere":"comptable"}]},{"name":"REGIE RECETTES","operations":[{"name":"Elaboration arrêté","sphere":"ordonnateur"},{"name":"Validation de l'arrêté","sphere":"comptable"},{"name":"Agrément du régisseur","sphere":"comptable"},{"name":"Encaissement des espèces","sphere":"ordonnateur"},{"name":"Délivrance des reçus","sphere":"ordonnateur"},{"name":"Suivi des délais de remise au comptable","sphere":"ordonnateur"},{"name":"Supervision et recomptage de la caisse","sphere":"ordonnateur"},{"name":"Prise en charge et vérification comptable","sphere":"comptable"},{"name":"Dépôt des fonds à la Banque Postale","sphere":"comptable"}]}]},{"category":"Comptabilité Générale courante","subcategories":[{"name":"Ecritures courantes","operations":[{"name":"Saisie des écritures courantes","sphere":"comptable"},{"name":"Rapprochements automatiques ou manuels","sphere":"comptable"},{"name":"Contrôle hebdomadaire des écritures au statut créée (validation ou suppression)","sphere":"comptable"},{"name":"Demande de versement du comptable","sphere":"comptable"},{"name":"Gestion des excédents de versement","sphere":"comptable"},{"name":"Contrepassation d'écritures erronées","sphere":"comptable"},{"name":"Lettrage","sphere":"comptable"},{"name":"Contrôle mensuel de la balance (y.c corrections)","sphere":"comptable"},{"name":"Transmission du dialogue de gestion à ER","sphere":"comptable"},{"name":"Réponses et actions correctives au dialogue de gestion","sphere":"ordonnateur"}]},{"name":"TRESORERIE","operations":[{"name":"Saisie des opérations courantes de trésorerie","sphere":"comptable"},{"name":"Correspondance avec le service de dépôt de fonds","sphere":"comptable"},{"name":"Encaissement d'espèces (hors régies)","sphere":"comptable"},{"name":"Remise des quittances","sphere":"comptable"},{"name":"Recomptage quotidien de la caisse de l'Agence Comptable","sphere":"comptable"},{"name":"Visa régulier de la caisse de l'Agence Comptable","sphere":"comptable"},{"name":"Dépôt d'espèces à La Banque postale","sphere":"comptable"},{"name":"Scan et envoi des chèques au STC (hors mandataires)","sphere":"comptable"}]},{"name":"Cloture","operations":[{"name":"Contrôle des cumuls extracomptables","sphere":"comptable"},{"name":"Cloture des modules auxiliaires","sphere":"comptable"},{"name":"Validation des écritures au statut créé","sphere":"comptable"},{"name":"Cloture générale de la comptabilité","sphere":"comptable"}]},{"name":"INVENTAIRE STOCKS VALEURS INACTIVES","operations":[{"name":"Achat des valeurs inactives","sphere":"ordonnateur"},{"name":"Rapprochement entrées V.I. et factures achat V.I.","sphere":"comptable"},{"name":"Conservation des valeurs inactives","sphere":"comptable"},{"name":"Vente des valeurs inactives","sphere":"comptable"},{"name":"Comptabilité, vérification des valeurs inactives","sphere":"comptable"},{"name":"Suivi des stocks des valeurs inactives","sphere":"ordonnateur"}]}]},{"category":"Contentieux","subcategories":[{"name":"Contentieux","operations":[{"name":"Constitution des dossiers","sphere":"comptable"},{"name":"Contrôle et validation des poursuites","sphere":"comptable"},{"name":"Transmission pour information des poursuites engagées","sphere":"comptable"},{"name":"Requêtes DDFIP pour SATD","sphere":"comptable"},{"name":"Requêtes FICOBA pour SATD","sphere":"comptable"},{"name":"Transmission à un commissaire de justice","sphere":"comptable"},{"name":"Saisie d'un tiers détenteur","sphere":"comptable"},{"name":"Relance des huissiers ou des tiers saisis","sphere":"comptable"},{"name":"Transmission des dossiers irrécouvrables au CE","sphere":"comptable"},{"name":"Validation en conseil d'Administration","sphere":"ordonnateur"},{"name":"Ordonnancement des Admissions en Non Valeur","sphere":"ordonnateur"}]}]},{"category":"Patrimoines, stocks et Domaines","subcategories":[{"name":"INVENTAIRE STOCKS","operations":[{"name":"Suivi matériel des stocks de denrées alimentaires","sphere":"ordonnateur"},{"name":"Suivi informatique des stocks de denrées alimentaires","sphere":"ordonnateur"},{"name":"Vérification entrées stocks / mandats  de denrées alimentaires","sphere":"ordonnateur"},{"name":"Vérif. feuilles de conso/sorties (menus) et variation stocks","sphere":"ordonnateur"},{"name":"Contrôle aléatoire du stock  de denrées alimentaires","sphere":"ordonnateur"},{"name":"Contrôle du stock de denrées alimentaires par l'Agence Comptable","sphere":"comptable"},{"name":"Tracabilité et valorisation des déchets alimentaires","sphere":"ordonnateur"},{"name":"Suivi matériel des stocks de matières d'oeuvre","sphere":"ordonnateur"},{"name":"Suivi informatique des stocks de matières d'œuvre","sphere":"ordonnateur"},{"name":"Vérification entrées stocks / mandats  de matières d'œuvre","sphere":"ordonnateur"},{"name":"Contrôle aléatoire du stock de matières d'œuvre","sphere":"ordonnateur"},{"name":"Contrôle du stock de matières d'oeuvre par l'Agence Comptable","sphere":"comptable"},{"name":"Tracabilité et valorisation des déchets de matières industrielles","sphere":"ordonnateur"},{"name":"Chiffrage et saisie du bulletin de fabrication des objets confectionnés","sphere":"ordonnateur"},{"name":"Ordonnancement et facturation des objets confectionnés","sphere":"ordonnateur"}]},{"name":"IMMOBILISATIONS","operations":[{"name":"Suivi matériel de l'inventaire des immobilisations","sphere":"ordonnateur"},{"name":"Proposition de mise en service des immobilisations","sphere":"ordonnateur"},{"name":"Mise en service des immobilisations","sphere":"comptable"},{"name":"Liaison des financements et des immobilisations","sphere":"comptable"},{"name":"Annulation des subventions totalement amorties","sphere":"comptable"},{"name":"Préparation des sorties d'inventaire","sphere":"ordonnateur"},{"name":"Validation comptable des sorties d'inventaire","sphere":"comptable"},{"name":"Validation des amortissements","sphere":"comptable"}]},{"name":"LOGEMENTS DE FONCTION","operations":[{"name":"Tenue d'un registre des consommations","sphere":"ordonnateur"},{"name":"Déclaration des occupants à la Collecitivités de Rattachement","sphere":"ordonnateur"},{"name":"Archivage et transmission des titres d'occupation","sphere":"ordonnateur"},{"name":"Calcul et transmission des avantages en nature","sphere":"ordonnateur"},{"name":"Ordonnancement des TR de dépassement de forfait","sphere":"ordonnateur"}]}]}];
+
+// ─── ÉTAT GLOBAL ───
+let etabs = [];      // [{id, name, checks:{}, acName, dateCA}]
+let activeTab = 0;
+
+// ─── INIT ───
+function init(){
+  // Vérifier si des données sont embarquées dans le script dédié
+  const dataScript = document.getElementById('fonctiopale-data');
+  if(dataScript && dataScript.textContent.trim()){
+    try{
+      const raw = JSON.parse(dataScript.textContent);
+      etabs = hydrateEtabs(raw);
+      renderTabs();
+      etabs.forEach((_,i) => renderPanel(i));
+      setActive(0);
+      return;
+    } catch(e){ console.warn('Données embarquées invalides, démarrage à vide', e); }
+  }
+  // Démarrage à vide par défaut
+  etabs = [{
+    id: 0, type: 'siege',
+    name: 'Siège de l\'agence comptable',
+    acName: '', dateCA: '', uai: '', groupement: '',
+    fondePouvoir: '', secretaireGeneral: '', chefEtablissement: '', dateConseilCA: '',
+    roleNames: {}, roleLabels: {}, cartoucheLabels: {}, rings: {}, freeCols: [],
+    checks: {}
+  }];
+  renderTabs();
+  renderPanel(0);
+  setActive(0);
+}
+
+// ─── GESTION DES ONGLETS ───
+function renderTabs(){
+  const bar = document.getElementById('tabs-bar');
+  bar.innerHTML = '';
+
+  etabs.forEach((e,i) => {
+    const tab = document.createElement('button');
+    tab.className = 'tab' + (i === activeTab ? ' active' : '');
+    tab.textContent = e.name || (e.type === 'siege' ? 'Siège' : 'ER ' + i);
+    tab.onclick = () => setActive(i);
+    bar.appendChild(tab);
+  });
+
+  // Bouton stats
+  const stab = document.createElement('button');
+  stab.className = 'tab stats-tab' + (activeTab === 'stats' ? ' active' : '');
+  stab.textContent = '📊 Statistiques';
+  stab.onclick = () => setActive('stats');
+  bar.appendChild(stab);
+
+  // Bouton ajout si < 13 étabs (1 siège + 12 ER)
+  if(etabs.length < 13){
+    const add = document.createElement('button');
+    add.className = 'tab-add';
+    add.title = 'Ajouter un établissement rattaché';
+    add.textContent = '＋';
+    add.onclick = addEtab;
+    bar.appendChild(add);
+  }
+}
+
+function setActive(idx){
+  activeTab = idx;
+  // Cacher tous les panels
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  if(idx === 'stats'){
+    renderStats();
+    document.getElementById('panel-stats').classList.add('active');
+  } else {
+    const panel = document.getElementById('panel-'+idx);
+    if(!panel) renderPanel(idx);
+    document.getElementById('panel-'+idx).classList.add('active');
+  }
+  renderTabs();
+}
+
+function addEtab(){
+  const n = etabs.length;
+  _doAddEtab(n);
+}
+
+function _doAddEtab(n){
+  etabs.push({
+    id: n, type: 'er',
+    name: 'Établissement rattaché ' + n,
+    acName: etabs[0].acName,
+    dateCA: '', uai: '', groupement: etabs[0].groupement||'',
+    fondePouvoir: etabs[0].fondePouvoir||'', secretaireGeneral: '', chefEtablissement: '', dateConseilCA: '',
+    roleNames: {}, roleLabels: {}, cartoucheLabels: {}, rings: {}, freeCols: [],
+    checks: {}
+  });
+  renderPanel(n);
+  setActive(n);
+}
+
+function removeEtab(idx){
+  if(idx === 0){
+    showModal({ title: 'Action impossible', headCls: 'danger',
+      body: '<p>Le Siège de l\'agence comptable ne peut pas être supprimé.</p>',
+      buttons: [{ label: 'Fermer', cls: 'btn', action: _doCloseModal}]
+    }); return;
+  }
+  showModal({
+    title: 'Confirmer la suppression', headCls: 'danger',
+    body: `<p>Êtes-vous sûr de vouloir supprimer l\'établissement <strong>"${etabs[idx].name}"</strong> ?</p>
+           <p style="color:#e53935;font-size:13px">⚠️ Toutes les données saisies seront définitivement perdues.</p>`,
+    buttons: [
+      { label: 'Annuler', cls: 'btn-sec', action: _doCloseModal},
+      { label: 'Supprimer', cls: 'btn danger', action: () => {
+        closeModal();
+        document.getElementById('panel-'+idx)?.remove();
+        etabs.splice(idx, 1);
+        etabs.forEach((_,i) => { if(!document.getElementById('panel-'+i)) renderPanel(i); });
+        setActive(Math.min(typeof activeTab === 'number' ? activeTab : 0, etabs.length - 1));
+      }}
+    ]
+  });
+}
+
+// ─── PANEL (TABLEAU) ───
+function renderPanel(idx){
+  const panels = document.getElementById('panels');
+  // Supprimer si existant
+  document.getElementById('panel-'+idx)?.remove();
+
+  const e = etabs[idx];
+  const div = document.createElement('div');
+  div.className = 'panel';
+  div.id = 'panel-' + idx;
+
+  // Toolbar
+  div.innerHTML = `
+    <div class="cartouche print-hide">
+      <div class="carto-row">
+        <div class="cf grow" style="min-width:170px">
+          <label>Établissement</label>
+          <input type="text" value="${e.name||''}" placeholder="Nom de l'établissement"
+                 oninput="etabs[${idx}].name=this.value; renderTabs()">
+        </div>
+        <div class="cf" style="min-width:90px;max-width:120px">
+          <label>N° UAI</label>
+          <input type="text" value="${e.uai||''}" placeholder="0000000X"
+                 oninput="etabs[${idx}].uai=this.value">
+        </div>
+        <div class="cf grow" style="min-width:150px">
+          <label>Agence Comptable / Groupement</label>
+          <input type="text" value="${e.groupement||''}" placeholder="Lycée …"
+                 oninput="etabs[${idx}].groupement=this.value">
+        </div>
+        <div class="cf" style="min-width:130px;max-width:160px">
+          <label>Date de réalisation</label>
+          <input type="date" value="${e.dateCA||''}"
+                 oninput="etabs[${idx}].dateCA=this.value">
+        </div>
+        <div class="cf grow" style="min-width:130px">
+          <label><span id="cf-lbl-labelAcName-${idx}" data-default="L'Agent Comptable">${(e.cartoucheLabels&&e.cartoucheLabels['labelAcName'])||"L'Agent Comptable"}</span><button class="cf-edit-btn print-hide" onclick="editCartoucheLabel(this,'labelAcName',${idx},'L\'Agent Comptable')" title="Modifier le libellé">✏️</button></label>
+          <input type="text" value="${e.acName||''}" placeholder="Prénom NOM"
+                 oninput="etabs[${idx}].acName=this.value">
+        </div>
+        <div class="cf grow" style="min-width:130px">
+          <label><span id="cf-lbl-labelFondePouvoir-${idx}" data-default="Le Fondé de Pouvoir">${(e.cartoucheLabels&&e.cartoucheLabels['labelFondePouvoir'])||"Le Fondé de Pouvoir"}</span><button class="cf-edit-btn print-hide" onclick="editCartoucheLabel(this,'labelFondePouvoir',${idx},'Le Fondé de Pouvoir')" title="Modifier le libellé">✏️</button></label>
+          <input type="text" value="${e.fondePouvoir||''}" placeholder="Prénom NOM"
+                 oninput="etabs[${idx}].fondePouvoir=this.value">
+        </div>
+        <div class="cf grow" style="min-width:130px">
+          <label><span id="cf-lbl-labelSecretaireGeneral-${idx}" data-default="Le Secrétaire Général">${(e.cartoucheLabels&&e.cartoucheLabels['labelSecretaireGeneral'])||"Le Secrétaire Général"}</span><button class="cf-edit-btn print-hide" onclick="editCartoucheLabel(this,'labelSecretaireGeneral',${idx},'Le Secrétaire Général')" title="Modifier le libellé">✏️</button></label>
+          <input type="text" value="${e.secretaireGeneral||''}" placeholder="Prénom NOM"
+                 oninput="etabs[${idx}].secretaireGeneral=this.value">
+        </div>
+        ${idx > 0 ? `<div class="cf" style="justify-content:flex-end"><button class="btn danger" onclick="removeEtab(${idx})">🗑️ Supprimer</button></div>` : ''}
+      </div>
+      <div class="carto-row">
+        <div class="cf" style="min-width:170px;max-width:220px">
+          <label><span id="cf-lbl-labelChefEtablissement-${idx}" data-default="Le Chef d'Établissement">${(e.cartoucheLabels&&e.cartoucheLabels['labelChefEtablissement'])||"Le Chef d'Établissement"}</span><button class="cf-edit-btn print-hide" onclick="editCartoucheLabel(this,'labelChefEtablissement',${idx},'Le Chef d\'Établissement')" title="Modifier le libellé">✏️</button></label>
+          <input type="text" value="${e.chefEtablissement||''}" placeholder="Prénom NOM"
+                 oninput="etabs[${idx}].chefEtablissement=this.value">
+        </div>
+        <div class="cf" style="min-width:180px;max-width:260px">
+          <label style="display:flex;align-items:center;gap:5px">
+            <span>Présenté au Conseil d'Administration</span>
+            <button class="print-hide" onclick="toggleCA(${idx},this)" title="Afficher/masquer"
+              style="background:${e.dateConseilCA!==undefined?'#c62828':'#2E7D32'};color:white;border:none;border-radius:3px;width:16px;height:16px;cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              ${e.dateConseilCA!==undefined?'−':'+'}
+            </button>
+          </label>
+          <input type="date" value="${e.dateConseilCA||''}"
+                 style="display:${e.dateConseilCA!==undefined?'block':'none'}"
+                 id="input-ca-${idx}"
+                 oninput="etabs[${idx}].dateConseilCA=this.value">
+        </div>
+      </div>
+    </div>
+    <div class="print-etab-title">${e.name}${e.uai ? ' — ' + e.uai : ''}</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left;width:180px;min-width:160px;font-size:11px;vertical-align:middle">Opération</th>
+            <th class="role-ord"><span class="th-label-wrap"><span class="th-label" id="th-lbl-chefEtab-${idx}">${(e.roleLabels&&e.roleLabels['chefEtab'])||"Chef d'étab."}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'chefEtab',${idx},'Chef d\'étab.')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['chefEtab'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['chefEtab']=this.value"></th>
+            <th class="role-ord"><span class="th-label-wrap"><span class="th-label" id="th-lbl-secrGeneral-${idx}">${(e.roleLabels&&e.roleLabels['secrGeneral'])||"Secr. Général"}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'secrGeneral',${idx},'Secr. Général')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['secrGeneral'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['secrGeneral']=this.value"></th>
+            <th class="role-ord"><span class="th-label-wrap"><span class="th-label" id="th-lbl-gestDeleg-${idx}">${(e.roleLabels&&e.roleLabels['gestDeleg'])||"Gest. Délégué(e)"}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'gestDeleg',${idx},'Gest. Délégué(e)')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['gestDeleg'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['gestDeleg']=this.value"></th>
+            <th class="role-ord"><span class="th-label-wrap"><span class="th-label" id="th-lbl-chargebud-${idx}">${(e.roleLabels&&e.roleLabels['chargebud'])||"Chargé Budgétaire"}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'chargebud',${idx},'Chargé Budgétaire')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['chargebud'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['chargebud']=this.value"></th>
+            <th class="role-ord"><span class="th-label-wrap"><span class="th-label" id="th-lbl-secrEleve-${idx}">${(e.roleLabels&&e.roleLabels['secrEleve'])||"Secr. Élève"}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'secrEleve',${idx},'Secr. Élève')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['secrEleve'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['secrEleve']=this.value"></th>
+            <th class="role-ord"><span class="th-label-wrap"><span class="th-label" id="th-lbl-magasinierAlim-${idx}">${(e.roleLabels&&e.roleLabels['magasinierAlim'])||"Magasinier alimentaire"}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'magasinierAlim',${idx},'Magasinier alimentaire')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['magasinierAlim'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['magasinierAlim']=this.value"></th>
+            <th class="role-ord"><span class="th-label-wrap"><span class="th-label" id="th-lbl-magasinierInd-${idx}">${(e.roleLabels&&e.roleLabels['magasinierInd'])||"Magasinier industriel"}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'magasinierInd',${idx},'Magasinier industriel')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['magasinierInd'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['magasinierInd']=this.value"></th>
+            <th class="role-ord"><span class="th-label-wrap"><span class="th-label" id="th-lbl-ddptDacs-${idx}">${(e.roleLabels&&e.roleLabels['ddptDacs'])||"DDPT/DACS"}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'ddptDacs',${idx},'DDPT/DACS')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['ddptDacs'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['ddptDacs']=this.value"></th>
+            <th class="role-add-btn btn-add-ord-${idx}" style="background:#2E7D32" title="Ajouter une colonne sphère ordonnateur" onclick="addFreeCol(${idx},'ord')"><button>+</button><div style="font-size:8px;color:rgba(255,255,255,.6);margin-top:2px">Ord</div></th>
+            <th class="role-cpt"><span class="th-label-wrap"><span class="th-label" id="th-lbl-agentComptable-${idx}">${(e.roleLabels&&e.roleLabels['agentComptable'])||"Agent Comptable"}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'agentComptable',${idx},'Agent Comptable')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['agentComptable'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['agentComptable']=this.value"></th>
+            <th class="role-cpt"><span class="th-label-wrap"><span class="th-label" id="th-lbl-fondePouvoir2-${idx}">${(e.roleLabels&&e.roleLabels['fondePouvoir2'])||"Fondé pouvoir"}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'fondePouvoir2',${idx},'Fondé pouvoir')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['fondePouvoir2'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['fondePouvoir2']=this.value"></th>
+            <th class="role-cpt"><span class="th-label-wrap"><span class="th-label" id="th-lbl-chargeComptab-${idx}">${(e.roleLabels&&e.roleLabels['chargeComptab'])||"Chargé Cptab."}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'chargeComptab',${idx},'Chargé Cptab.')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['chargeComptab'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['chargeComptab']=this.value"></th>
+            <th class="role-cpt"><span class="th-label-wrap"><span class="th-label" id="th-lbl-caissier-${idx}">${(e.roleLabels&&e.roleLabels['caissier'])||"Caissier"}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'caissier',${idx},'Caissier')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['caissier'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['caissier']=this.value"></th>
+            <th class="role-cpt"><span class="th-label-wrap"><span class="th-label" id="th-lbl-mandataireAC-${idx}">${(e.roleLabels&&e.roleLabels['mandataireAC'])||"Mandataire AC"}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'mandataireAC',${idx},'Mandataire AC')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['mandataireAC'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['mandataireAC']=this.value"></th>
+            <th class="role-cpt"><span class="th-label-wrap"><span class="th-label" id="th-lbl-regisseur-${idx}">${(e.roleLabels&&e.roleLabels['regisseur'])||"Régisseur"}</span><button class="th-edit-btn print-hide" onclick="editThLabel(this,'regisseur',${idx},'Régisseur')" title="Modifier le libellé">✏️</button></span><input class="th-input" type="text" placeholder="Nom prénom" value="${(e.roleNames&&e.roleNames['regisseur'])||''}" oninput="etabs[${idx}].roleNames=etabs[${idx}].roleNames||{};etabs[${idx}].roleNames['regisseur']=this.value"></th>
+            <th class="role-add-btn btn-add-cpt-${idx}" style="background:#0070C0" title="Ajouter une colonne sphère comptable" onclick="addFreeCol(${idx},'cpt')"><button>+</button><div style="font-size:8px;color:rgba(255,255,255,.6);margin-top:2px">Cpt</div></th>
+          </tr>
+        </thead>
+        <tbody id="tbody-${idx}"></tbody>
+      </table>
+    </div>`;
+
+  panels.appendChild(div);
+  buildFreeThCols(idx);
+  buildTableBody(idx);
+  updateColspan(idx);
+}
+
+function opKey(cat, sub, name){ return cat+'|'+sub+'|'+name; }
+
+// ─── TOGGLE CONSEIL CA ───
+function toggleCA(idx, btn){
+  const input = document.getElementById('input-ca-'+idx);
+  if(!input) return;
+  const visible = input.style.display !== 'none';
+  if(visible){
+    input.style.display = 'none';
+    etabs[idx].dateConseilCA = undefined;
+    input.value = '';
+    btn.textContent = '+';
+    btn.style.background = '#2E7D32';
+  } else {
+    input.style.display = 'block';
+    etabs[idx].dateConseilCA = '';
+    btn.textContent = '−';
+    btn.style.background = '#c62828';
+    input.focus();
+  }
+}
+
+// ─── ÉDITION LIBELLÉ CARTOUCHE ───
+function editCartoucheLabel(btn, key, idx, defaultLabel){
+  const span = btn.previousElementSibling;
+  const current = span.textContent.trim();
+  const inp = document.createElement('input');
+  inp.value = current;
+  inp.style.cssText = 'font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#555;border:1px solid #aaa;border-radius:3px;padding:1px 4px;width:120px;outline:none';
+  span.style.display = 'none';
+  btn.style.display = 'none';
+  btn.parentElement.insertBefore(inp, span);
+  inp.focus(); inp.select();
+  function confirm(){
+    const val = inp.value.trim() || defaultLabel;
+    span.textContent = val;
+    if(!etabs[idx].cartoucheLabels) etabs[idx].cartoucheLabels = {};
+    if(val === defaultLabel) delete etabs[idx].cartoucheLabels[key];
+    else etabs[idx].cartoucheLabels[key] = val;
+    span.style.display = '';
+    btn.style.display = '';
+    inp.remove();
+  }
+  inp.onblur = confirm;
+  inp.onkeydown = ev => { if(ev.key==='Enter'||ev.key==='Escape') inp.blur(); };
+}
+
+// ─── ÉDITION LIBELLÉ TH ───
+function editThLabel(btn, key, idx, defaultLabel){
+  const wrap = btn.parentElement;
+  const span = wrap.querySelector('.th-label');
+  const current = span.textContent.trim();
+  // Créer un input inline
+  const inp = document.createElement('input');
+  inp.className = 'th-label-input';
+  inp.value = current;
+  inp.style.display = 'block';
+  inp.style.width = '100%';
+  wrap.style.display = 'block';
+  span.style.display = 'none';
+  btn.style.display = 'none';
+  wrap.appendChild(inp);
+  inp.focus(); inp.select();
+  function confirm(){
+    const val = inp.value.trim() || defaultLabel;
+    span.textContent = val;
+    if(!etabs[idx].roleLabels) etabs[idx].roleLabels = {};
+    if(val === defaultLabel) delete etabs[idx].roleLabels[key];
+    else etabs[idx].roleLabels[key] = val;
+    span.style.display = '';
+    btn.style.display = '';
+    inp.remove();
+  }
+  inp.onblur = confirm;
+  inp.onkeydown = e => { if(e.key==='Enter'||e.key==='Escape') inp.blur(); };
+}
+
+function buildFreeThCols(idx){
+  const panel = document.getElementById('panel-'+idx);
+  if(!panel) return;
+  const tr = panel.querySelector('thead tr');
+  if(!tr) return;
+
+  // Supprimer anciens th libres
+  tr.querySelectorAll('.th-free-col').forEach(el => el.remove());
+
+  // Trouver les boutons + pour servir d'ancres d'insertion
+  const btnOrd = tr.querySelector('.btn-add-ord-'+idx);
+  const btnCpt = tr.querySelector('.btn-add-cpt-'+idx);
+  const freeCols = (etabs[idx].freeCols || []);
+
+  freeCols.forEach((col, fi) => {
+    const th = document.createElement('th');
+    th.className = 'th-free-col role-' + col.sphere + '-free';
+    th.innerHTML =
+      '<button class="role-free-del print-hide" onclick="removeFreeCol('+idx+','+fi+')" title="Supprimer cette colonne">✕</button>' +
+      '<span class="th-label-wrap"><span class="th-label" style="display:inline;font-size:10px;font-weight:700">' + (col.label||'Acteur libre') + '</span></span>' +
+      '<input class="th-input" type="text" placeholder="Nom prénom" value="' + (col.name||'') + '" ' +
+      'oninput="etabs['+idx+'].freeCols['+fi+'].name=this.value">';
+    // Insérer avant le bouton + de sa sphère
+    if(col.sphere === 'ord' && btnOrd) tr.insertBefore(th, btnOrd);
+    else if(col.sphere === 'cpt' && btnCpt) tr.insertBefore(th, btnCpt);
+    else tr.appendChild(th);
+  });
+}
+
+// Retourne la liste ordonnée des colonnes (hors opération et boutons +)
+// Chaque entrée : { type:'fixed'|'free', sphere:'ord'|'cpt', roleIdx, key, defaultLabel }
+function getColSchema(idx){
+  const e = etabs[idx];
+  const freeCols = (e && e.freeCols) || [];
+  const schema = [];
+  let ri = 0;
+  // 8 fixes ordonnateur
+  const fixedOrd = [
+    {key:'chefEtab',       label:"Chef d'étab."},
+    {key:'secrGeneral',    label:'Secr. Général'},
+    {key:'gestDeleg',      label:'Gest. Délégué(e)'},
+    {key:'chargebud',      label:'Chargé Budgétaire'},
+    {key:'secrEleve',      label:'Secr. Élève'},
+    {key:'magasinierAlim', label:'Magasinier alimentaire'},
+    {key:'magasinierInd',  label:'Magasinier industriel'},
+    {key:'ddptDacs',       label:'DDPT/DACS'},
+  ];
+  fixedOrd.forEach(c => schema.push({type:'fixed', sphere:'ord', roleIdx:ri++, key:c.key, defaultLabel:c.label}));
+  // Colonnes libres ord
+  freeCols.forEach((col, fi) => {
+    if(col.sphere === 'ord') schema.push({type:'free', sphere:'ord', roleIdx:ri++, freeIdx:fi, label:col.label, name:col.name});
+  });
+  // 6 fixes comptable
+  const fixedCpt = [
+    {key:'agentComptable', label:'Agent Comptable'},
+    {key:'fondePouvoir2',  label:'Fondé pouvoir'},
+    {key:'chargeComptab',  label:'Chargé Cptab.'},
+    {key:'caissier',       label:'Caissier'},
+    {key:'mandataireAC',   label:'Mandataire AC'},
+    {key:'regisseur',      label:'Régisseur'},
+  ];
+  fixedCpt.forEach(c => schema.push({type:'fixed', sphere:'cpt', roleIdx:ri++, key:c.key, defaultLabel:c.label}));
+  // Colonnes libres cpt
+  freeCols.forEach((col, fi) => {
+    if(col.sphere === 'cpt') schema.push({type:'free', sphere:'cpt', roleIdx:ri++, freeIdx:fi, label:col.label, name:col.name});
+  });
+  return schema;
+}
+
+function getColCount(idx){
+  const schema = getColSchema(idx);
+  return 1 + schema.length + 2; // +1 opération, +2 boutons +
+}
+
+function updateColspan(idx){
+  const n = getColCount(idx);
+  document.querySelectorAll('.colspan-dyn-'+idx).forEach(el => el.setAttribute('colspan', n));
+}
+
+function buildTableBody(idx){
+  const tbody = document.getElementById('tbody-'+idx);
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  const e = etabs[idx];
+
+  DATA.forEach(catObj => {
+    const catRow = document.createElement('tr');
+    catRow.innerHTML = `<td class="cat colspan-dyn-${idx}">${catObj.category}</td>`;
+    tbody.appendChild(catRow);
+
+    catObj.subcategories.forEach(subObj => {
+      if(subObj.name && subObj.name !== '__root__'){
+        const subRow = document.createElement('tr');
+        subRow.innerHTML = `<td class="sub colspan-dyn-${idx}">${subObj.name}</td>`;
+        tbody.appendChild(subRow);
+      }
+
+      subObj.operations.forEach(op => {
+        const key = opKey(catObj.category, subObj.name, op.name);
+        const row = document.createElement('tr');
+
+        // Cellule opération
+        const td = document.createElement('td');
+        td.className = 'op ' + (op.sphere === 'comptable' ? 'cpt' : 'ord');
+        td.dataset.key = key;
+        td.dataset.etab = idx;
+
+        const sp = document.createElement('span');
+        sp.textContent = op.name;
+        td.appendChild(sp);
+
+        row.appendChild(td);
+
+        // Cases via schéma de colonnes unifié
+        const schema = getColSchema(idx);
+        let lastSphere = null;
+        schema.forEach(col => {
+          // Insérer une td vide pour le bouton + quand on change de sphère ord→cpt
+          if(lastSphere === 'ord' && col.sphere === 'cpt'){
+            const spacer = document.createElement('td');
+            spacer.className = 'chk-btn-spacer';
+            row.appendChild(spacer);
+          }
+          lastSphere = col.sphere;
+          const chk = document.createElement('td');
+          chk.className = 'chk' + (col.type==='free' ? ' chk-free-'+col.sphere : '');
+          chk.dataset.etab = idx;
+          chk.dataset.key = key;
+          chk.dataset.role = col.roleIdx;
+          chk.onclick = (ev) => openCellMenu(ev, chk);
+          // Restaurer état
+          let saved = e.checks[key+'::'+col.roleIdx];
+          if(saved){
+            if(typeof saved === 'string') saved = [saved];
+            else if(!Array.isArray(saved)) saved = [];
+            updateCellDisplay(chk, saved);
+          }
+          // Restaurer cerclage
+          const savedRing = e.rings && e.rings[key+'::'+col.roleIdx];
+          if(savedRing) chk.classList.add(savedRing);
+          row.appendChild(chk);
+        });
+        // td vide pour le bouton +Cpt en fin de ligne
+        const spacerEnd = document.createElement('td');
+        spacerEnd.className = 'chk-btn-spacer';
+        row.appendChild(spacerEnd);
+        tbody.appendChild(row);
+      });
+    });
+  });
+}
+
+
+let _menuCell = null;
+
+function openCellMenu(ev, td){
+  ev.stopPropagation();
+  _menuCell = td;
+  const idx = parseInt(td.dataset.etab);
+  const key = td.dataset.key;
+  const role = parseInt(td.dataset.role);
+
+  // Cocher les checkboxes selon l'état courant
+  let states = etabs[idx].checks[key+'::'+role];
+  if(!states) states = [];
+  else if(typeof states === 'string') states = [states];
+  else if(!Array.isArray(states)) states = [];
+  document.getElementById('chk-check').checked = states.includes('check');
+  document.getElementById('chk-deleg').checked  = states.includes('deleg');
+  document.getElementById('chk-suppl').checked  = states.includes('suppl');
+
+  // Sélectionner le cerclage actuel
+  const currentRing = (etabs[idx].rings && etabs[idx].rings[key+'::'+role]) || '';
+  ['ring-none','ring-solid','ring-dash','ring-major','ring-minor','ring-superv'].forEach(id => {
+    const btn = document.getElementById(id);
+    if(btn) btn.classList.toggle('active', (id==='ring-none' ? '' : id) === currentRing);
+  });
+
+  // Positionner le menu
+  const menu = document.getElementById('cell-menu');
+  if(menu.parentElement !== document.body) document.body.appendChild(menu);
+  menu.style.visibility = 'hidden';
+  menu.style.top = '0px';
+  menu.style.left = '0px';
+  menu.classList.add('open');
+  const mh = menu.offsetHeight;
+  const mw = menu.offsetWidth;
+  menu.style.visibility = '';
+  const rect = td.getBoundingClientRect();
+  const scrollY = window.scrollY || window.pageYOffset;
+  const scrollX = window.scrollX || window.pageXOffset;
+  let top  = rect.bottom + scrollY + 2;
+  let left = rect.left  + scrollX;
+  if(rect.bottom + mh + 8 > window.innerHeight) top = rect.top + scrollY - mh - 2;
+  if(top < scrollY + 8) top = rect.bottom + scrollY + 2;
+  if(left + mw > scrollX + window.innerWidth - 8) left = scrollX + window.innerWidth - mw - 8;
+  if(left < scrollX + 8) left = scrollX + 8;
+  menu.style.top  = top  + 'px';
+  menu.style.left = left + 'px';
+}
+
+function toggleState(state){
+  if(!_menuCell) return;
+  const td = _menuCell;
+  const idx = parseInt(td.dataset.etab);
+  const key = td.dataset.key;
+  const role = parseInt(td.dataset.role);
+  
+  // Récupérer les états actuels
+  let states = etabs[idx].checks[key+'::'+role];
+  if(!states) states = [];
+  else if(typeof states === 'string') states = [states];
+  else if(!Array.isArray(states)) states = [];
+  
+  // Toggle l'état
+  const pos = states.indexOf(state);
+  if(pos >= 0) states.splice(pos, 1);
+  else states.push(state);
+  
+  // Sauvegarder
+  if(states.length === 0) delete etabs[idx].checks[key+'::'+role];
+  else etabs[idx].checks[key+'::'+role] = states;
+  
+  // Mettre à jour l'affichage
+  updateCellDisplay(td, states);
+}
+
+// ─── COLONNES LIBRES ───
+function addFreeCol(idx, sphere){
+  showModal({
+    title: 'Nouvelle colonne ' + (sphere==='ord' ? 'ordonnateur' : 'comptable'),
+    headCls: sphere==='ord' ? 'ord' : 'cpt',
+    body: `<div style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Intitulé de la fonction</label>
+        <input id="free-col-label" type="text" placeholder="Ex: Gestionnaire, Adjoint..." style="width:100%;padding:8px;border:1.5px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Nom Prénom</label>
+        <input id="free-col-name" type="text" placeholder="Prénom NOM" style="width:100%;padding:8px;border:1.5px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box">
+      </div>
+    </div>`,
+    buttons:[
+      {label:'Annuler', cls:'btn-sec', action: _doCloseModal},
+      {label:'Ajouter', cls: sphere==='ord' ? 'btn btn-ord' : 'btn', action: ()=>{
+        const label = document.getElementById('free-col-label').value.trim() || 'Acteur libre';
+        const name  = document.getElementById('free-col-name').value.trim();
+        closeModal();
+        if(!etabs[idx].freeCols) etabs[idx].freeCols = [];
+        etabs[idx].freeCols.push({sphere, label, name});
+        // Vérification largeur
+        const n = getColCount(idx);
+        if(n > 20){
+          showModal({title:'⚠️ Attention impression', headCls:'warn',
+            body:'<p>Le tableau contient <strong>'+n+' colonnes</strong>. L\'impression en A4 paysage risque de d\u00e9border. R\u00e9duisez le nombre de colonnes libres pour une impression optimale.</p>',
+            buttons:[{label:'OK', cls:'btn', action: _doCloseModal}]});
+        }
+        // Reconstruire le panel
+        renderPanel(idx);
+        setActive(idx);
+      }}
+    ]
+  });
+  // Focus auto
+  setTimeout(()=>{ const el=document.getElementById('free-col-label'); if(el) el.focus(); }, 100);
+}
+
+function removeFreeCol(idx, fi){
+  if(!etabs[idx].freeCols) return;
+  // Récupérer le roleIdx de la colonne supprimée AVANT la suppression
+  const schemaBefore = getColSchema(idx);
+  const removedCol = schemaBefore.filter(c => c.type==='free')[fi];
+  if(!removedCol) return;
+  const removedRoleIdx = removedCol.roleIdx;
+  etabs[idx].freeCols.splice(fi, 1);
+  // Supprimer les checks/rings de ce roleIdx
+  Object.keys(etabs[idx].checks).forEach(k=>{
+    const parts = k.split('::');
+    if(parts.length===2 && parseInt(parts[1])===removedRoleIdx) delete etabs[idx].checks[k];
+  });
+  if(etabs[idx].rings) Object.keys(etabs[idx].rings).forEach(k=>{
+    const parts = k.split('::');
+    if(parts.length===2 && parseInt(parts[1])===removedRoleIdx) delete etabs[idx].rings[k];
+  });
+  renderPanel(idx);
+  setActive(idx);
+}
+
+function setRing(ring){
+  if(!_menuCell) return;
+  const td = _menuCell;
+  const idx = parseInt(td.dataset.etab);
+  const key = td.dataset.key;
+  const role = parseInt(td.dataset.role);
+  // Stocker
+  if(!etabs[idx].rings) etabs[idx].rings = {};
+  if(ring) etabs[idx].rings[key+'::'+role] = ring;
+  else delete etabs[idx].rings[key+'::'+role];
+  // Mettre à jour visuellement
+  td.classList.remove('ring-solid','ring-dash','ring-major','ring-minor','ring-superv');
+  if(ring) td.classList.add(ring);
+  // Actualiser les boutons actifs
+  ['ring-none','ring-solid','ring-dash','ring-major','ring-minor','ring-superv'].forEach(id => {
+    const btn = document.getElementById(id);
+    if(btn) btn.classList.toggle('active', (id==='ring-none' ? '' : id) === ring);
+  });
+}
+
+function clearAllStates(){
+  if(!_menuCell) return;
+  const td = _menuCell;
+  const idx = parseInt(td.dataset.etab);
+  const key = td.dataset.key;
+  const role = parseInt(td.dataset.role);
+  
+  delete etabs[idx].checks[key+'::'+role];
+  if(etabs[idx].rings) delete etabs[idx].rings[key+'::'+role];
+  updateCellDisplay(td, []);
+  td.classList.remove('ring-solid','ring-dash','ring-major','ring-minor','ring-superv');
+  closeMenu();
+}
+
+
+function updateCellDisplay(td, states){
+  // Retirer toutes les classes d'état et de cerclage
+  td.classList.remove('s-check','s-deleg','s-suppl','ring-solid','ring-dash','ring-minor');
+  td.style.background = '';
+  td.style.outline = '';
+  td.style.outlineOffset = '';
+  td.innerHTML = '';
+
+  // Le cerclage est géré manuellement via setRing — on ne le touche pas ici
+
+  // Si vide, s'arrêter là
+  if(!states || states.length === 0) return;
+
+  const hasCheck = states.includes('check');
+  const hasDeleg = states.includes('deleg');
+  const hasSuppl = states.includes('suppl');
+
+  // Fond : jaune si action directe présente, neutre sinon
+  if(hasCheck) td.classList.add('s-check');
+
+  // Symboles D et/ou S superposés (le fond jaune sert déjà pour ✓)
+  const symbols = [];
+  if(hasDeleg) symbols.push('<span style="color:#E65100;font-weight:700;font-size:13px">D</span>');
+  if(hasSuppl) symbols.push('<span style="color:#0D47A1;font-weight:700;font-size:13px">S</span>');
+
+  if(symbols.length > 0){
+    td.innerHTML = '<div style="display:flex;gap:2px;align-items:center;justify-content:center">' + symbols.join('') + '</div>';
+  }
+
+  // Cas sans check : fond neutre s'il n'y a que D ou S
+  if(!hasCheck){
+    if(hasDeleg && !hasSuppl) td.classList.add('s-deleg');
+    else if(hasSuppl && !hasDeleg) td.classList.add('s-suppl');
+    // D+S sans check : fond blanc/neutre, juste les lettres
+  }
+}
+
+function closeMenu(){
+  document.getElementById('cell-menu').classList.remove('open');
+  _menuCell = null;
+}
+
+// Fermer le menu si clic ailleurs
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#cell-menu') && !e.target.closest('.chk')) closeMenu();
+});
+
+// ─── STATISTIQUES ───
+function renderStats(){
+  let div = document.getElementById('panel-stats');
+  if(!div){
+    div = document.createElement('div');
+    div.className = 'panel';
+    div.id = 'panel-stats';
+    document.getElementById('panels').appendChild(div);
+  }
+
+  // Calcul des stats
+  const totalOps = DATA.reduce((s,c) => s + c.subcategories.reduce((ss,sub) => ss + sub.operations.length, 0), 0);
+
+  // Consolidé tous établissements
+  let globalChecks = 0, globalDeleg = 0, globalSuppl = 0;
+  let globalMarkers = {minor:0, major:0, justified:0, tocorrect:0};
+  let ordTotal = 0; let cptTotal = 0;
+
+  DATA.forEach(c => c.subcategories.forEach(sub => sub.operations.forEach(op => {
+    if(op.sphere === 'comptable') cptTotal++; else ordTotal++;
+  })));
+
+  etabs.forEach(e => {
+    Object.values(e.checks).forEach(v => {
+      // v peut être une string (legacy) ou un tableau
+      const states = Array.isArray(v) ? v : (v ? [v] : []);
+      states.forEach(s => {
+        if(s==='check') globalChecks++;
+        else if(s==='deleg') globalDeleg++;
+        else if(s==='suppl') globalSuppl++;
+      });
+    });
+
+  });
+
+  const etabRows = etabs.map(e => {
+    let checks=0, deleg=0, suppl=0;
+    Object.values(e.checks).forEach(v => {
+      const states = Array.isArray(v) ? v : (v ? [v] : []);
+      states.forEach(s => {
+        if(s==='check') checks++;
+        else if(s==='deleg') deleg++;
+        else if(s==='suppl') suppl++;
+      });
+    });
+    return { name: e.name, checks, deleg, suppl, minor:0, major:0, jus:0, cor:0 };
+  });
+
+  // Stats par catégorie (consolidées)
+  const catStats = DATA.map(cat => {
+    const catOps = cat.subcategories.reduce((s,sub) => s + sub.operations.length, 0);
+    let checks = 0;
+    etabs.forEach(e => {
+      Object.keys(e.checks).forEach(k => {
+        const [c] = k.split('|');
+        if(c === cat.category) checks++;
+      });
+    });
+    const pct = Math.round(checks / (catOps * 11 * etabs.length) * 100);
+    return { name: cat.category, ops: catOps, checks, pct };
+  });
+
+  div.innerHTML = `
+  <div class="stats-wrap">
+    <div class="stats-header">
+      <h2>📊 Statistiques consolidées – ${etabs.length} établissement${etabs.length>1?'s':''}</h2>
+      <button class="btn print-hide" onclick="printStats()">🖨️ Imprimer les stats</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="val">${etabs.length}</div>
+        <div class="lbl">Établissements</div>
+      </div>
+      <div class="stat-card">
+        <div class="val">${totalOps}</div>
+        <div class="lbl">Opérations / établissement</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" style="color:#1B5E20">${globalChecks}</div>
+        <div class="lbl">✓ Actions directes</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" style="color:#E65100">${globalDeleg}</div>
+        <div class="lbl">D Délégations</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" style="color:#0D47A1">${globalSuppl}</div>
+        <div class="lbl">S Suppléances</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" style="color:#F44336">${globalMarkers.tocorrect}</div>
+        <div class="lbl">⚠ Ruptures à corriger</div>
+      </div>
+    </div>
+
+    <h3 style="color:var(--primary);margin-bottom:12px;font-size:15px">Ruptures de chaîne – vue consolidée</h3>
+    <table class="stats-table" style="margin-bottom:24px">
+      <thead><tr>
+        <th>Établissement</th>
+        <th style="background:#C8E6C9;color:#1B5E20">✓ Actions</th>
+        <th style="background:#FFF9C4;color:#E65100">D Délégations</th>
+        <th style="background:#E3F2FD;color:#0D47A1">S Suppléances</th>
+        <th>Ruptures mineures</th>
+        <th>Ruptures majeures</th>
+        <th>Absences justifiées</th>
+        <th style="color:#c62828">⚠ À corriger</th>
+      </tr></thead>
+      <tbody>
+        ${etabRows.map(r => `<tr>
+          <td><strong>${r.name}</strong></td>
+          <td style="background:#F1F8F1;text-align:center;font-weight:600;color:#1B5E20">${r.checks}</td>
+          <td style="background:#FFFEF0;text-align:center;font-weight:600;color:#E65100">${r.deleg}</td>
+          <td style="background:#F0F4FF;text-align:center;font-weight:600;color:#0D47A1">${r.suppl}</td>
+          <td style="text-align:center">${r.minor}</td>
+          <td style="text-align:center">${r.major}</td>
+          <td style="text-align:center;color:#2e7d32">${r.jus}</td>
+          <td style="text-align:center;color:#c62828;font-weight:600">${r.cor}</td>
+        </tr>`).join('')}
+        <tr style="background:#E8F0F8;font-weight:700">
+          <td>TOTAL CONSOLIDÉ</td>
+          <td style="text-align:center;color:#1B5E20">${globalChecks}</td>
+          <td style="text-align:center;color:#E65100">${globalDeleg}</td>
+          <td style="text-align:center;color:#0D47A1">${globalSuppl}</td>
+          <td style="text-align:center">${globalMarkers.minor}</td>
+          <td style="text-align:center">${globalMarkers.major}</td>
+          <td style="text-align:center;color:#2e7d32">${globalMarkers.justified}</td>
+          <td style="text-align:center;color:#c62828">${globalMarkers.tocorrect}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="color:var(--primary);margin-bottom:12px;font-size:15px">Taux de renseignement par domaine (tous établissements)</h3>
+    <table class="stats-table">
+      <thead><tr><th>Domaine</th><th>Nb opérations</th><th>Coches</th><th>Taux de renseignement</th></tr></thead>
+      <tbody>
+        ${catStats.map(c => `<tr>
+          <td>${c.name}</td>
+          <td>${c.ops}</td>
+          <td>${c.checks}</td>
+          <td>
+            <div>${c.pct}%</div>
+            <div class="pct-bar"><div class="pct-fill" style="width:${c.pct}%"></div></div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ─── AIDE ───
+function openHelp(){
+  document.getElementById('help-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeHelp(e){
+  if(e && e.target !== document.getElementById('help-overlay')) return;
+  document.getElementById('help-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function switchHelp(idx, btn){
+  document.querySelectorAll('.help-nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.help-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const pane = document.getElementById('hp-'+idx);
+  if(pane){ pane.classList.add('active'); pane.scrollTop = 0; }
+}
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape'){
+    closeHelp();
+    closeModal();
+  }
+});
+
+// ─── SYSTÈME MODAL ───
+function showModal({title, body, buttons=[], headCls=''}){
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal-head').className = 'modal-head' + (headCls ? ' '+headCls : '');
+  const foot = document.getElementById('modal-foot');
+  foot.innerHTML = '';
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = b.cls || 'btn';
+    btn.textContent = b.label;
+    btn.onclick = b.action;
+    foot.appendChild(btn);
+  });
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e){
+  // Appelé depuis l'overlay (onclick) : fermer seulement si clic sur le fond
+  if(e && e.target !== document.getElementById('modal-overlay')) return;
+  _doCloseModal();
+}
+function _doCloseModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+
+// ─── IMPRESSION ───
+function printCurrent(){
+  if(activeTab === 'stats'){ printStats(); return; }
+  // S'assurer que tous les panels sont rendus avant d'imprimer
+  etabs.forEach(e => {
+    if(!document.getElementById('panel-'+e.id)) renderPanel(e.id);
+  });
+  // Marquer tous les panels établissements comme print-target
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('print-target'));
+  etabs.forEach(e => {
+    document.getElementById('panel-'+e.id)?.classList.add('print-target');
+  });
+  window.print();
+  // Nettoyer
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('print-target'));
+}
+
+function printStats(){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('print-target'));
+  document.getElementById('panel-stats')?.classList.add('print-target');
+  window.print();
+  document.getElementById('panel-stats')?.classList.remove('print-target');
+}
+
+// ─── SAUVEGARDE HTML ───
+
+function serializeEtabs(){
+  return etabs.map(e => ({
+    id: e.id, type: e.type, name: e.name,
+    acName: e.acName||'', dateCA: e.dateCA||'',
+    uai: e.uai||'', groupement: e.groupement||'',
+    fondePouvoir: e.fondePouvoir||'', secretaireGeneral: e.secretaireGeneral||'',
+    chefEtablissement: e.chefEtablissement||'', dateConseilCA: e.dateConseilCA||'',
+    roleNames: e.roleNames||{},
+    roleLabels: e.roleLabels||{},
+    cartoucheLabels: e.cartoucheLabels||{},
+    rings: e.rings||{},
+    freeCols: e.freeCols||[],
+    checks: e.checks||{}
+  }));
+}
+
+function hydrateEtabs(raw){
+  return raw.map(e => ({
+    ...e,
+    uai: e.uai||'', groupement: e.groupement||'',
+    fondePouvoir: e.fondePouvoir||'', secretaireGeneral: e.secretaireGeneral||'',
+    chefEtablissement: e.chefEtablissement||'', dateConseilCA: e.dateConseilCA||'',
+    roleNames: e.roleNames||{},
+    roleLabels: e.roleLabels||{},
+    cartoucheLabels: e.cartoucheLabels||{},
+    rings: e.rings||{},
+    freeCols: e.freeCols||[],
+    checks: e.checks||{}
+  }));
+}
+
+function saveAll(){
+  // Injecter les données dans le script dédié avant de sérialiser le HTML
+  const dataScript = document.getElementById('fonctiopale-data');
+  if(dataScript) dataScript.textContent = JSON.stringify(serializeEtabs());
+  const out = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  // Remettre vide pour ne pas polluer la session courante
+  if(dataScript) dataScript.textContent = '';
+  const uai = (etabs[0] && etabs[0].uai && etabs[0].uai.trim()) ? etabs[0].uai.trim() : 'siege';
+  const _d = new Date();
+  const _dd = String(_d.getDate()).padStart(2,'0');
+  const _mm = String(_d.getMonth()+1).padStart(2,'0');
+  const _yy = _d.getFullYear();
+  const filename = 'Fonctiop@le-v5.0-' + uai + '-' + _dd + '-' + _mm + '-' + _yy + '.html';
+  const blob = new Blob([out], {type:'text/html;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importData(){
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.html,text/html';
+  inp.onchange = ev => {
+    const r = new FileReader();
+    r.onload = e => {
+      try{
+        const html = e.target.result;
+        // Extraire le contenu du script#fonctiopale-data
+        const scriptMatch = html.match(/<script[^>]+id="fonctiopale-data"[^>]*>([\s\S]*?)<\/script>/);
+        if(!scriptMatch || !scriptMatch[1].trim()) throw new Error('Pas de données Fonctiop@le dans ce fichier');
+        const raw = JSON.parse(scriptMatch[1]);
+        const hydrated = hydrateEtabs(raw);
+
+        // Construire le récapitulatif
+        const siege = hydrated[0];
+        const ers = hydrated.slice(1);
+        const totalOps = hydrated.reduce((sum, e) => sum + Object.keys(e.checks).length, 0);
+        const totalRings = hydrated.reduce((sum, e) => sum + Object.keys(e.rings||{}).length, 0);
+        const etabsRows = hydrated.map(e =>
+          `<tr>
+            <td style="padding:4px 8px;border:1px solid #ddd;font-weight:${e.type==='siege'?'700':'400'}">${e.name}</td>
+            <td style="padding:4px 8px;border:1px solid #ddd;color:#555">${e.uai||'—'}</td>
+            <td style="padding:4px 8px;border:1px solid #ddd;text-align:center">${Object.keys(e.checks).length}</td>
+            <td style="padding:4px 8px;border:1px solid #ddd;text-align:center">${(e.freeCols||[]).length}</td>
+          </tr>`
+        ).join('');
+
+        const body = `
+          <p style="margin-bottom:10px">Le fichier contient <strong>${hydrated.length} établissement${hydrated.length>1?'s':''}</strong> :</p>
+          <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">
+            <thead>
+              <tr style="background:#f0f0f0">
+                <th style="padding:5px 8px;border:1px solid #ddd;text-align:left">Établissement</th>
+                <th style="padding:5px 8px;border:1px solid #ddd;text-align:left">UAI</th>
+                <th style="padding:5px 8px;border:1px solid #ddd;text-align:center">Cases saisies</th>
+                <th style="padding:5px 8px;border:1px solid #ddd;text-align:center">Colonnes libres</th>
+              </tr>
+            </thead>
+            <tbody>${etabsRows}</tbody>
+          </table>
+          <div style="background:#FFF3E0;border-left:4px solid #F57C00;padding:8px 12px;font-size:12px;border-radius:0 4px 4px 0">
+            ⚠️ <strong>L'import remplacera toutes les données actuelles.</strong>
+          </div>`;
+
+        showModal({
+          title: '📥 Récapitulatif de l\'import',
+          body,
+          buttons: [
+            { label: 'Annuler', cls: 'btn-sec', action: _doCloseModal },
+            { label: 'Confirmer l\'import', cls: 'btn', action: () => {
+              _doCloseModal();
+              etabs = hydrated;
+              document.getElementById('panels').innerHTML = '';
+              etabs.forEach((_,i) => renderPanel(i));
+              setActive(0);
+            }}
+          ]
+        });
+      } catch(err){
+        showModal({ title: 'Import impossible', headCls: 'warn',
+          body: '<p>Le fichier sélectionné ne contient pas de données Fonctiop@le valides.</p>'
+              + '<p style="color:#666;font-size:12px">Assurez-vous d\'utiliser un fichier HTML sauvegardé depuis Fonctiop@le.</p>',
+          buttons: [{ label: 'Fermer', cls: 'btn', action: _doCloseModal}]
+        });
+      }
+    };
+    r.readAsText(ev.target.files[0], 'utf-8');
+  };
+  inp.click();
+}
+init();
+</script>
+</body>
+</html>

@@ -591,3 +591,10 @@ L'affectation en masse complète l'existant au lieu de l'écraser : les exceptio
 - saisie complète Réalise / Délègue / Valide / Contrôle / Supplée ;
 - observations enregistrées à la sortie du champ afin de garder une frappe fluide ;
 - export autonome Fonctiop@le V5 contenant le catalogue complet des 181 opérations.
+
+## v0.18.1 — Export Fonctiop@le natif
+
+- l’export HTML réutilise désormais l’application Fonctiop@le V5 complète et embarque les données saisies dans PCIF Académie ;
+- les fonctions normalisées alimentent leurs colonnes natives et les autres acteurs deviennent des colonnes libres ;
+- les actions directes, délégations, suppléances et ruptures sont injectées dans les cellules Fonctiop@le ;
+- l’impression/PDF s’effectue depuis le véritable rendu Fonctiop@le, avec sa légende, ses couleurs et sa mise en page A4 paysage.
