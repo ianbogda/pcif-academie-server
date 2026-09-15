@@ -1,4 +1,4 @@
-# PCIF Académie — v0.17.4 — environnements identifiables et migration Caddy
+# PCIF Académie — v0.17.5 — routage API et migration du service historique
 
 Première itération exécutable du serveur collaboratif multi-EPLE.
 
@@ -100,6 +100,12 @@ une sauvegarde horodatée, puis utilise le fichier dédié dans
 L'environnement de démonstration affiche en permanence un bandeau ambre
 indiquant que les données sont réinitialisées chaque heure. Aucun bandeau
 n'apparaît en production.
+
+Les routes `/api/*` et `/health` utilisent des blocs Caddy `handle`
+exclusifs : le fallback de la SPA ne peut plus les réécrire vers
+`index.html`. Lors d'une migration de production, l'ancien service
+`pcif-academie.service` est arrêté et désactivé avant le démarrage de
+`pcif-academie-prod.service`, afin de libérer le port 3000.
 
 Mise à jour ciblée :
 

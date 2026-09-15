@@ -6,12 +6,17 @@ pcif.eple-tools.fr {
         }
     }
 
-    @api path /api/* /health
-    reverse_proxy @api 127.0.0.1:3000
-
-    root * /opt/pcif-academie-prod/web/dist
-    try_files {path} /index.html
-    file_server
+    handle /api/* {
+        reverse_proxy 127.0.0.1:3000
+    }
+    handle /health {
+        reverse_proxy 127.0.0.1:3000
+    }
+    handle {
+        root * /opt/pcif-academie-prod/web/dist
+        try_files {path} /index.html
+        file_server
+    }
 
     header {
         X-Content-Type-Options nosniff
@@ -27,9 +32,15 @@ demopcif.eple-tools.fr {
             email certificats@eple-tools.fr
         }
     }
-    @api path /api/* /health
-    reverse_proxy @api 127.0.0.1:3001
-    root * /opt/pcif-academie-demo/web/dist
-    try_files {path} /index.html
-    file_server
+    handle /api/* {
+        reverse_proxy 127.0.0.1:3001
+    }
+    handle /health {
+        reverse_proxy 127.0.0.1:3001
+    }
+    handle {
+        root * /opt/pcif-academie-demo/web/dist
+        try_files {path} /index.html
+        file_server
+    }
 }

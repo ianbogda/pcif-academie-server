@@ -36,6 +36,10 @@ if [[ "$ENVIRONMENT" == "demo" ]]; then
   systemctl stop pcif-academie-demo-reset.timer 2>/dev/null || true
 fi
 systemctl stop "$SERVICE" 2>/dev/null || true
+if [[ "$ENVIRONMENT" == "prod" ]] && systemctl is-active --quiet pcif-academie.service 2>/dev/null; then
+  log "Arrêt de l'ancien service pcif-academie qui occupe le port 3000"
+  systemctl disable --now pcif-academie.service
+fi
 log "Copie des nouvelles sources"
 rsync -a --delete --exclude node_modules --exclude web/node_modules --exclude dist --exclude web/dist --exclude .git --exclude .env "$SOURCE_DIR/" "$APP/"
 chown -R "$APP_USER:$APP_USER" "$APP"
@@ -108,6 +112,37 @@ remove_legacy_caddy_site() {
   rm -f "${config}.pcif-new"
 }
 remove_legacy_caddy_site
+SITE_FILE="/etc/caddy/sites/pcif-academie-${ENVIRONMENT}.caddy"
+ACME_EMAIL="$(awk '$1=="email" {print $2; exit}' "$SITE_FILE" 2>/dev/null || true)"
+[[ "$ACME_EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] || {
+  fail "Adresse ACME introuvable dans $SITE_FILE."
+}
+cat >"$SITE_FILE" <<EOF
+${DOMAIN} {
+  encode zstd gzip
+  tls {
+    issuer acme {
+      email ${ACME_EMAIL}
+    }
+  }
+  handle /api/* {
+    reverse_proxy 127.0.0.1:${PORT}
+  }
+  handle /health {
+    reverse_proxy 127.0.0.1:${PORT}
+  }
+  handle {
+    root * ${APP}/web/dist
+    try_files {path} /index.html
+    file_server
+  }
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy strict-origin-when-cross-origin
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  }
+}
+EOF
 caddy validate --config /etc/caddy/Caddyfile
 systemctl reload caddy
 if [[ "$ENVIRONMENT" == "demo" ]]; then

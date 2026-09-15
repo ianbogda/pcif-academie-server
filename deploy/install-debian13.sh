@@ -202,11 +202,17 @@ ${DOMAIN} {
       email ${ACME_EMAIL}
     }
   }
-  @api path /api/* /health
-  reverse_proxy @api 127.0.0.1:${PORT}
-  root * ${APP_DIR}/web/dist
-  try_files {path} /index.html
-  file_server
+  handle /api/* {
+    reverse_proxy 127.0.0.1:${PORT}
+  }
+  handle /health {
+    reverse_proxy 127.0.0.1:${PORT}
+  }
+  handle {
+    root * ${APP_DIR}/web/dist
+    try_files {path} /index.html
+    file_server
+  }
   header {
     X-Content-Type-Options nosniff
     Referrer-Policy strict-origin-when-cross-origin
@@ -216,6 +222,10 @@ ${DOMAIN} {
 EOF
 
 systemctl daemon-reload
+if [[ "$ENVIRONMENT" == "prod" ]] && systemctl is-active --quiet pcif-academie.service 2>/dev/null; then
+  echo "==> Arrêt de l'ancien service pcif-academie qui occupe le port 3000"
+  systemctl disable --now pcif-academie.service
+fi
 systemctl enable --now "$SERVICE"
 caddy validate --config /etc/caddy/Caddyfile
 systemctl enable --now caddy
