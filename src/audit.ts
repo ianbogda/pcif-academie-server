@@ -2,22 +2,37 @@ import {FastifyInstance} from "fastify";
 import {z} from "zod";
 import {pool} from "./db.js";
 import {requireUser} from "./auth.js";
-import {establishmentAccess} from "./access.js";
+import {campaignAccess,canGrantAuditMission,isPlatformAdmin} from "./access.js";
 
 async function context(userId:string,campaignId:string){
  const c=(await pool.query(`SELECT c.*,e.name establishment_name,e.uai FROM campaigns c JOIN establishments e ON e.id=c.establishment_id WHERE c.id=$1`,[campaignId])).rows[0];
- if(!c)return null;const access=await establishmentAccess(userId,c.establishment_id);if(!access.canRead)return null;
- const auditor=access.roles.includes("AUDITOR");
- const direct=(await pool.query(`SELECT 1 FROM user_establishment_roles uer JOIN roles r ON r.id=uer.role_id WHERE uer.user_id=$1 AND uer.establishment_id=$2 AND r.code='AUDITOR' LIMIT 1`,[userId,c.establishment_id])).rowCount;
- const scoped=(await pool.query(`SELECT bool_or(s.observations_allowed) allowed FROM auditor_scopes s JOIN establishments e ON e.id=$2 LEFT JOIN agency_establishments ae ON ae.establishment_id=e.id AND ae.active=true WHERE s.user_id=$1 AND s.valid_from<=CURRENT_DATE AND (s.valid_until IS NULL OR s.valid_until>=CURRENT_DATE) AND ((s.scope_type='ESTABLISHMENT' AND s.establishment_id=e.id) OR (s.scope_type='AGENCY' AND s.agency_id=ae.agency_id) OR (s.scope_type='DEPARTMENT' AND s.department_code=e.department_code) OR (s.scope_type='ACADEMY' AND s.academy_code=e.academy_code))`,[userId,c.establishment_id])).rows[0]?.allowed;
- return{campaign:c,access,auditor,observationsAllowed:!!direct||!!scoped};
+ if(!c)return null;const access=await campaignAccess(userId,campaignId);if(!access?.canRead)return null;
+ return{campaign:c,access,auditor:access.isAuditOnly,observationsAllowed:!!access.mission?.observations_allowed};
 }
 
 export async function registerAudit(app:FastifyInstance){
+ app.get("/api/audit-management/context",async(request,reply)=>{
+  const user=await requireUser(request),platform=await isPlatformAdmin(user.sub);
+  const all=(await pool.query(`SELECT c.id,c.label,c.status,e.id establishment_id,e.uai,e.name establishment_name,e.department_name,e.academy_name,a.name agency_name FROM campaigns c JOIN establishments e ON e.id=c.establishment_id LEFT JOIN agency_establishments ae ON ae.establishment_id=e.id AND ae.active=true LEFT JOIN accounting_agencies a ON a.id=ae.agency_id ORDER BY e.name,c.created_at DESC`)).rows;
+  const campaigns:any[]=[];for(const c of all)if(platform||await canGrantAuditMission(user.sub,c.id))campaigns.push(c);
+  if(!campaigns.length)return reply.code(403).send({error:"AUDIT_MANAGER_REQUIRED"});
+  const auditors=(await pool.query(`SELECT DISTINCT u.id,u.display_name,u.email FROM users u LEFT JOIN user_establishment_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id WHERE u.active=true AND u.deleted_at IS NULL AND (r.code='AUDITOR' OR EXISTS(SELECT 1 FROM audit_missions m WHERE m.auditor_user_id=u.id)) ORDER BY u.display_name`)).rows;
+  const missions=(await pool.query(`SELECT m.*,u.display_name auditor_name,c.label campaign_label,e.name establishment_name,e.uai,g.display_name granted_by_name FROM audit_missions m JOIN users u ON u.id=m.auditor_user_id JOIN users g ON g.id=m.granted_by JOIN campaigns c ON c.id=m.campaign_id JOIN establishments e ON e.id=c.establishment_id ORDER BY m.created_at DESC`)).rows.filter((m:any)=>campaigns.some((c:any)=>c.id===m.campaign_id));
+  return{campaigns,auditors,missions};
+ });
+ app.post("/api/audit-management/missions",async(request,reply)=>{
+  const user=await requireUser(request),p=z.object({auditorUserId:z.string().uuid(),campaignId:z.string().uuid(),validFrom:z.string().date(),validUntil:z.string().date(),observationsAllowed:z.boolean().default(true),purpose:z.string().max(1000).default("")}).safeParse(request.body);
+  if(!p.success)return reply.code(400).send({error:"INVALID_MISSION",details:p.error.flatten()});if(!await canGrantAuditMission(user.sub,p.data.campaignId))return reply.code(403).send({error:"MISSION_SCOPE_FORBIDDEN"});if(p.data.validUntil<p.data.validFrom)return reply.code(400).send({error:"INVALID_DATES"});
+  const {rows}=await pool.query(`INSERT INTO audit_missions(auditor_user_id,campaign_id,granted_by,valid_from,valid_until,observations_allowed,status,purpose) VALUES($1,$2,$3,$4,$5,$6,CASE WHEN CURRENT_DATE BETWEEN $4::date AND $5::date THEN 'OPEN' ELSE 'PREPARED' END,$7) RETURNING *`,[p.data.auditorUserId,p.data.campaignId,user.sub,p.data.validFrom,p.data.validUntil,p.data.observationsAllowed,p.data.purpose]);return reply.code(201).send(rows[0]);
+ });
+ app.patch("/api/audit-management/missions/:id",async(request,reply)=>{
+  const user=await requireUser(request),id=(request.params as any).id,mission=(await pool.query(`SELECT * FROM audit_missions WHERE id=$1`,[id])).rows[0];if(!mission)return reply.code(404).send({error:"NOT_FOUND"});if(!await canGrantAuditMission(user.sub,mission.campaign_id))return reply.code(403).send({error:"MISSION_SCOPE_FORBIDDEN"});const p=z.object({status:z.enum(["OPEN","CLOSED","REVOKED"])}).safeParse(request.body);if(!p.success)return reply.code(400).send({error:"INVALID_STATUS"});const {rows}=await pool.query(`UPDATE audit_missions SET status=$1,updated_at=now() WHERE id=$2 RETURNING *`,[p.data.status,id]);return rows[0];
+ });
  app.get("/api/campaigns/:id/audit",async(request,reply)=>{
   const user=await requireUser(request),id=(request.params as any).id,ctx=await context(user.sub,id);
   if(!ctx)return reply.code(403).send({error:"FORBIDDEN"});if(!ctx.auditor&&!ctx.access.isPlatformAdmin)return reply.code(403).send({error:"AUDITOR_REQUIRED"});
-  const previous=(await pool.query(`SELECT id FROM campaigns WHERE establishment_id=$1 AND created_at<$2 ORDER BY created_at DESC LIMIT 1`,[ctx.campaign.establishment_id,ctx.campaign.created_at])).rows[0]?.id;
+  const previousCandidate=(await pool.query(`SELECT id FROM campaigns WHERE establishment_id=$1 AND created_at<$2 ORDER BY created_at DESC LIMIT 1`,[ctx.campaign.establishment_id,ctx.campaign.created_at])).rows[0]?.id;
+  const previous=previousCandidate&&(!ctx.access.isAuditOnly||(await campaignAccess(user.sub,previousCandidate))?.canRead)?previousCandidate:null;
   const [withoutEvidence,divergences,risks,overdue,progressions,unassigned,formalisation,observations]=await Promise.all([
    pool.query(`SELECT q.id,q.code,q.label,q.domain,a.comment FROM questions q JOIN answers a ON a.question_id=q.id AND a.campaign_id=$1 WHERE a.value=3 AND btrim(a.comment)='' ORDER BY q.sort_order LIMIT 100`,[id]),
    pool.query(`SELECT q.id,q.code,q.label,q.domain,MAX(a.value) max_value,MIN(a.value) min_value FROM questions q JOIN answers a ON a.question_id=q.id AND a.campaign_id=$1 WHERE a.sphere IN('ORDONNATEUR','COMPTABLE') GROUP BY q.id HAVING COUNT(DISTINCT a.sphere)=2 AND MAX(a.value)<>MIN(a.value) ORDER BY q.sort_order`,[id]),

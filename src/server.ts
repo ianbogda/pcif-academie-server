@@ -6,7 +6,7 @@ import jwt from "@fastify/jwt";
 import "dotenv/config";
 import { pool, tx } from "./db.js";
 import { registerAuth, requireUser } from "./auth.js";
-import { establishmentAccess, canWriteSphere, isPlatformAdmin } from "./access.js";
+import { establishmentAccess, campaignAccess,canWriteSphere, isPlatformAdmin } from "./access.js";
 import { registerAdmin } from "./admin.js";
 import { registerPilotage } from "./pilotage.js";
 import { registerOrganisation } from "./organisation.js";
@@ -52,8 +52,10 @@ app.get("/api/me", async (request) => {
       WHERE uar.user_id=$1 ORDER BY a.name`,
     [user.sub]
   );
-  const auditor=(await pool.query(`SELECT 1 FROM user_establishment_roles uer JOIN roles r ON r.id=uer.role_id WHERE uer.user_id=$1 AND r.code='AUDITOR' UNION SELECT 1 FROM auditor_scopes WHERE user_id=$1 LIMIT 1`,[user.sub])).rowCount;
-  return { user: {...user, isPlatformAdmin: await isPlatformAdmin(user.sub), isAuditor:!!auditor}, establishments: memberships.rows, agencies: agencies.rows };
+  const auditor=(await pool.query(`SELECT 1 FROM user_establishment_roles uer JOIN roles r ON r.id=uer.role_id WHERE uer.user_id=$1 AND r.code='AUDITOR' UNION SELECT 1 FROM audit_missions WHERE auditor_user_id=$1 LIMIT 1`,[user.sub])).rowCount;
+  const auditManager=(await pool.query(`SELECT 1 FROM user_agency_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=$1 AND r.code='AGENCY_ACCOUNTANT' UNION SELECT 1 FROM user_establishment_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=$1 AND r.code IN('DEPARTMENT_ADMIN','ACADEMY_ADMIN') LIMIT 1`,[user.sub])).rowCount;
+  const platform=await isPlatformAdmin(user.sub);
+  return { user: {...user, isPlatformAdmin:platform,isAuditor:!!auditor,isAuditManager:!!auditManager||platform}, establishments: memberships.rows, agencies: agencies.rows };
 });
 
 app.get("/api/establishments", async (request) => {
@@ -71,9 +73,7 @@ app.get("/api/establishments", async (request) => {
        LEFT JOIN user_agency_roles uar
          ON uar.agency_id=ae.agency_id AND uar.user_id=$1
       WHERE uer.user_id IS NOT NULL OR uar.user_id IS NOT NULL
-        OR EXISTS(SELECT 1 FROM auditor_scopes s WHERE s.user_id=$1 AND s.valid_from<=CURRENT_DATE AND (s.valid_until IS NULL OR s.valid_until>=CURRENT_DATE)
-          AND ((s.scope_type='ESTABLISHMENT' AND s.establishment_id=e.id) OR (s.scope_type='AGENCY' AND s.agency_id=ae.agency_id)
-            OR (s.scope_type='DEPARTMENT' AND s.department_code=e.department_code) OR (s.scope_type='ACADEMY' AND s.academy_code=e.academy_code)))
+        OR EXISTS(SELECT 1 FROM audit_missions m JOIN campaigns c ON c.id=m.campaign_id WHERE m.auditor_user_id=$1 AND c.establishment_id=e.id AND m.status IN('PREPARED','OPEN') AND CURRENT_DATE BETWEEN m.valid_from AND m.valid_until)
       ORDER BY e.name`,
     [user.sub]
   );
@@ -153,8 +153,8 @@ app.get("/api/campaigns/:id", async (request, reply) => {
     [campaignId]
   );
   if (!rows.length) return reply.code(404).send({ error: "NOT_FOUND" });
-  const access = await establishmentAccess(user.sub, rows[0].establishment_id);
-  if (!access.canRead) return reply.code(403).send({ error: "FORBIDDEN" });
+  const access = await campaignAccess(user.sub,campaignId);
+  if (!access?.canRead) return reply.code(403).send({ error: "FORBIDDEN" });
   return rows[0];
 });
 
@@ -169,8 +169,8 @@ app.get("/api/campaigns", async (request, reply) => {
     `SELECT c.*, rv.version AS repository_version,
            (SELECT count(*)::int FROM questions q2 WHERE q2.repository_version_id=c.repository_version_id AND q2.active=true) AS question_count
        FROM campaigns c JOIN repository_versions rv ON rv.id=c.repository_version_id
-      WHERE c.establishment_id=$1 ORDER BY c.created_at DESC`,
-    [establishmentId]
+      WHERE c.establishment_id=$1 AND (NOT $3::boolean OR EXISTS(SELECT 1 FROM audit_missions m WHERE m.auditor_user_id=$2 AND m.campaign_id=c.id AND m.status IN('PREPARED','OPEN') AND CURRENT_DATE BETWEEN m.valid_from AND m.valid_until)) ORDER BY c.created_at DESC`,
+    [establishmentId,user.sub,access.roles.includes("AUDITOR")&&!access.directRoles.some((r:any)=>r!=="AUDITOR")&&!access.agencyRoles.length]
   );
   return rows;
 });
@@ -201,8 +201,8 @@ app.get("/api/campaigns/:id/questions", async (request, reply) => {
   const campaignId = (request.params as any).id;
   const c = await pool.query(`SELECT * FROM campaigns WHERE id=$1`, [campaignId]);
   if (!c.rowCount) return reply.code(404).send({ error: "NOT_FOUND" });
-  const access = await establishmentAccess(user.sub, c.rows[0].establishment_id);
-  if (!access.canRead) return reply.code(403).send({ error: "FORBIDDEN" });
+  const access = await campaignAccess(user.sub,campaignId);
+  if (!access?.canRead) return reply.code(403).send({ error: "FORBIDDEN" });
 
   const { rows } = await pool.query(
     `SELECT q.id, q.code, q.domain, q.label, q.responsibility, q.weight, q.stars, q.badge,
@@ -239,8 +239,8 @@ app.put("/api/campaigns/:campaignId/answers/:questionId", async (request, reply)
   const campaign = await pool.query(`SELECT * FROM campaigns WHERE id=$1`, [campaignId]);
   if (!campaign.rowCount) return reply.code(404).send({ error: "CAMPAIGN_NOT_FOUND" });
   if (["VALIDATED","ARCHIVED"].includes(campaign.rows[0].status)) return reply.code(409).send({ error: "CAMPAIGN_READ_ONLY" });
-  const access = await establishmentAccess(user.sub, campaign.rows[0].establishment_id);
-  if (!access.canWrite) return reply.code(403).send({ error: "FORBIDDEN" });
+  const access = await campaignAccess(user.sub,campaignId);
+  if (!access?.canWrite) return reply.code(403).send({ error: "FORBIDDEN" });
   if (!canWriteSphere(access, parsed.data.sphere)) {
     return reply.code(403).send({ error: "SPHERE_FORBIDDEN", sphere: parsed.data.sphere });
   }

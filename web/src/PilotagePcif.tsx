@@ -36,6 +36,7 @@ export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashb
  useEffect(()=>{load()},[campaign.id]);
  useEffect(()=>{setTab(section==="workshops"?"workshops":section==="onf"||section==="processes"?"organisation":initialTab)},[section,initialTab]);
  if(!data)return <div className="pcif-loading">Chargement du pilotage…</div>;
+ if(data.access?.auditOnly&&section==="workshops")return <div className="empty-state"><b>Ateliers non accessibles</b><p>L’auditeur analyse les résultats sans accéder à l’espace de production collective.</p><button onClick={onBack}>Retour au tableau de bord</button></div>;
 
  const byQuestion=new Map<string,PilotageQuestion>();
  for(const row of data.questions){
@@ -82,12 +83,12 @@ export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashb
    <button className={tab==="risks"?"active":""} onClick={()=>setTab("risks")}>Risques</button>
    <button className={tab==="annual"?"active":""} onClick={()=>setTab("annual")}>Programme annuel</button>
   </nav>}
-  {tab==="dashboard"&&<Dashboard campaign={campaign} qs={qs} metrics={metrics} answered={answered} critical={critical} mastery={mastery} coverage={coverage} actions={data.actions} workshops={data.workshops} go={(target:string)=>target==="workshops"?onNavigate?.("workshops"):setTab(target as PilotageTab)}/>} 
+  {tab==="dashboard"&&<Dashboard campaign={campaign} auditOnly={!!data.access?.auditOnly} qs={qs} metrics={metrics} answered={answered} critical={critical} mastery={mastery} coverage={coverage} actions={data.actions} workshops={data.workshops} go={(target:string)=>target==="workshops"?onNavigate?.("workshops"):setTab(target as PilotageTab)}/>} 
   {tab==="diagnostic"&&<Diagnostic qs={qs} actions={data.actions} campaignId={campaign.id} mode={mode} setMode={setMode} domain={domain} setDomain={setDomain} idx={idx} setIdx={setIdx} reload={load}/>}
   {tab==="risks"&&<RiskView qs={qs}/>}
   {tab==="annual"&&(historical?<HistoricalActionPlan data={data}/>:<Annual data={data} campaignId={campaign.id} reload={load}/>)} 
   {tab==="workshops"&&<Workshops data={data} campaignId={campaign.id} reload={load}/>}
-  {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id} initialView={section==="processes"?"process":"ofn"} showTabs={false}/>} 
+  {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id} initialView={section==="processes"?"process":"ofn"} showTabs={false} readOnly={!!data.access?.auditOnly}/>} 
  </div>
 }
 
@@ -104,14 +105,14 @@ function HistoricalActionPlan({data}:{data:PilotageData}){
  return <section className="historical-plan"><header><div><span>PROGRAMME ANNUEL ARCHIVÉ</span><h2>Réalisation du plan d’action</h2><p>{done} action(s) réalisée(s) sur {data.actions.length}.</p></div><strong>{data.actions.length?Math.round(done*100/data.actions.length):0}%</strong></header>{data.actions.length?<div>{data.actions.map(a=><article key={a.id} className={a.status==="REALISEE"?"done":"pending"}><span>{a.priority}</span><div><b>{a.action_text}</b><small>{a.actor||"Pilote non renseigné"} · {a.period||a.target_date||"Échéance non renseignée"}</small><p>{a.note}</p></div><em>{a.status==="REALISEE"?"Réalisée":a.status==="EN_COURS"?"En cours":a.status==="PREPARATION"?"En préparation":"Non démarrée"}</em></article>)}</div>:<p className="empty-state">Aucune action n’était rattachée à cette campagne.</p>}</section>
 }
 
-function Dashboard({campaign,qs,metrics,answered,critical,mastery,coverage,actions,workshops,go}:any){
+function Dashboard({campaign,auditOnly,qs,metrics,answered,critical,mastery,coverage,actions,workshops,go}:any){
  const completed=workshops.filter((w:any)=>w.completed).length;
  const[exporting,setExporting]=useState(false),[exportError,setExportError]=useState("");
  async function exportCartopale(){setExporting(true);setExportError("");try{await api.exportCartopale(campaign.id)}catch{setExportError("L’export Cartop@le n’a pas pu être généré.")}finally{setExporting(false)}}
  return <div className="pilot-dashboard">
   <section className="cartopale-export"><div><span>INTEROPÉRABILITÉ CARTOP@LE</span><b>Exporter la campagne {campaign.label}</b><small>Réponses, observations et plan d’action de cette campagne uniquement.</small>{exportError&&<em>{exportError}</em>}</div><button className="primary-action" disabled={exporting} onClick={exportCartopale}>{exporting?"Génération…":"⇩ Exporter vers CARTOP@LE"}</button></section>
   <section className="journey"><h2>Cycle de vie du PCIF</h2><p>Prendre en main, construire le PCIF, puis le faire vivre et l’approfondir.</p><div className="journey-grid">
-   <Stage n="1" title="Prendre en main" value={`${completed} / 4`} text="Ateliers collectifs de lancement." onClick={()=>go("workshops")}/>
+   {!auditOnly&&<Stage n="1" title="Prendre en main" value={`${completed} / 4`} text="Ateliers collectifs de lancement." onClick={()=>go("workshops")}/>} 
    <Stage n="2" title="Construire le PCIF" value={`${answered} / ${qs.length}`} text="Diagnostic et priorisation des risques." onClick={()=>go("diagnostic")}/>
    <Stage n="3" title="Faire vivre" value={`${actions.length}`} text="Actions programmées et suivies." onClick={()=>go("annual")}/>
   </div></section>

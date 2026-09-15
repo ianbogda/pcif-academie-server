@@ -14,7 +14,7 @@ async function adminOnly(request:any, reply:any){
 }
 
 const assignment=z.object({establishmentId:z.string().uuid(),roleCode:z.enum([
-  "AGENCY_ACCOUNTANT","AGENCY_DEPUTY","HEAD","SECRETARY_GENERAL","CONTRIBUTOR","READER","AUDITOR"
+  "AGENCY_ACCOUNTANT","AGENCY_DEPUTY","HEAD","SECRETARY_GENERAL","CONTRIBUTOR","READER","AUDITOR","DEPARTMENT_ADMIN","ACADEMY_ADMIN"
 ])});
 const userBody=z.object({
   email:z.string().trim().toLowerCase().email(),

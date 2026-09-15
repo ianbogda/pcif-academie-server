@@ -3,23 +3,15 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { pool } from "./db.js";
 import { requireUser } from "./auth.js";
-import { establishmentAccess } from "./access.js";
+import { establishmentAccess,campaignAccess } from "./access.js";
 import { buildCartopaleHtml,cartopaleFilename,type CartopaleSave } from "./cartopale.js";
-
-async function campaignAccess(userId:string,campaignId:string){
-  const {rows}=await pool.query(`SELECT id,establishment_id,status FROM campaigns WHERE id=$1`,[campaignId]);
-  if(!rows.length) return null;
-  const base=await establishmentAccess(userId,rows[0].establishment_id),locked=["VALIDATED","ARCHIVED"].includes(rows[0].status);
-  const access=locked?{...base,canWrite:false,canWriteOrdonnateur:false,canWriteComptable:false,canWriteSynthese:false}:base;
-  return {campaign:rows[0],access};
-}
 
 export async function registerPilotage(app:FastifyInstance){
   app.get("/api/campaigns/:id/export/cartopale",async(request,reply)=>{
     const user=await requireUser(request),id=(request.params as any).id;
     const ca=await campaignAccess(user.sub,id);
     if(!ca) return reply.code(404).send({error:"NOT_FOUND"});
-    if(!ca.access.canRead) return reply.code(403).send({error:"FORBIDDEN"});
+    if(!ca.canRead) return reply.code(403).send({error:"FORBIDDEN"});
     const campaign=(await pool.query(`SELECT c.id,c.label,e.id establishment_id,e.uai,e.name,COALESCE(a.name,'') agency_name
       FROM campaigns c JOIN establishments e ON e.id=c.establishment_id
       LEFT JOIN agency_establishments ae ON ae.establishment_id=e.id AND ae.active=true
@@ -80,7 +72,7 @@ export async function registerPilotage(app:FastifyInstance){
     const id=(request.params as any).id;
     const ca=await campaignAccess(user.sub,id);
     if(!ca) return reply.code(404).send({error:"NOT_FOUND"});
-    if(!ca.access.canRead) return reply.code(403).send({error:"FORBIDDEN"});
+    if(!ca.canRead) return reply.code(403).send({error:"FORBIDDEN"});
 
     const q=await pool.query(`
       SELECT q.id,q.code,q.domain,q.category,q.label,q.risk_label,q.responsibility,
@@ -100,7 +92,7 @@ export async function registerPilotage(app:FastifyInstance){
     const workshopSessions=await pool.query(`SELECT s.*,u.display_name AS updated_by_name
       FROM pcif_workshop_sessions s LEFT JOIN users u ON u.id=s.updated_by
       WHERE s.campaign_id=$1 ORDER BY s.workshop_no,s.session_date DESC,s.created_at DESC`,[id]);
-    return {questions:q.rows,actions:actions.rows,workshops:workshops.rows,workshopSessions:workshopSessions.rows};
+    return {questions:q.rows,actions:actions.rows,workshops:ca.isAuditOnly?[]:workshops.rows,workshopSessions:ca.isAuditOnly?[]:workshopSessions.rows,access:{auditOnly:ca.isAuditOnly,canWrite:ca.canWrite}};
   });
 
   const actionSchema=z.object({
@@ -119,7 +111,7 @@ export async function registerPilotage(app:FastifyInstance){
     const user=await requireUser(request),id=(request.params as any).id;
     const ca=await campaignAccess(user.sub,id);
     if(!ca) return reply.code(404).send({error:"NOT_FOUND"});
-    if(!ca.access.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
+    if(!ca.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
     const parsed=actionSchema.safeParse(request.body);
     if(!parsed.success) return reply.code(400).send({error:"INVALID_BODY",details:parsed.error.flatten()});
     const d=parsed.data;
@@ -134,7 +126,7 @@ export async function registerPilotage(app:FastifyInstance){
     const user=await requireUser(request),{campaignId,actionId}=request.params as any;
     const ca=await campaignAccess(user.sub,campaignId);
     if(!ca) return reply.code(404).send({error:"NOT_FOUND"});
-    if(!ca.access.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
+    if(!ca.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
     const schema=actionSchema.partial().omit({questionId:true,sphere:true});
     const parsed=schema.safeParse(request.body);
     if(!parsed.success) return reply.code(400).send({error:"INVALID_BODY"});
@@ -153,7 +145,7 @@ export async function registerPilotage(app:FastifyInstance){
     const user=await requireUser(request),{campaignId,actionId}=request.params as any;
     const ca=await campaignAccess(user.sub,campaignId);
     if(!ca) return reply.code(404).send({error:"NOT_FOUND"});
-    if(!ca.access.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
+    if(!ca.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
     await pool.query(`DELETE FROM pcif_actions WHERE id=$1 AND campaign_id=$2`,[actionId,campaignId]);
     return reply.code(204).send();
   });
@@ -177,7 +169,7 @@ export async function registerPilotage(app:FastifyInstance){
     const user=await requireUser(request),{campaignId}=request.params as any;
     const ca=await campaignAccess(user.sub,campaignId);
     if(!ca) return reply.code(404).send({error:"NOT_FOUND"});
-    if(!ca.access.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
+    if(!ca.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
     const parsed=workshopSessionSchema.safeParse(request.body);
     if(!parsed.success) return reply.code(400).send({error:"INVALID_BODY",details:parsed.error.flatten()});
     const d=parsed.data;
@@ -192,7 +184,7 @@ export async function registerPilotage(app:FastifyInstance){
     const user=await requireUser(request),{campaignId,sessionId}=request.params as any;
     const ca=await campaignAccess(user.sub,campaignId);
     if(!ca) return reply.code(404).send({error:"NOT_FOUND"});
-    if(!ca.access.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
+    if(!ca.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
     const parsed=workshopSessionSchema.partial().omit({workshopNo:true}).safeParse(request.body);
     if(!parsed.success) return reply.code(400).send({error:"INVALID_BODY",details:parsed.error.flatten()});
     const d=parsed.data;
@@ -215,7 +207,7 @@ export async function registerPilotage(app:FastifyInstance){
     const user=await requireUser(request),{campaignId,no}=request.params as any;
     const ca=await campaignAccess(user.sub,campaignId);
     if(!ca) return reply.code(404).send({error:"NOT_FOUND"});
-    if(!ca.access.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
+    if(!ca.canWrite) return reply.code(403).send({error:"FORBIDDEN"});
     const parsed=z.object({completed:z.boolean(),notes:z.string().max(10000).default("")}).safeParse(request.body);
     if(!parsed.success) return reply.code(400).send({error:"INVALID_BODY"});
     const {rows}=await pool.query(`INSERT INTO pcif_workshops(campaign_id,workshop_no,completed,notes,updated_by)

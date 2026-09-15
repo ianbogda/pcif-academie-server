@@ -13,15 +13,15 @@ const actorFunctions=[
 ] as const;
 function functionCodeFor(role:string){return actorFunctions.find(x=>x[1].toLocaleLowerCase("fr")===role.trim().toLocaleLowerCase("fr"))?.[0]||""}
 
-export function OrganisationPcif({campaignId,initialView="ofn",showTabs=true}:{campaignId:string;initialView?:"ofn"|"process";showTabs?:boolean}){
+export function OrganisationPcif({campaignId,initialView="ofn",showTabs=true,readOnly=false}:{campaignId:string;initialView?:"ofn"|"process";showTabs?:boolean;readOnly?:boolean}){
  const[data,setData]=useState<OrganisationData|null>(null),[view,setView]=useState<"ofn"|"process">(initialView);
  async function load(){setData(await api.organisation(campaignId))}useEffect(()=>{load()},[campaignId]);
  if(!data)return <div className="pcif-loading">Chargement de l’organisation…</div>;
- return <section>{showTabs&&<div className="org-tabs"><button className={view==="ofn"?"active":""} onClick={()=>setView("ofn")}>Organigramme fonctionnel</button><button className={view==="process"?"active":""} onClick={()=>setView("process")}>Processus & logigrammes</button></div>}{view==="ofn"?<OfnBuilder data={data} campaignId={campaignId} reload={load}/>:<Processes data={data} campaignId={campaignId} reload={load}/>}</section>
+ return <section>{readOnly&&<div className="historical-banner"><b>Consultation d’audit</b><span>Lecture seule : les données produites par l’établissement ne peuvent pas être modifiées.</span></div>}{showTabs&&<div className="org-tabs"><button className={view==="ofn"?"active":""} onClick={()=>setView("ofn")}>Organigramme fonctionnel</button><button className={view==="process"?"active":""} onClick={()=>setView("process")}>Processus & logigrammes</button></div>}{view==="ofn"?<OfnBuilder data={data} campaignId={campaignId} reload={load} readOnly={readOnly}/>:<Processes data={data} campaignId={campaignId} reload={load} readOnly={readOnly}/>}</section>
 }
 
-function OfnBuilder({data,campaignId,reload}:any){
- const[step,setStep]=useState(1),[domain,setDomain]=useState("TOUS"),[processFilter,setProcessFilter]=useState("TOUS"),[search,setSearch]=useState(""),[sphere,setSphere]=useState("both"),[incompleteOnly,setIncompleteOnly]=useState(false);
+function OfnBuilder({data,campaignId,reload,readOnly=false}:any){
+ const[step,setStep]=useState(readOnly?4:1),[domain,setDomain]=useState("TOUS"),[processFilter,setProcessFilter]=useState("TOUS"),[search,setSearch]=useState(""),[sphere,setSphere]=useState("both"),[incompleteOnly,setIncompleteOnly]=useState(false);
  const[actorName,setActorName]=useState(""),[actorRole,setActorRole]=useState(""),[actorSphere,setActorSphere]=useState("ORDONNATEUR"),[service,setService]=useState("");
  const[checks,setChecks]=useState<any[]>([]),[selectedOps,setSelectedOps]=useState<Set<string>>(new Set());
  const domains=["TOUS",...Array.from(new Set(data.operations.map((o:any)=>o.category)))];
@@ -50,7 +50,7 @@ function OfnBuilder({data,campaignId,reload}:any){
  const existingUsers=new Set(data.actors.map((a:any)=>a.source_user_id).filter(Boolean));
  return <div className="onf-builder">
   <div className="onf-context"><div><span>ORGANIGRAMME FONCTIONNEL NOMINATIF</span><h2>Construire l’organisation réelle</h2><p>Identifiez les acteurs, leurs responsabilités, les délégations, les suppléances et les points de rupture.</p></div><dl><div><dt>Établissement</dt><dd>{data.context?.establishment_name} · {data.context?.uai}</dd></div><div><dt>Agence comptable</dt><dd>{data.context?.agency_name||"Non rattachée"}</dd></div><div><dt>Campagne</dt><dd>{data.context?.campaign_label}</dd></div></dl></div>
-  <div className="onf-steps">{steps.map(([n,l,s])=><button key={n} className={step===+n?"active":step>+n?"done":""} onClick={()=>setStep(+n)}><i>{step>+n?"✓":n}</i><b>{l}</b><small>{s}</small></button>)}</div>
+  {!readOnly&&<div className="onf-steps">{steps.map(([n,l,s])=><button key={n} className={step===+n?"active":step>+n?"done":""} onClick={()=>setStep(+n)}><i>{step>+n?"✓":n}</i><b>{l}</b><small>{s}</small></button>)}</div>}
   {step===1&&<section className="onf-stage"><header><span>ÉTAPE 1</span><h2>Qui intervient réellement ?</h2><p>Ajoutez les personnes qui interviennent dans la chaîne financière. Un acteur ONF n’a pas besoin d’avoir un compte PCIF Académie.</p></header>
    {!!data.suggestedActors?.filter((s:any)=>!existingUsers.has(s.user_id)).length&&<div className="actor-suggestions"><h3>Acteurs déjà connus de PCIF Académie</h3><p>Ces personnes sont proposées à partir de l’EPLE et de son agence comptable.</p>{data.suggestedActors.filter((s:any)=>!existingUsers.has(s.user_id)).map((s:any)=><button key={s.user_id} onClick={()=>addSuggested(s)}>+ <b>{s.name}</b><small>{roleLabel(s.role_code)} · {s.sphere}</small></button>)}</div>}
    <div className="actor-form"><label>Nom / prénom<input value={actorName} onChange={e=>setActorName(e.target.value)} placeholder="Ex. Marie Dupont"/></label><label>Fonction<input list="ofn-functions" value={actorRole} onChange={e=>{setActorRole(e.target.value);const preset=actorFunctions.find(x=>x[1]===e.target.value);if(preset)setActorSphere(preset[2])}} placeholder="Choisir ou créer une fonction"/><datalist id="ofn-functions">{actorFunctions.map(x=><option key={x[0]} value={x[1]}/>)}</datalist><small>La liste propose les fonctions usuelles ; tout autre intitulé reste possible.</small></label><label>Sphère<select value={actorSphere} onChange={e=>setActorSphere(e.target.value)}><option>ORDONNATEUR</option><option>COMPTABLE</option><option>MIXTE</option></select></label><label>Établissement / service<input value={service} onChange={e=>setService(e.target.value)} placeholder={data.context?.establishment_name}/></label></div><button className="primary-action" onClick={addActor}>+ Ajouter l’acteur</button>
@@ -76,7 +76,7 @@ function OfnBuilder({data,campaignId,reload}:any){
   {step===4&&<section className="onf-stage"><header><span>ÉTAPE 4</span><h2>Contrôler, consolider et valider</h2><p>Cette synthèse constitue le livrable de l’atelier. La validation crée une version datée et immuable de l’ONF.</p></header>
    <div className="org-kpis">{[[data.actors.length,"acteurs"],[covered,"opérations couvertes"],[data.assignments.filter((a:any)=>a.substitution).length,"suppléances"],[checks.length,"points à examiner"]].map((x:any)=><div key={x[1]}><b>{x[0]}</b><span>{x[1]}</span></div>)}</div>
    <OfnPreview data={data}/><div className="version-box"><h3>Versions de l’ONF</h3>{data.versions?.length?data.versions.map((v:any)=><div key={v.id}><b>Version {v.version_no}</b><span>{v.label}</span><small>{new Date(v.created_at).toLocaleString("fr-FR")}</small></div>):<p>Aucune version validée.</p>}</div>
-   <footer><button onClick={()=>setStep(3)}>← Sécurisation</button><button className="primary-action" onClick={validate}>✓ Valider une version de l’ONF</button></footer></section>}
+   {!readOnly&&<footer><button onClick={()=>setStep(3)}>← Sécurisation</button><button className="primary-action" onClick={validate}>✓ Valider une version de l’ONF</button></footer>}</section>}
  </div>
 }
 

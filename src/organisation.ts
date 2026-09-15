@@ -6,7 +6,7 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { pool } from "./db.js";
 import { requireUser } from "./auth.js";
-import { establishmentAccess } from "./access.js";
+import { campaignAccess } from "./access.js";
 
 const here=dirname(fileURLToPath(import.meta.url));
 const processRef=JSON.parse(await readFile(join(here,"../../data/pcif-processes-39.json"),"utf8"));
@@ -14,10 +14,7 @@ const fonctioRef=JSON.parse(await readFile(join(here,"../../data/fonctiopale-v5-
 const operations=fonctioRef.domains.flatMap((c:any)=>c.subcategories.flatMap((s:any)=>s.operations.map((o:any)=>({...o,category:c.category,subcategory:s.name}))));
 
 async function access(userId:string,campaignId:string){
- const {rows}=await pool.query(`SELECT establishment_id,status FROM campaigns WHERE id=$1`,[campaignId]);
- if(!rows.length)return null;
- const base=await establishmentAccess(userId,rows[0].establishment_id);
- return ["VALIDATED","ARCHIVED"].includes(rows[0].status)?{...base,canWrite:false,canWriteOrdonnateur:false,canWriteComptable:false,canWriteSynthese:false}:base;
+ return campaignAccess(userId,campaignId);
 }
 
 export async function registerOrganisation(app:FastifyInstance){

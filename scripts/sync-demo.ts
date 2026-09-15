@@ -38,10 +38,9 @@ try{
 
  const brossolette=demo.rows.find((e:any)=>e.uai==="0280002B");
  if(brossolette){
-   await client.query(`DELETE FROM user_establishment_roles uer USING roles r WHERE uer.role_id=r.id AND uer.user_id=$1 AND r.code='AUDITOR'`,[auditor.id]);
+   await client.query(`INSERT INTO user_establishment_roles(user_id,establishment_id,role_id) SELECT $1,$2,id FROM roles WHERE code='AUDITOR' ON CONFLICT DO NOTHING`,[auditor.id,brossolette.id]);
    await client.query(`DELETE FROM auditor_scopes WHERE user_id=$1`,[auditor.id]);
-   await client.query(`INSERT INTO auditor_scopes(user_id,scope_type,establishment_id,valid_from,valid_until,observations_allowed)
-     VALUES($1,'ESTABLISHMENT',$2,'2026-09-15','2026-11-30',true)`,[auditor.id,brossolette.id]);
+   await client.query(`DELETE FROM audit_missions WHERE auditor_user_id=$1`,[auditor.id]);
  }
 
  for(const e of demo.rows){
@@ -117,6 +116,8 @@ try{
    ORDER BY c.created_at LIMIT 1`,[rv.id])).rows[0];
 
  if(target){
+   await client.query(`INSERT INTO audit_missions(auditor_user_id,campaign_id,granted_by,valid_from,valid_until,observations_allowed,status,purpose)
+     VALUES($1,$2,$3,CURRENT_DATE,CURRENT_DATE+INTERVAL '90 days',true,'OPEN','Mission de démonstration')`,[auditor.id,target.id,admin.id]);
    const qs=await client.query(`
      SELECT id,responsibility,sort_order FROM (
        SELECT q.id,q.responsibility,q.sort_order,q.domain,

@@ -6,6 +6,8 @@ export type RoleCode =
   | "SECRETARY_GENERAL"
   | "CONTRIBUTOR"
   | "READER"
+  | "DEPARTMENT_ADMIN"
+  | "ACADEMY_ADMIN"
   | "AUDITOR";
 
 export type Sphere = "ORDONNATEUR" | "COMPTABLE" | "SYNTHESE";

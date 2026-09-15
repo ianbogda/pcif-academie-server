@@ -1,5 +1,5 @@
 export type Me = {
-  user: { sub: string; email: string; displayName: string; isPlatformAdmin?: boolean; isAuditor?:boolean };
+  user: { sub: string; email: string; displayName: string; isPlatformAdmin?: boolean; isAuditor?:boolean;isAuditManager?:boolean };
   establishments: Array<{ id: string; uai: string; name: string; role: string }>;
   agencies: Array<{ id: string; name: string; role: string }>;
 };
@@ -31,7 +31,7 @@ export type WorkshopSession = {
   reason:string;participants:string;notes:string;decisions:string;deliverable:string;
   exit_criteria:Record<string,boolean>;updated_at:string;updated_by_name?:string|null;
 };
-export type PilotageData = {questions:PilotageQuestion[];actions:PcifAction[];workshops:WorkshopProgress[];workshopSessions:WorkshopSession[]};
+export type PilotageData = {questions:PilotageQuestion[];actions:PcifAction[];workshops:WorkshopProgress[];workshopSessions:WorkshopSession[];access?:{auditOnly:boolean;canWrite:boolean}};
 export type BenchmarkData={current:number|null;agency:BenchmarkCohort;department:BenchmarkCohort;academy:BenchmarkCohort};
 export type BenchmarkCohort={count:number;average:number|null;values:number[]};
 export type AuditData={campaign:any;observationsAllowed:boolean;findings:{withoutEvidence:any[];divergences:any[];risksWithoutAction:any[];overdueActions:any[];progressions:any[];processesWithoutFormalisation:number;unassignedOperations:number};observations:any[]};
@@ -175,6 +175,9 @@ export const api = {
   audit:(campaignId:string)=>request<AuditData>(`/api/campaigns/${campaignId}/audit`),
   createAuditObservation:(campaignId:string,payload:any)=>request<any>(`/api/campaigns/${campaignId}/audit/observations`,{method:"POST",body:JSON.stringify(payload)}),
   respondAuditObservation:(campaignId:string,id:string,payload:any)=>request<any>(`/api/campaigns/${campaignId}/audit/observations/${id}`,{method:"PATCH",body:JSON.stringify(payload)}),
+  auditManagement:()=>request<any>("/api/audit-management/context"),
+  createAuditMission:(payload:any)=>request<any>("/api/audit-management/missions",{method:"POST",body:JSON.stringify(payload)}),
+  updateAuditMission:(id:string,status:string)=>request<any>(`/api/audit-management/missions/${id}`,{method:"PATCH",body:JSON.stringify({status})}),
   organisation: (id:string) => request<OrganisationData>(`/api/campaigns/${id}/organisation`),
   createOfnActor:(campaignId:string,payload:any)=>request<OfnActor>(`/api/campaigns/${campaignId}/ofn/actors`,{method:"POST",body:JSON.stringify(payload)}),
   updateOfnActor:(campaignId:string,actorId:string,payload:any)=>request<OfnActor>(`/api/campaigns/${campaignId}/ofn/actors/${actorId}`,{method:"PATCH",body:JSON.stringify(payload)}),

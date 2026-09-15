@@ -2,7 +2,7 @@
 
 Application collaborative de pilotage du contrôle interne financier des EPLE.
 
-Version courante : **0.26.0**.
+Version courante : **0.27.0**.
 
 La version actuelle propose le référentiel PCIF de 267 contrôles, le diagnostic partagé ordonnateur/comptable, la cartographie des risques, les ateliers, le plan d’action et la construction de l’organigramme fonctionnel nominatif (ONF).
 
@@ -164,6 +164,8 @@ sudo journalctl -u pcif-academie-demo -n 100 --no-pager
 En démonstration, trois campagnes réelles de test — 2024-2025, 2025-2026 et 2026-2027 — alimentent le tableau de bord. Les campagnes historiques sont validées, consultables en lecture seule et contiennent des plans d’action fictifs avec différents niveaux de réalisation.
 
 Le rôle Auditeur dispose d’un mode dédié : analyse des points d’attention, navigation en lecture seule dans la chaîne de maîtrise et observations séparées des données produites par l’établissement. Son périmètre de mission peut viser des EPLE, une agence, un département ou une académie, avec dates de validité.
+
+L’accès d’un auditeur est désormais accordé par **mission et par campagne**, avec des dates obligatoires. Il ne voit pas les ateliers ; l’ONF et les processus/logigrammes sont consultables sans modification. Une mission peut être ouverte ou révoquée par l’agent comptable pour son groupement, par un administrateur départemental pour son département, par un administrateur académique pour son académie, ou par l’administrateur plateforme.
 
 Depuis le tableau de bord d’une campagne, **Exporter vers CARTOP@LE** télécharge un fichier HTML autonome conforme au marqueur `CARTOPALE_EMBEDDED_SAVE_v1`. Il contient exclusivement le cartouche, les réponses consolidées, les observations et le plan d’action de la campagne affichée. L’export est aussi disponible pour les campagnes historiques en lecture seule et sa génération est journalisée.
 
