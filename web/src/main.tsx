@@ -10,15 +10,17 @@ type View={kind:"home"}|{kind:"campaign";campaign:Campaign;establishment:Establi
 const isDemo=import.meta.env.VITE_DEPLOYMENT_ENV==="demo";
 
 function Logo(){return <div className="pcif-logo"><div className="logo-shield">✓</div><div><b>PCIF Académie</b><small>Pilotage du contrôle interne financier</small></div></div>}
+function DemoBanner(){return isDemo?<div className="demo-banner" role="status"><strong>ENVIRONNEMENT DE DÉMONSTRATION</strong><span>Données réinitialisées automatiquement chaque heure</span></div>:null}
 function App(){
  const[me,setMe]=useState<Me|null>(null),[view,setView]=useState<View>({kind:"home"}),[busy,setBusy]=useState(!!getToken());
  const[active,setActive]=useState<Establishment|null>(null),[ets,setEts]=useState<Establishment[]>([]);
  async function session(){setBusy(true);try{const m=await api.me(),e=await api.establishments();setMe(m);setEts(e);setActive(e[0]??null)}catch{clearToken();setMe(null)}finally{setBusy(false)}}
  useEffect(()=>{getToken()?session():setBusy(false)},[]);
- if(busy)return <div className="splash"><Logo/><span>Chargement…</span></div>;
+ if(busy)return <><DemoBanner/><div className={`splash${isDemo?" demo-mode":""}`}><Logo/><span>Chargement…</span></div></>;
  if(!me)return <Login onLogin={session}/>;
  const logout=()=>{clearToken();setMe(null);setView({kind:"home"})};
- return <div className="pcif-app">
+ return <div className={`pcif-app${isDemo?" demo-mode":""}`}>
+   <DemoBanner/>
    <aside className="sidebar">
     <Logo/>
     <div className="profile"><small>Utilisateur connecté</small><strong>{me.user.displayName}</strong><span>{me.user.email}</span></div>
@@ -49,7 +51,7 @@ function App(){
 function Login({onLogin}:{onLogin:()=>Promise<void>}){
  const[email,setEmail]=useState(demo[0]?.[1]??""),[password,setPassword]=useState(demo[0]?.[2]??""),[err,setErr]=useState("");
  async function go(e:React.FormEvent){e.preventDefault();try{const r=await api.login(email,password);setToken(r.accessToken);await onLogin()}catch{setErr("Identifiants incorrects ou compte indisponible.")}}
- return <div className="login"><section><Logo/><h1>Bienvenue</h1><p>Retrouvez PCIF Académie dans son environnement métier, désormais collaboratif et multi‑établissements.</p><form onSubmit={go}><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Mot de passe<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>{err&&<div className="error">{err}</div>}<button className="primary">Se connecter</button></form></section>{isDemo&&<aside><b>Profils de démonstration</b>{demo.map(([l,m,p])=><button key={m} onClick={()=>{setEmail(m);setPassword(p)}}><span>{l}</span><small>{m}</small></button>)}</aside>}</div>
+ return <><DemoBanner/><div className={`login${isDemo?" demo-mode":""}`}><section><Logo/><h1>Bienvenue</h1><p>Retrouvez PCIF Académie dans son environnement métier, désormais collaboratif et multi‑établissements.</p><form onSubmit={go}><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Mot de passe<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>{err&&<div className="error">{err}</div>}<button className="primary">Se connecter</button></form></section>{isDemo&&<aside><b>Profils de démonstration</b>{demo.map(([l,m,p])=><button key={m} onClick={()=>{setEmail(m);setPassword(p)}}><span>{l}</span><small>{m}</small></button>)}</aside>}</div></>
 }
 function Dashboard({establishment,onOpen}:{establishment:Establishment|null;onOpen:(c:Campaign,e:Establishment)=>void}){
  const[camps,setCamps]=useState<Campaign[]>([]);useEffect(()=>{establishment?api.campaigns(establishment.id).then(setCamps):setCamps([])},[establishment?.id]);

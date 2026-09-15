@@ -15,7 +15,11 @@ APP="/opt/pcif-academie-${ENVIRONMENT}"
 APP_USER="pcif-${ENVIRONMENT}"
 SERVICE="pcif-academie-${ENVIRONMENT}"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [[ "$ENVIRONMENT" == "prod" ]]; then PORT=3000; else PORT=3001; fi
+if [[ "$ENVIRONMENT" == "prod" ]]; then
+  PORT=3000; DOMAIN="pcif.eple-tools.fr"
+else
+  PORT=3001; DOMAIN="demopcif.eple-tools.fr"
+fi
 HEALTH_URL="http://127.0.0.1:${PORT}/health"
 [[ -f "$APP/.env" ]] || { echo "Installation ${ENVIRONMENT} introuvable dans $APP." >&2; exit 1; }
 
@@ -80,6 +84,30 @@ for ((i=1; i<=30; i++)); do
   sleep 1
 done
 [[ "${API_OK:-0}" == 1 ]] || fail "L'API ne répond pas après 30 secondes."
+remove_legacy_caddy_site() {
+  local config=/etc/caddy/Caddyfile
+  grep -Fq "$DOMAIN {" "$config" 2>/dev/null || return 0
+  cp -a "$config" "${config}.before-pcif-${ENVIRONMENT}-$(date +%Y%m%d%H%M%S).bak"
+  awk -v target="$DOMAIN {" '
+    {
+      line=$0
+      trimmed=line
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", trimmed)
+      if (!skip && trimmed==target) { skip=1; depth=0 }
+      if (skip) {
+        opens=gsub(/\{/, "{", line)
+        closes=gsub(/\}/, "}", line)
+        depth+=opens-closes
+        if (depth<=0) skip=0
+        next
+      }
+      print
+    }
+  ' "$config" >"${config}.pcif-new"
+  install -m 0644 "${config}.pcif-new" "$config"
+  rm -f "${config}.pcif-new"
+}
+remove_legacy_caddy_site
 caddy validate --config /etc/caddy/Caddyfile
 systemctl reload caddy
 if [[ "$ENVIRONMENT" == "demo" ]]; then

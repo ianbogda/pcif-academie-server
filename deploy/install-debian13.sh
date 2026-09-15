@@ -168,6 +168,31 @@ if ! command -v caddy >/dev/null; then
   apt-get install -y caddy
 fi
 install -d -m 0755 /etc/caddy/sites
+remove_legacy_caddy_site() {
+  local config=/etc/caddy/Caddyfile
+  grep -Fq "$DOMAIN {" "$config" 2>/dev/null || return 0
+  cp -a "$config" "${config}.before-pcif-${ENVIRONMENT}-$(date +%Y%m%d%H%M%S).bak"
+  awk -v target="$DOMAIN {" '
+    {
+      line=$0
+      trimmed=line
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", trimmed)
+      if (!skip && trimmed==target) { skip=1; depth=0 }
+      if (skip) {
+        opens=gsub(/\{/, "{", line)
+        closes=gsub(/\}/, "}", line)
+        depth+=opens-closes
+        if (depth<=0) skip=0
+        next
+      }
+      print
+    }
+  ' "$config" >"${config}.pcif-new"
+  install -m 0644 "${config}.pcif-new" "$config"
+  rm -f "${config}.pcif-new"
+  echo "Ancien bloc Caddy ${DOMAIN} migré vers /etc/caddy/sites/."
+}
+remove_legacy_caddy_site
 grep -q '^import sites/\*$' /etc/caddy/Caddyfile 2>/dev/null || printf '\nimport sites/*\n' >>/etc/caddy/Caddyfile
 cat >"/etc/caddy/sites/pcif-academie-${ENVIRONMENT}.caddy" <<EOF
 ${DOMAIN} {

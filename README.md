@@ -1,4 +1,4 @@
-# PCIF Académie — v0.17.3 — déploiements et certificats Let's Encrypt
+# PCIF Académie — v0.17.4 — environnements identifiables et migration Caddy
 
 Première itération exécutable du serveur collaboratif multi-EPLE.
 
@@ -91,6 +91,15 @@ curl -I https://demopcif.eple-tools.fr
 ```
 
 Le renouvellement est géré par Caddy ; aucun cron Certbot ne doit être ajouté.
+
+Si une ancienne installation déclarait directement un domaine PCIF dans
+`/etc/caddy/Caddyfile`, l'installateur retire uniquement ce bloc, en conserve
+une sauvegarde horodatée, puis utilise le fichier dédié dans
+`/etc/caddy/sites/`. Cela évite les définitions de site ambiguës.
+
+L'environnement de démonstration affiche en permanence un bandeau ambre
+indiquant que les données sont réinitialisées chaque heure. Aucun bandeau
+n'apparaît en production.
 
 Mise à jour ciblée :
 
