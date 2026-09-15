@@ -157,4 +157,6 @@ sudo journalctl -u pcif-academie-demo -n 100 --no-pager
 
 ## Version
 
-Version actuelle : **0.21.0**.
+En démonstration, un scénario fictif sur trois campagnes alimente le tableau de bord. Il est explicitement identifié et n’est jamais utilisé en production.
+
+Version actuelle : **0.22.0**.
