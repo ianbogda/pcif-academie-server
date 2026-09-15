@@ -6,6 +6,8 @@ La version actuelle propose le référentiel PCIF de 267 contrôles, le diagnost
 
 Le tableau de bord consolide les données de la campagne active : couverture, maîtrise pondérée, risques prioritaires, plan d’action et résultats par domaine. Il permet aussi une comparaison anonymisée avec les EPLE de l’agence comptable, du département ou de l’académie, lorsque l’échantillon contient des campagnes renseignées.
 
+La navigation sépare clairement cinq espaces : tableau de bord, pilotage PCIF, ateliers, organigramme fonctionnel et processus/logigrammes. Le pilotage regroupe uniquement le diagnostic, les risques et le programme annuel.
+
 ## Environnements
 
 | Environnement | Adresse | Particularité |
@@ -159,4 +161,4 @@ sudo journalctl -u pcif-academie-demo -n 100 --no-pager
 
 En démonstration, un scénario fictif sur trois campagnes alimente le tableau de bord. Il est explicitement identifié et n’est jamais utilisé en production.
 
-Version actuelle : **0.22.0**.
+Version actuelle : **0.23.0**.

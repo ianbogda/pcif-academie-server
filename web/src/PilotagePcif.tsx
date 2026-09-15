@@ -27,11 +27,14 @@ function residual(q:PilotageQuestion){const f=factor(q.value);return f===null?0:
 function sev(n:number){return n>=6?["crit","Critique"]:n>=4?["high","Élevé"]:n>=2?["med","Modéré"]:["low","Faible"]}
 
 export type PilotageTab="dashboard"|"diagnostic"|"risks"|"annual"|"workshops"|"organisation";
-export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashboard",organisationView="ofn"}:{campaign:Campaign;establishment:Establishment;me:Me;onBack:()=>void;initialTab?:PilotageTab;organisationView?:"ofn"|"process"}){
- const[data,setData]=useState<PilotageData|null>(null),[tab,setTab]=useState<PilotageTab>(initialTab);
+export type WorkspaceSection="pilotage"|"workshops"|"onf"|"processes";
+export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashboard",section="pilotage",onNavigate}:{campaign:Campaign;establishment:Establishment;me:Me;onBack:()=>void;initialTab?:PilotageTab;section?:WorkspaceSection;onNavigate?:(section:WorkspaceSection,tab?:PilotageTab)=>void}){
+ const firstTab=section==="workshops"?"workshops":section==="onf"||section==="processes"?"organisation":initialTab;
+ const[data,setData]=useState<PilotageData|null>(null),[tab,setTab]=useState<PilotageTab>(firstTab);
  const[scope,setScope]=useState<"both"|"O"|"C">("both"),[mode,setMode]=useState<"all"|"sprint"|"critical"|"unanswered">("all"),[domain,setDomain]=useState("TOUS"),[idx,setIdx]=useState(0);
  async function load(){setData(await api.pilotage(campaign.id))}
  useEffect(()=>{load()},[campaign.id]);
+ useEffect(()=>{setTab(section==="workshops"?"workshops":section==="onf"||section==="processes"?"organisation":initialTab)},[section,initialTab]);
  if(!data)return <div className="pcif-loading">Chargement du pilotage…</div>;
 
  const byQuestion=new Map<string,PilotageQuestion>();
@@ -64,25 +67,24 @@ export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashb
    return{domain:d,total:dqs.length,done,coverage:c,mastery:m,effective:e,level:e===100?5:Math.min(5,Math.floor(e/20))}
  });
 
+ const sectionTitle=section==="workshops"?"Ateliers PCIF":section==="onf"?"Organigramme fonctionnel":section==="processes"?"Processus & logigrammes":"Pilotage du PCIF";
  return <div className="pilot-shell">
   <div className="pilot-head">
-   <div><button className="text-btn" onClick={onBack}>← Établissements</button><div className="pilot-kicker">PCIF ACADÉMIE · {establishment.uai}</div><h1>Pilotage du PCIF</h1><p>{establishment.name} · {campaign.label}</p></div>
+   <div><button className="text-btn" onClick={onBack}>← Tableau de bord</button><div className="pilot-kicker">PCIF ACADÉMIE · {establishment.uai}</div><h1>{sectionTitle}</h1><p>{establishment.name} · {campaign.label}</p></div>
    <div className="pilot-scope"><button className={scope==="both"?"active":""} onClick={()=>setScope("both")}>Les deux sphères</button><button className={scope==="O"?"active ord":""} onClick={()=>setScope("O")}>Ordonnateur</button><button className={scope==="C"?"active cpt":""} onClick={()=>setScope("C")}>Agence comptable</button></div>
   </div>
-  <nav className="pilot-tabs">
+  {section==="pilotage"&&<nav className="pilot-tabs">
    <button className={tab==="dashboard"?"active":""} onClick={()=>setTab("dashboard")}>Tableau de bord</button>
    <button className={tab==="diagnostic"?"active":""} onClick={()=>setTab("diagnostic")}>Diagnostic</button>
    <button className={tab==="risks"?"active":""} onClick={()=>setTab("risks")}>Risques</button>
    <button className={tab==="annual"?"active":""} onClick={()=>setTab("annual")}>Programme annuel</button>
-   <button className={tab==="workshops"?"active":""} onClick={()=>setTab("workshops")}>Ateliers 4 × 60</button>
-   <button className={tab==="organisation"?"active":""} onClick={()=>setTab("organisation")}>ONF & Processus</button>
-  </nav>
-  {tab==="dashboard"&&<Dashboard qs={qs} metrics={metrics} answered={answered} critical={critical} mastery={mastery} coverage={coverage} actions={data.actions} workshops={data.workshops} go={setTab}/>}
+  </nav>}
+  {tab==="dashboard"&&<Dashboard qs={qs} metrics={metrics} answered={answered} critical={critical} mastery={mastery} coverage={coverage} actions={data.actions} workshops={data.workshops} go={(target:string)=>target==="workshops"?onNavigate?.("workshops"):setTab(target as PilotageTab)}/>} 
   {tab==="diagnostic"&&<Diagnostic qs={qs} actions={data.actions} campaignId={campaign.id} mode={mode} setMode={setMode} domain={domain} setDomain={setDomain} idx={idx} setIdx={setIdx} reload={load}/>}
   {tab==="risks"&&<RiskView qs={qs}/>}
   {tab==="annual"&&<Annual data={data} campaignId={campaign.id} reload={load}/>}
   {tab==="workshops"&&<Workshops data={data} campaignId={campaign.id} reload={load}/>}
-  {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id} initialView={organisationView}/>} 
+  {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id} initialView={section==="processes"?"process":"ofn"} showTabs={false}/>} 
  </div>
 }
 

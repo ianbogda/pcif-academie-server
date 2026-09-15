@@ -1,4 +1,4 @@
-import { PilotagePcif,type PilotageTab } from "./PilotagePcif";
+import { PilotagePcif,type PilotageTab,type WorkspaceSection } from "./PilotagePcif";
 import "bootstrap/dist/css/bootstrap.min.css";
 import React,{useEffect,useMemo,useState} from "react";
 import{createRoot}from"react-dom/client";
@@ -6,7 +6,7 @@ import{api,clearToken,getToken,setToken,type AdminUser,type BenchmarkData,type C
 import { demoProfiles as demo } from "./demoProfiles";
 import"./styles.css";
 
-type View={kind:"home"}|{kind:"campaign";campaign:Campaign;establishment:Establishment;tab?:PilotageTab;organisationView?:"ofn"|"process"}|{kind:"admin"};
+type View={kind:"home"}|{kind:"campaign";campaign:Campaign;establishment:Establishment;section:WorkspaceSection;tab?:PilotageTab}|{kind:"admin"};
 const isDemo=import.meta.env.VITE_DEPLOYMENT_ENV==="demo";
 const demoDashboard={mastery:72,coverage:64,critical:12,actions:11,done:6,answered:171,total:267,
  history:[{year:"2024",value:48},{year:"2025",value:61},{year:"2026",value:72}],
@@ -23,7 +23,7 @@ function App(){
  if(busy)return <><DemoBanner/><div className={`splash${isDemo?" demo-mode":""}`}><Logo/><span>Chargement…</span></div></>;
  if(!me)return new URLSearchParams(location.search).get("resetToken")?<ResetPassword/>:<Login onLogin={session}/>;
  const logout=()=>{clearToken();setMe(null);setView({kind:"home"})};
- const openShortcut=async(tab:PilotageTab,organisationView?:"ofn"|"process")=>{if(!active)return;const camps=await api.campaigns(active.id);const campaign=camps[0];if(campaign)setView({kind:"campaign",campaign,establishment:active,tab,organisationView})};
+ const openShortcut=async(section:WorkspaceSection,tab?:PilotageTab)=>{if(!active)return;const camps=await api.campaigns(active.id);const campaign=camps[0];if(campaign)setView({kind:"campaign",campaign,establishment:active,section,tab})};
  return <div className={`pcif-app${isDemo?" demo-mode":""}`}>
    <DemoBanner/>
    <aside className="sidebar">
@@ -31,9 +31,10 @@ function App(){
     <div className="profile"><small>Utilisateur connecté</small><strong>{me.user.displayName}</strong><span>{me.user.email}</span></div>
     <nav>
       <button className={view.kind==="home"?"active":""} onClick={()=>setView({kind:"home"})}>⌂ Tableau de bord</button>
-      <button onClick={()=>openShortcut("workshops")}>◎ Ateliers PCIF</button>
-      <button onClick={()=>openShortcut("organisation","ofn")}>♙ Organigramme fonctionnel</button>
-      <button onClick={()=>openShortcut("organisation","process")}>⌘ Processus & logigrammes</button>
+      <button className={view.kind==="campaign"&&view.section==="pilotage"?"active":""} onClick={()=>openShortcut("pilotage")}>◉ Pilotage PCIF</button>
+      <button className={view.kind==="campaign"&&view.section==="workshops"?"active":""} onClick={()=>openShortcut("workshops")}>◎ Ateliers PCIF</button>
+      <button className={view.kind==="campaign"&&view.section==="onf"?"active":""} onClick={()=>openShortcut("onf")}>♙ Organigramme fonctionnel</button>
+      <button className={view.kind==="campaign"&&view.section==="processes"?"active":""} onClick={()=>openShortcut("processes")}>⌘ Processus & logigrammes</button>
       {me.user.isPlatformAdmin&&<button className={view.kind==="admin"?"active":""} onClick={()=>setView({kind:"admin"})}>⚙ Administration</button>}
     </nav>
     <div className="sidebar-foot"><button onClick={logout}>Déconnexion</button></div>
@@ -49,8 +50,8 @@ function App(){
       <div className="rolechips">{me.agencies.map(a=><span key={a.id}>{roleLabel(a.role)}</span>)}{me.establishments.filter(x=>x.id===active?.id).map(x=><span key={x.role}>{roleLabel(x.role)}</span>)}</div>
     </header>
     <main>
-      {view.kind==="home"&&<Dashboard establishment={active} onOpen={(c,e)=>setView({kind:"campaign",campaign:c,establishment:e})}/>}
-      {view.kind==="campaign"&&<PilotagePcif me={me} campaign={view.campaign} establishment={view.establishment} initialTab={view.tab} organisationView={view.organisationView} onBack={()=>setView({kind:"home"})}/>} 
+      {view.kind==="home"&&<Dashboard establishment={active} onOpen={(c,e)=>setView({kind:"campaign",campaign:c,establishment:e,section:"pilotage"})}/>} 
+      {view.kind==="campaign"&&<PilotagePcif me={me} campaign={view.campaign} establishment={view.establishment} initialTab={view.tab} section={view.section} onNavigate={(section,tab)=>setView({...view,section,tab})} onBack={()=>setView({kind:"home"})}/>} 
       {view.kind==="admin"&&<AdminHub establishments={ets}/>}
     </main>
    </div>
