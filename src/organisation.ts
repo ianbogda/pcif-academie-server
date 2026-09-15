@@ -14,9 +14,10 @@ const fonctioRef=JSON.parse(await readFile(join(here,"../../data/fonctiopale-v5-
 const operations=fonctioRef.domains.flatMap((c:any)=>c.subcategories.flatMap((s:any)=>s.operations.map((o:any)=>({...o,category:c.category,subcategory:s.name}))));
 
 async function access(userId:string,campaignId:string){
- const {rows}=await pool.query(`SELECT establishment_id FROM campaigns WHERE id=$1`,[campaignId]);
+ const {rows}=await pool.query(`SELECT establishment_id,status FROM campaigns WHERE id=$1`,[campaignId]);
  if(!rows.length)return null;
- return establishmentAccess(userId,rows[0].establishment_id);
+ const base=await establishmentAccess(userId,rows[0].establishment_id);
+ return ["VALIDATED","ARCHIVED"].includes(rows[0].status)?{...base,canWrite:false,canWriteOrdonnateur:false,canWriteComptable:false,canWriteSynthese:false}:base;
 }
 
 export async function registerOrganisation(app:FastifyInstance){

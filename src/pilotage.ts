@@ -6,9 +6,10 @@ import { requireUser } from "./auth.js";
 import { establishmentAccess } from "./access.js";
 
 async function campaignAccess(userId:string,campaignId:string){
-  const {rows}=await pool.query(`SELECT id,establishment_id FROM campaigns WHERE id=$1`,[campaignId]);
+  const {rows}=await pool.query(`SELECT id,establishment_id,status FROM campaigns WHERE id=$1`,[campaignId]);
   if(!rows.length) return null;
-  const access=await establishmentAccess(userId,rows[0].establishment_id);
+  const base=await establishmentAccess(userId,rows[0].establishment_id),locked=["VALIDATED","ARCHIVED"].includes(rows[0].status);
+  const access=locked?{...base,canWrite:false,canWriteOrdonnateur:false,canWriteComptable:false,canWriteSynthese:false}:base;
   return {campaign:rows[0],access};
 }
 

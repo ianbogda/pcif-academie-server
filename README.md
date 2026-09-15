@@ -159,6 +159,8 @@ sudo journalctl -u pcif-academie-demo -n 100 --no-pager
 
 ## Version
 
-En démonstration, un scénario fictif sur trois campagnes alimente le tableau de bord. Il est explicitement identifié et n’est jamais utilisé en production.
+En démonstration, trois campagnes réelles de test — 2024-2025, 2025-2026 et 2026-2027 — alimentent le tableau de bord. Les campagnes historiques sont validées, consultables en lecture seule et contiennent des plans d’action fictifs avec différents niveaux de réalisation.
 
-Version actuelle : **0.23.0**.
+La matrice technique des rôles est documentée dans `docs/MATRICE-DES-DROITS.md`.
+
+Version actuelle : **0.24.0**.

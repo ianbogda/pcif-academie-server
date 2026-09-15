@@ -232,6 +232,7 @@ app.put("/api/campaigns/:campaignId/answers/:questionId", async (request, reply)
 
   const campaign = await pool.query(`SELECT * FROM campaigns WHERE id=$1`, [campaignId]);
   if (!campaign.rowCount) return reply.code(404).send({ error: "CAMPAIGN_NOT_FOUND" });
+  if (["VALIDATED","ARCHIVED"].includes(campaign.rows[0].status)) return reply.code(409).send({ error: "CAMPAIGN_READ_ONLY" });
   const access = await establishmentAccess(user.sub, campaign.rows[0].establishment_id);
   if (!access.canWrite) return reply.code(403).send({ error: "FORBIDDEN" });
   if (!canWriteSphere(access, parsed.data.sphere)) {

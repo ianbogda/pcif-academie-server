@@ -78,6 +78,33 @@ try{
      WHERE establishment_id=$1 AND id<>$2
        AND status IN ('DRAFT','OPEN','REVIEW')
        AND repository_version_id<>$3`,[e.id,cid,rv.id]);
+
+   // Deux campagnes historiques réelles, consultables depuis le tableau de bord.
+   const history=[
+     {label:`PCIF 2024-2025 — ${e.uai}`,date:"2024-09-01",yes:3,partial:7},
+     {label:`PCIF 2025-2026 — ${e.uai}`,date:"2025-09-01",yes:5,partial:8}
+   ];
+   for(const h of history){
+     let historic=(await client.query(`SELECT id FROM campaigns WHERE establishment_id=$1 AND label=$2 LIMIT 1`,[e.id,h.label])).rows[0];
+     if(!historic) historic=(await client.query(`INSERT INTO campaigns(establishment_id,repository_version_id,label,status,created_by,created_at,updated_at)
+       VALUES($1,$2,$3,'VALIDATED',$4,$5::date,$5::date) RETURNING id`,[e.id,rv.id,h.label,admin.id,h.date])).rows[0];
+     else await client.query(`UPDATE campaigns SET repository_version_id=$1,status='VALIDATED',created_at=$2::date,updated_at=$2::date WHERE id=$3`,[rv.id,h.date,historic.id]);
+     await client.query(`DELETE FROM answers WHERE campaign_id=$1`,[historic.id]);
+     await client.query(`DELETE FROM pcif_actions WHERE campaign_id=$1`,[historic.id]);
+     const hqs=(await client.query(`SELECT id,responsibility,sort_order FROM questions WHERE repository_version_id=$1 AND active=true ORDER BY sort_order`,[rv.id])).rows;
+     for(let qi=0;qi<hqs.length;qi++){
+       const q=hqs[qi],mod=qi%10,value=mod<h.yes?3:mod<h.partial?2:1,sphere=q.responsibility==='COMPTABLE'?'COMPTABLE':'ORDONNATEUR';
+       await client.query(`INSERT INTO answers(campaign_id,question_id,sphere,value,comment,version,updated_by,updated_at)
+         VALUES($1,$2,$3,$4,$5,1,$6,$7::date)`,[historic.id,q.id,sphere,value,`Diagnostic fictif ${h.label}`,admin.id,h.date]);
+     }
+     const actionQuestions=hqs.filter((_:any,qi:number)=>{const mod=qi%10;return mod>=h.yes}).slice(0,6);
+     for(let ai=0;ai<actionQuestions.length;ai++){
+       const q=actionQuestions[ai],older=h.date.startsWith('2024'),status=older?(ai<5?'REALISEE':'EN_COURS'):(ai<3?'REALISEE':ai<5?'EN_COURS':'A_LANCER');
+       await client.query(`INSERT INTO pcif_actions(campaign_id,question_id,sphere,action_text,priority,period,actor,status,target_date,note,created_by,updated_by,created_at,updated_at)
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::date,$10,$11,$11,$12::date,$12::date)`,
+         [historic.id,q.id,q.responsibility==='COMPTABLE'?'COMPTABLE':'ORDONNATEUR',`Action de sécurisation ${ai+1} — ${h.label}`,ai<2?'P1':'P2',older?'2024-2025':'2025-2026',ai%2?'Secrétaire général':'Agent comptable',status,older?'2025-06-30':'2026-06-30',status==='REALISEE'?'Action réalisée et preuve archivée.':'Action à poursuivre dans la campagne suivante.',admin.id,h.date]);
+     }
+   }
  }
 
  // Préremplissage réaliste sur Brossolette : 36 réponses prises sur le vrai référentiel.
@@ -107,5 +134,5 @@ try{
  }
 
  await client.query("COMMIT");
- console.log(`Démo synchronisée : ${demo.rowCount} EPLE, référentiel réglementaire vérifié à ${count} questions.`);
+ console.log(`Démo synchronisée : ${demo.rowCount} EPLE, 3 campagnes par EPLE, référentiel réglementaire vérifié à ${count} questions.`);
 }catch(e){await client.query("ROLLBACK");throw e}finally{client.release();await pool.end()}

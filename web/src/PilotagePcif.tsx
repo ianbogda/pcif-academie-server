@@ -68,11 +68,13 @@ export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashb
  });
 
  const sectionTitle=section==="workshops"?"Ateliers PCIF":section==="onf"?"Organigramme fonctionnel":section==="processes"?"Processus & logigrammes":"Pilotage du PCIF";
+ const historical=["VALIDATED","ARCHIVED"].includes(campaign.status);
  return <div className="pilot-shell">
   <div className="pilot-head">
    <div><button className="text-btn" onClick={onBack}>← Tableau de bord</button><div className="pilot-kicker">PCIF ACADÉMIE · {establishment.uai}</div><h1>{sectionTitle}</h1><p>{establishment.name} · {campaign.label}</p></div>
    <div className="pilot-scope"><button className={scope==="both"?"active":""} onClick={()=>setScope("both")}>Les deux sphères</button><button className={scope==="O"?"active ord":""} onClick={()=>setScope("O")}>Ordonnateur</button><button className={scope==="C"?"active cpt":""} onClick={()=>setScope("C")}>Agence comptable</button></div>
   </div>
+  {historical&&<div className="historical-banner"><b>Campagne historique · consultation</b><span>Cette campagne est validée. Les réponses et le plan d’action sont conservés en lecture seule.</span></div>}
   {section==="pilotage"&&<nav className="pilot-tabs">
    <button className={tab==="dashboard"?"active":""} onClick={()=>setTab("dashboard")}>Tableau de bord</button>
    <button className={tab==="diagnostic"?"active":""} onClick={()=>setTab("diagnostic")}>Diagnostic</button>
@@ -82,10 +84,15 @@ export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashb
   {tab==="dashboard"&&<Dashboard qs={qs} metrics={metrics} answered={answered} critical={critical} mastery={mastery} coverage={coverage} actions={data.actions} workshops={data.workshops} go={(target:string)=>target==="workshops"?onNavigate?.("workshops"):setTab(target as PilotageTab)}/>} 
   {tab==="diagnostic"&&<Diagnostic qs={qs} actions={data.actions} campaignId={campaign.id} mode={mode} setMode={setMode} domain={domain} setDomain={setDomain} idx={idx} setIdx={setIdx} reload={load}/>}
   {tab==="risks"&&<RiskView qs={qs}/>}
-  {tab==="annual"&&<Annual data={data} campaignId={campaign.id} reload={load}/>}
+  {tab==="annual"&&(historical?<HistoricalActionPlan data={data}/>:<Annual data={data} campaignId={campaign.id} reload={load}/>)} 
   {tab==="workshops"&&<Workshops data={data} campaignId={campaign.id} reload={load}/>}
   {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id} initialView={section==="processes"?"process":"ofn"} showTabs={false}/>} 
  </div>
+}
+
+function HistoricalActionPlan({data}:{data:PilotageData}){
+ const done=data.actions.filter(a=>a.status==="REALISEE").length;
+ return <section className="historical-plan"><header><div><span>PROGRAMME ANNUEL ARCHIVÉ</span><h2>Réalisation du plan d’action</h2><p>{done} action(s) réalisée(s) sur {data.actions.length}.</p></div><strong>{data.actions.length?Math.round(done*100/data.actions.length):0}%</strong></header>{data.actions.length?<div>{data.actions.map(a=><article key={a.id} className={a.status==="REALISEE"?"done":"pending"}><span>{a.priority}</span><div><b>{a.action_text}</b><small>{a.actor||"Pilote non renseigné"} · {a.period||a.target_date||"Échéance non renseignée"}</small><p>{a.note}</p></div><em>{a.status==="REALISEE"?"Réalisée":a.status==="EN_COURS"?"En cours":a.status==="PREPARATION"?"En préparation":"Non démarrée"}</em></article>)}</div>:<p className="empty-state">Aucune action n’était rattachée à cette campagne.</p>}</section>
 }
 
 function Dashboard({qs,metrics,answered,critical,mastery,coverage,actions,workshops,go}:any){
