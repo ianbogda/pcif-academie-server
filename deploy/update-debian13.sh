@@ -49,6 +49,7 @@ cd "$APP"
 if [[ -f package-lock.json ]]; then sudo -u "$APP_USER" npm ci; else sudo -u "$APP_USER" npm install; fi
 sudo -u "$APP_USER" npm run db:init
 sudo -u "$APP_USER" npm run db:reference
+sudo -u "$APP_USER" npm run db:directory-sync || echo "AVERTISSEMENT : annuaire Éducation non synchronisé ; conservation de la dernière copie locale."
 if [[ "$ENVIRONMENT" == "demo" ]]; then sudo -u "$APP_USER" npm run db:demo-sync; fi
 sudo -u "$APP_USER" npm run db:reference-check
 sudo -u "$APP_USER" npm run check
@@ -80,7 +81,30 @@ Unit=pcif-academie-demo-reset.service
 WantedBy=timers.target
 EOF
 fi
+cat >"/etc/systemd/system/pcif-academie-${ENVIRONMENT}-directory-sync.service" <<EOF
+[Unit]
+Description=Synchronisation de l'annuaire Éducation (${ENVIRONMENT})
+After=network-online.target postgresql.service
+[Service]
+Type=oneshot
+User=${APP_USER}
+Group=${APP_USER}
+WorkingDirectory=${APP}
+EnvironmentFile=${APP}/.env
+ExecStart=/usr/bin/npm run db:directory-sync
+EOF
+cat >"/etc/systemd/system/pcif-academie-${ENVIRONMENT}-directory-sync.timer" <<EOF
+[Unit]
+Description=Synchronisation quotidienne de l'annuaire Éducation (${ENVIRONMENT})
+[Timer]
+OnCalendar=*-*-* 02:25:00
+RandomizedDelaySec=900
+Persistent=true
+[Install]
+WantedBy=timers.target
+EOF
 systemctl daemon-reload
+systemctl enable --now "pcif-academie-${ENVIRONMENT}-directory-sync.timer"
 systemctl restart "$SERVICE"
 for ((i=1; i<=30; i++)); do
   curl -fsS "$HEALTH_URL" >/dev/null 2>&1 && API_OK=1 && break

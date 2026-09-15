@@ -109,6 +109,7 @@ cd "$APP_DIR"
 if [[ -f package-lock.json ]]; then sudo -u "$APP_USER" npm ci; else sudo -u "$APP_USER" npm install; fi
 sudo -u "$APP_USER" npm run db:init
 sudo -u "$APP_USER" npm run db:reference
+sudo -u "$APP_USER" npm run db:directory-sync || echo "AVERTISSEMENT : annuaire Éducation non synchronisé ; le timer réessaiera automatiquement."
 if [[ "$ENVIRONMENT" == "demo" ]]; then
   sudo -u "$APP_USER" npm run db:seed
   sudo -u "$APP_USER" npm run db:demo-sync
@@ -171,6 +172,29 @@ Unit=pcif-academie-demo-reset.service
 WantedBy=timers.target
 EOF
 fi
+
+cat >"/etc/systemd/system/pcif-academie-${ENVIRONMENT}-directory-sync.service" <<EOF
+[Unit]
+Description=Synchronisation de l'annuaire Éducation (${ENVIRONMENT})
+After=network-online.target postgresql.service
+[Service]
+Type=oneshot
+User=${APP_USER}
+Group=${APP_USER}
+WorkingDirectory=${APP_DIR}
+EnvironmentFile=${APP_DIR}/.env
+ExecStart=/usr/bin/npm run db:directory-sync
+EOF
+cat >"/etc/systemd/system/pcif-academie-${ENVIRONMENT}-directory-sync.timer" <<EOF
+[Unit]
+Description=Synchronisation quotidienne de l'annuaire Éducation (${ENVIRONMENT})
+[Timer]
+OnCalendar=*-*-* 02:25:00
+RandomizedDelaySec=900
+Persistent=true
+[Install]
+WantedBy=timers.target
+EOF
 
 echo "==> Caddy + HTTPS"
 apt-get install -y debian-keyring debian-archive-keyring apt-transport-https
@@ -240,6 +264,7 @@ if [[ "$ENVIRONMENT" == "prod" ]] && systemctl is-active --quiet pcif-academie.s
   systemctl disable --now pcif-academie.service
 fi
 systemctl enable --now "$SERVICE"
+systemctl enable --now "pcif-academie-${ENVIRONMENT}-directory-sync.timer"
 caddy validate --config /etc/caddy/Caddyfile
 systemctl enable --now caddy
 systemctl reload caddy
@@ -264,3 +289,4 @@ if [[ "$ENVIRONMENT" == "demo" ]]; then
 fi
 echo "Installation ${ENVIRONMENT} terminée : https://${DOMAIN}"
 [[ "$ENVIRONMENT" == "demo" ]] && echo "Prochaine RAZ : systemctl list-timers pcif-academie-demo-reset.timer"
+echo "Annuaire Éducation : systemctl list-timers pcif-academie-${ENVIRONMENT}-directory-sync.timer"

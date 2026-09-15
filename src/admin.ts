@@ -24,9 +24,23 @@ const userBody=z.object({
 });
 
 export async function registerAdmin(app:FastifyInstance){
+  app.get("/api/admin/education-directory",async(request,reply)=>{
+    if(!await adminOnly(request,reply))return;
+    const q=String((request.query as any)?.q||"").trim();if(q.length<2)return [];
+    const {rows}=await pool.query(`SELECT uai,name,establishment_type,nature_label,address,postal_code,city,email,department_name,academy_name,siret,source_updated_at
+      FROM education_directory WHERE uai ILIKE $1 OR name ILIKE $1 ORDER BY CASE WHEN uai=$2 THEN 0 ELSE 1 END,name LIMIT 30`,[`%${q}%`,q.toUpperCase()]);
+    return rows;
+  });
+  app.post("/api/admin/education-directory/:uai/import",async(request,reply)=>{
+    if(!await adminOnly(request,reply))return;const uai=String((request.params as any).uai||"").toUpperCase();
+    const {rows}=await pool.query(`INSERT INTO establishments(uai,name,kind,active,department_code,department_name,academy_code,academy_name,address,postal_code,city,contact_email,siret,directory_synced_at)
+      SELECT uai,name,COALESCE(nature_label,establishment_type),true,department_code,department_name,academy_code,academy_name,address,postal_code,city,email,siret,now()
+      FROM education_directory WHERE uai=$1 ON CONFLICT(uai) DO UPDATE SET department_code=excluded.department_code,department_name=excluded.department_name,academy_code=excluded.academy_code,academy_name=excluded.academy_name,address=excluded.address,postal_code=excluded.postal_code,city=excluded.city,contact_email=excluded.contact_email,siret=excluded.siret,directory_synced_at=now() RETURNING *`,[uai]);
+    if(!rows.length)return reply.code(404).send({error:"UAI_NOT_IN_DIRECTORY"});return reply.code(201).send(rows[0]);
+  });
   app.get("/api/admin/establishments",async(request,reply)=>{
     if(!await adminOnly(request,reply)) return;
-    const {rows}=await pool.query(`SELECT e.id,e.uai,e.name,e.kind,e.active,e.created_at,
+    const {rows}=await pool.query(`SELECT e.id,e.uai,e.name,e.kind,e.active,e.created_at,e.department_name,e.academy_name,e.city,e.contact_email,e.directory_synced_at,
       a.id AS agency_id,a.name AS agency_name
       FROM establishments e LEFT JOIN agency_establishments ae ON ae.establishment_id=e.id AND ae.active=true
       LEFT JOIN accounting_agencies a ON a.id=ae.agency_id AND a.active=true ORDER BY e.name`);
@@ -66,6 +80,29 @@ export async function registerAdmin(app:FastifyInstance){
     if(!await adminOnly(request,reply)) return;const id=(request.params as any).id,p=agencyBody.safeParse(request.body);if(!p.success)return reply.code(400).send({error:'INVALID_AGENCY'});
     const r=await tx(async c=>{const {rows}=await c.query(`UPDATE accounting_agencies SET name=$1,support_establishment_id=$2,active=$3 WHERE id=$4 RETURNING *`,[p.data.name,p.data.supportEstablishmentId,p.data.active,id]);if(!rows.length)throw Object.assign(new Error('NOT_FOUND'),{statusCode:404});
       await c.query(`UPDATE agency_establishments SET active=false,valid_until=CURRENT_DATE WHERE agency_id=$1`,[id]);const ids=[...new Set([p.data.supportEstablishmentId,...p.data.establishmentIds])];for(const eid of ids)await c.query(`INSERT INTO agency_establishments(agency_id,establishment_id,active,valid_until) VALUES($1,$2,true,NULL) ON CONFLICT(agency_id,establishment_id) DO UPDATE SET active=true,valid_until=NULL`,[id,eid]);return rows[0]});return r;
+  });
+  app.post("/api/admin/agencies/import",async(request,reply)=>{
+    if(!await adminOnly(request,reply))return;
+    const parsed=z.object({replace:z.boolean().default(false),rows:z.array(z.object({supportUai:z.string().regex(/^[0-9A-Z]{8}$/),agencyName:z.string().min(3).max(180),memberUai:z.string().regex(/^[0-9A-Z]{8}$/),validFrom:z.string().date().optional()})).min(1).max(5000)}).safeParse(request.body);
+    if(!parsed.success)return reply.code(400).send({error:"INVALID_ACCOUNTING_MAP",details:parsed.error.flatten()});
+    const result=await tx(async c=>{
+      const groups=new Map<string,typeof parsed.data.rows>();for(const row of parsed.data.rows){const key=`${row.supportUai}|${row.agencyName}`;groups.set(key,[...(groups.get(key)||[]),row])}
+      let agencies=0,members=0;
+      for(const rows of groups.values()){
+        const first=rows[0],uais=[...new Set([first.supportUai,...rows.map(x=>x.memberUai)])];
+        await c.query(`INSERT INTO establishments(uai,name,kind,active,department_code,department_name,academy_code,academy_name,address,postal_code,city,contact_email,siret,directory_synced_at)
+          SELECT uai,name,COALESCE(nature_label,establishment_type),true,department_code,department_name,academy_code,academy_name,address,postal_code,city,email,siret,now() FROM education_directory WHERE uai=ANY($1::text[]) ON CONFLICT(uai) DO NOTHING`,[uais]);
+        const found=await c.query(`SELECT id,uai FROM establishments WHERE uai=ANY($1::text[])`,[uais]),byUai=new Map(found.rows.map((x:any)=>[x.uai,x.id]));
+        const missing=uais.filter(x=>!byUai.has(x));if(missing.length)throw Object.assign(new Error("UNKNOWN_UAI"),{statusCode:400,missing});
+        const supportId=byUai.get(first.supportUai);let agency=(await c.query(`SELECT id FROM accounting_agencies WHERE support_establishment_id=$1 ORDER BY created_at LIMIT 1`,[supportId])).rows[0];
+        if(agency)await c.query(`UPDATE accounting_agencies SET name=$1,active=true WHERE id=$2`,[first.agencyName,agency.id]);else agency=(await c.query(`INSERT INTO accounting_agencies(name,support_establishment_id,active) VALUES($1,$2,true) RETURNING id`,[first.agencyName,supportId])).rows[0];
+        if(parsed.data.replace)await c.query(`UPDATE agency_establishments SET active=false,valid_until=CURRENT_DATE WHERE agency_id=$1`,[agency.id]);
+        for(const row of rows){await c.query(`INSERT INTO agency_establishments(agency_id,establishment_id,active,valid_from,valid_until) VALUES($1,$2,true,COALESCE($3::date,CURRENT_DATE),NULL) ON CONFLICT(agency_id,establishment_id) DO UPDATE SET active=true,valid_from=COALESCE(agency_establishments.valid_from,excluded.valid_from),valid_until=NULL`,[agency.id,byUai.get(row.memberUai),row.validFrom||null]);members++}
+        agencies++;
+      }
+      return {agencies,members};
+    }).catch((e:any)=>{if(e.statusCode===400)return reply.code(400).send({error:e.message,missing:e.missing});throw e});
+    return result;
   });
 
   app.get("/api/admin/roles",async(request,reply)=>{

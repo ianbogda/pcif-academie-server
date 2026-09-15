@@ -87,6 +87,16 @@ Les liens d’activation et de réinitialisation sont personnels, valables une h
 
 Le rôle d’administrateur de plateforme n’est pas attribuable depuis un simple rattachement établissement.
 
+## Annuaire et carte comptable
+
+- synchronisation quotidienne des établissements secondaires publics depuis l’Annuaire de l’Éducation nationale ;
+- recherche et ajout d’un établissement par UAI ou par nom ;
+- conservation du département et de l’académie pour les futurs indicateurs comparatifs ;
+- création manuelle des agences comptables ;
+- import CSV d’une carte comptable avec dates de rattachement et clôture contrôlée des anciens rattachements.
+
+La commande manuelle est `npm run db:directory-sync`.
+
 ## Organigramme fonctionnel nominatif
 
 L’atelier ONF permet de :
@@ -145,4 +155,4 @@ sudo journalctl -u pcif-academie-demo -n 100 --no-pager
 
 ## Version
 
-Version actuelle : **0.19.1**.
+Version actuelle : **0.20.0**.
