@@ -5,6 +5,7 @@ import { z } from "zod";
 import { pool, tx } from "./db.js";
 import { requireUser } from "./auth.js";
 import { isPlatformAdmin } from "./access.js";
+import {issuePasswordToken,sendPasswordLink} from "./mail.js";
 
 async function adminOnly(request:any, reply:any){
   const user=await requireUser(request);
@@ -91,7 +92,7 @@ export async function registerAdmin(app:FastifyInstance){
     const admin=await adminOnly(request,reply); if(!admin) return;
     const parsed=userBody.safeParse(request.body);
     if(!parsed.success) return reply.code(400).send({error:"INVALID_USER",details:parsed.error.flatten()});
-    const temp=parsed.data.password??`Pcif!${randomBytes(9).toString("base64url")}`;
+    const temp=parsed.data.password??randomBytes(32).toString("base64url");
     const hash=await bcrypt.hash(temp,12);
     try{
       const created=await tx(async c=>{
@@ -103,7 +104,9 @@ export async function registerAdmin(app:FastifyInstance){
         }
         return rows[0];
       });
-      return reply.code(201).send({...created,temporaryPassword:parsed.data.password?undefined:temp});
+      let emailSent=false;
+      if(!parsed.data.password){try{const token=await issuePasswordToken(created.id,"ACTIVATION");await sendPasswordLink(created.email,created.display_name,token,"ACTIVATION");emailSent=true}catch(e){request.log.error(e,"Échec de l’envoi du courriel d’activation")}}
+      return reply.code(201).send({...created,emailSent});
     }catch(e:any){
       if(e.code==="23505") return reply.code(409).send({error:"EMAIL_ALREADY_EXISTS"});
       throw e;

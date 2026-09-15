@@ -4,10 +4,11 @@ ENVIRONMENT=""
 ADMIN_EMAIL=""
 ADMIN_NAME="Administrateur PCIF Académie"
 ACME_EMAIL=""
+SMTP_HOST=""; SMTP_PORT="587"; SMTP_USER=""; SMTP_PASSWORD=""; SMTP_FROM=""
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 usage() {
-  echo 'Production : sudo ./deploy/install-debian13.sh --environment prod --admin-email admin@domaine.fr [--admin-name "Nom affiché"] [--acme-email certificats@domaine.fr]'
+  echo 'Production : sudo ./deploy/install-debian13.sh --environment prod --admin-email admin@domaine.fr --acme-email certificats@domaine.fr [--smtp-host serveur --smtp-user compte --smtp-password secret --smtp-from adresse]'
   echo 'Démo       : sudo ./deploy/install-debian13.sh --environment demo --acme-email certificats@domaine.fr'
 }
 while [[ $# -gt 0 ]]; do
@@ -16,6 +17,11 @@ while [[ $# -gt 0 ]]; do
     --admin-email) ADMIN_EMAIL="${2:-}"; shift 2 ;;
     --admin-name) ADMIN_NAME="${2:-}"; shift 2 ;;
     --acme-email) ACME_EMAIL="${2:-}"; shift 2 ;;
+    --smtp-host) SMTP_HOST="${2:-}"; shift 2 ;;
+    --smtp-port) SMTP_PORT="${2:-}"; shift 2 ;;
+    --smtp-user) SMTP_USER="${2:-}"; shift 2 ;;
+    --smtp-password) SMTP_PASSWORD="${2:-}"; shift 2 ;;
+    --smtp-from) SMTP_FROM="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Option inconnue : $1" >&2; usage; exit 1 ;;
   esac
@@ -87,6 +93,13 @@ PORT=${PORT}
 DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432/${DB_NAME}
 JWT_SECRET=${JWT_SECRET}
 CORS_ORIGIN=https://${DOMAIN}
+PUBLIC_APP_URL=https://${DOMAIN}
+SMTP_HOST=${SMTP_HOST}
+SMTP_PORT=${SMTP_PORT}
+SMTP_SECURE=false
+SMTP_USER=${SMTP_USER}
+SMTP_PASSWORD=${SMTP_PASSWORD}
+SMTP_FROM=${SMTP_FROM:-$SMTP_USER}
 EOF
 chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
 chmod 600 "$APP_DIR/.env"
