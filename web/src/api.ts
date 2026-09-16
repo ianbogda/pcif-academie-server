@@ -153,6 +153,7 @@ export const api = {
   accessibilityAudit:(id:string)=>request<any>(`/api/admin/accessibility/audits/${id}`),
   saveAccessibilityResult:(id:string,code:string,payload:any)=>request<any>(`/api/admin/accessibility/audits/${id}/results/${encodeURIComponent(code)}`,{method:"PUT",body:JSON.stringify(payload)}),
   closeAccessibilityAudit:(id:string)=>request<any>(`/api/admin/accessibility/audits/${id}/close`,{method:"POST"}),
+  deleteAccessibilityAudit:(id:string)=>request<void>(`/api/admin/accessibility/audits/${id}`,{method:"DELETE"}),
   publishAccessibilityAudit:(id:string)=>request<any>(`/api/admin/accessibility/audits/${id}/publish`,{method:"POST"}),
   accessibilityReports:()=>request<any[]>("/api/admin/accessibility/reports"),
   unpublishAccessibilityReport:(id:string)=>request<any>(`/api/admin/accessibility/reports/${id}/unpublish`,{method:"POST"}),
