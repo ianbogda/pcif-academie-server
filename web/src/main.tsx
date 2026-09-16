@@ -1,5 +1,6 @@
 import { PilotagePcif,type PilotageTab,type WorkspaceSection } from "./PilotagePcif";
 import {HelpCenter,type HelpContext} from "./HelpCenter";
+import {ComplianceFooter,CompliancePageView,type CompliancePage} from "./CompliancePages";
 import "bootstrap/dist/css/bootstrap.min.css";
 import React,{useEffect,useMemo,useState} from "react";
 import{createRoot}from"react-dom/client";
@@ -17,6 +18,8 @@ const demoDashboard={mastery:72,coverage:64,critical:12,actions:11,done:6,answer
 function Logo(){return <div className="pcif-logo"><svg className="logo-shield" viewBox="0 0 40 46" aria-hidden="true"><path d="M20 2 36 9v12c0 11-6.7 19-16 23C10.7 40 4 32 4 21V9Z"/><path d="m12 22 5 5 11-12"/></svg><div><b>PCIF Académie</b><small>Pilotage du contrôle interne financier</small></div></div>}
 function DemoBanner(){return isDemo?<div className="demo-banner" role="status"><strong>ENVIRONNEMENT DE DÉMONSTRATION</strong><span>Données réinitialisées automatiquement chaque heure</span></div>:null}
 function App(){
+ const legal=new URLSearchParams(location.search).get("legal") as CompliancePage|null;
+ if(legal&&["accessibilite","mentions-legales","donnees-personnelles","cookies","securite"].includes(legal))return <CompliancePageView page={legal}/>;
  const[me,setMe]=useState<Me|null>(null),[view,setView]=useState<View>({kind:"home"}),[busy,setBusy]=useState(!!getToken());
  const[active,setActive]=useState<Establishment|null>(null),[ets,setEts]=useState<Establishment[]>([]),[helpOpen,setHelpOpen]=useState(false);
  async function session(){setBusy(true);try{const m=await api.me(),e=await api.establishments();setMe(m);setEts(e);setActive(e[0]??null)}catch{clearToken();setMe(null)}finally{setBusy(false)}}
@@ -26,7 +29,7 @@ function App(){
  const logout=()=>{clearToken();setMe(null);setView({kind:"home"})};
  const openShortcut=async(section:WorkspaceSection,tab?:PilotageTab)=>{if(!active)return;const camps=await api.campaigns(active.id);const campaign=camps[0];if(campaign)setView({kind:"campaign",campaign,establishment:active,section,tab})};
  const helpContext:HelpContext=view.kind==="campaign"?view.section:view.kind;
- return <div className={`pcif-app${isDemo?" demo-mode":""}`}>
+ return <div className={`pcif-app${isDemo?" demo-mode":""}`}><a className="skip-link" href="#main-content">Aller au contenu</a>
    <DemoBanner/>
    <aside className="sidebar">
     <Logo/>
@@ -54,12 +57,13 @@ function App(){
       <button className="context-help" onClick={()=>setHelpOpen(true)}>ⓘ Comprendre cet écran</button>
       <div className="rolechips">{me.agencies.map(a=><span key={a.id}>{roleLabel(a.role)}</span>)}{me.establishments.filter(x=>x.id===active?.id).map(x=><span key={x.role}>{roleLabel(x.role)}</span>)}</div>
     </header>
-    <main>
+    <main id="main-content" tabIndex={-1}>
       {view.kind==="home"&&<Dashboard establishment={active} onOpen={(c,e)=>setView({kind:"campaign",campaign:c,establishment:e,section:"pilotage"})}/>} 
       {view.kind==="campaign"&&<PilotagePcif me={me} campaign={view.campaign} establishment={view.establishment} initialTab={view.tab} section={view.section} onNavigate={(section,tab)=>setView({...view,section,tab})} onBack={()=>setView({kind:"home"})}/>} 
       {view.kind==="admin"&&<AdminHub establishments={ets}/>} 
       {view.kind==="auditManagement"&&<AuditMissionManagement/>}
     </main>
+    <ComplianceFooter/>
    </div>
    {helpOpen&&<HelpCenter me={me} context={helpContext} onClose={()=>setHelpOpen(false)}/>}
  </div>
@@ -68,7 +72,7 @@ function Login({onLogin}:{onLogin:()=>Promise<void>}){
  const[email,setEmail]=useState(demo[0]?.[1]??""),[password,setPassword]=useState(demo[0]?.[2]??""),[err,setErr]=useState(""),[forgot,setForgot]=useState(false),[sent,setSent]=useState(false);
  async function go(e:React.FormEvent){e.preventDefault();try{const r=await api.login(email,password);setToken(r.accessToken);await onLogin()}catch{setErr("Identifiants incorrects ou compte indisponible.")}}
  async function sendReset(e:React.FormEvent){e.preventDefault();await api.forgotPassword(email);setSent(true)}
- return <><DemoBanner/><div className={`login${isDemo?" demo-mode":""}`}><section><Logo/>{!isDemo&&!forgot&&<div className="login-manifesto"><strong>Maîtriser les risques, c’est d’abord mieux travailler ensemble.</strong><span>PCIF Académie aide les équipes à comprendre leurs pratiques, sécuriser les opérations et faire évoluer la fonction financière au service de l’établissement.</span></div>}<h1>{forgot?"Mot de passe oublié":"Bienvenue"}</h1><p>{forgot?"Indiquez votre adresse. Si le compte existe, un lien valable une heure vous sera envoyé.":"Retrouvez PCIF Académie dans son environnement métier, désormais collaboratif et multi‑établissements."}</p>{forgot?<form onSubmit={sendReset}><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>{sent&&<div className="notice">Si cette adresse correspond à un compte actif, le courriel vient d’être envoyé.</div>}<button className="primary">Envoyer le lien</button><button type="button" className="link" onClick={()=>{setForgot(false);setSent(false)}}>Retour à la connexion</button></form>:<form onSubmit={go}><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Mot de passe<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>{err&&<div className="error">{err}</div>}<button className="primary">Se connecter</button><button type="button" className="link" onClick={()=>setForgot(true)}>Mot de passe oublié ?</button></form>}</section>{isDemo&&!forgot&&<aside><b>Profils de démonstration</b>{demo.map(([l,m,p])=><button key={m} onClick={()=>{setEmail(m);setPassword(p)}}><span>{l}</span><small>{m}</small></button>)}</aside>}</div></>
+ return <><DemoBanner/><div className={`login${isDemo?" demo-mode":""}`}><section><Logo/>{!isDemo&&!forgot&&<div className="login-manifesto"><strong>Maîtriser les risques, c’est d’abord mieux travailler ensemble.</strong><span>PCIF Académie aide les équipes à comprendre leurs pratiques, sécuriser les opérations et faire évoluer la fonction financière au service de l’établissement.</span></div>}<h1>{forgot?"Mot de passe oublié":"Bienvenue"}</h1><p>{forgot?"Indiquez votre adresse. Si le compte existe, un lien valable une heure vous sera envoyé.":"Retrouvez PCIF Académie dans son environnement métier, désormais collaboratif et multi‑établissements."}</p>{forgot?<form onSubmit={sendReset}><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>{sent&&<div className="notice">Si cette adresse correspond à un compte actif, le courriel vient d’être envoyé.</div>}<button className="primary">Envoyer le lien</button><button type="button" className="link" onClick={()=>{setForgot(false);setSent(false)}}>Retour à la connexion</button></form>:<form onSubmit={go}><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Mot de passe<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>{err&&<div className="error">{err}</div>}<button className="primary">Se connecter</button><button type="button" className="link" onClick={()=>setForgot(true)}>Mot de passe oublié ?</button></form>}</section>{isDemo&&!forgot&&<aside><b>Profils de démonstration</b>{demo.map(([l,m,p])=><button key={m} onClick={()=>{setEmail(m);setPassword(p)}}><span>{l}</span><small>{m}</small></button>)}</aside>}</div><ComplianceFooter/></>
 }
 function ResetPassword(){
  const token=new URLSearchParams(location.search).get("resetToken")||"",activation=new URLSearchParams(location.search).get("mode")==="activate";
