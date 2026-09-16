@@ -24,6 +24,10 @@ export async function registerOrganisation(app:FastifyInstance){
   const actors=await pool.query(`SELECT * FROM pcif_ofn_actors WHERE campaign_id=$1 AND active=true ORDER BY name`,[id]);
   const assignments=await pool.query(`SELECT * FROM pcif_ofn_assignments WHERE campaign_id=$1 ORDER BY operation_id`,[id]);
   const reviews=await pool.query(`SELECT * FROM pcif_process_reviews WHERE campaign_id=$1`,[id]);
+  const controls=await pool.query(`SELECT replace(q.code,'PCIF-','') code,q.weight,q.gravity,q.occurrence,a.value,a.sphere
+    FROM campaigns c JOIN questions q ON q.repository_version_id=c.repository_version_id AND q.active=true
+    LEFT JOIN LATERAL (SELECT value,sphere FROM answers WHERE campaign_id=c.id AND question_id=q.id ORDER BY (sphere='SYNTHESE') DESC,updated_at DESC LIMIT 1) a ON true
+    WHERE c.id=$1 ORDER BY q.sort_order`,[id]);
   const context=(await pool.query(`SELECT e.id establishment_id,e.name establishment_name,e.uai,
       ag.id agency_id,ag.name agency_name,c.label campaign_label
     FROM campaigns c JOIN establishments e ON e.id=c.establishment_id
@@ -48,7 +52,7 @@ export async function registerOrganisation(app:FastifyInstance){
     WHERE c.id=$1 AND u.active=true AND u.deleted_at IS NULL
       AND r.code IN ('AGENCY_ACCOUNTANT','AGENCY_DEPUTY')`,[id])).rows;
   const versions=(await pool.query(`SELECT id,version_no,label,created_at FROM pcif_ofn_versions WHERE campaign_id=$1 ORDER BY version_no DESC`,[id])).rows;
-  return {operations,processes:processRef.processes,actors:actors.rows,assignments:assignments.rows,reviews:reviews.rows,context,suggestedActors:suggested,versions};
+  return {operations,processes:processRef.processes,actors:actors.rows,assignments:assignments.rows,reviews:reviews.rows,controls:controls.rows,context,suggestedActors:suggested,versions};
  });
 
  app.post("/api/campaigns/:id/ofn/actors",async(request,reply)=>{

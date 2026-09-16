@@ -43,6 +43,7 @@ export type OfnOperation={id:string;name:string;category:string;subcategory:stri
 export type PcifProcess={id:string;title:string;domain:string;icon?:string;questionIds:string[];steps:string[];description:string;owner:string;processFamily?:string;macroProcess?:string};
 export type ProcessReview={campaign_id:string;process_id:string;priority:boolean;status:"A_EXAMINER"|"EN_COURS"|"SECURISE";note:string};
 export type OrganisationData={operations:OfnOperation[];processes:PcifProcess[];actors:OfnActor[];assignments:OfnAssignment[];reviews:ProcessReview[];
+ controls:Array<{code:string;weight:number;gravity?:number;occurrence?:number;value?:number|null;sphere?:string|null}>;
  context?:{establishment_name:string;uai:string;agency_name?:string|null;campaign_label:string};
  suggestedActors?:Array<{user_id:string;name:string;role_code:string;sphere:"ORDONNATEUR"|"COMPTABLE"|"MIXTE"}>;
  versions?:Array<{id:string;version_no:number;label:string;created_at:string}>};

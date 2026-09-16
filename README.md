@@ -2,7 +2,7 @@
 
 Application collaborative de pilotage du contrôle interne financier des EPLE.
 
-Version courante : **0.27.1**.
+Version courante : **0.28.0**.
 
 La version actuelle propose le référentiel PCIF de 267 contrôles, le diagnostic partagé ordonnateur/comptable, la cartographie des risques, les ateliers, le plan d’action et la construction de l’organigramme fonctionnel nominatif (ONF).
 
@@ -115,6 +115,21 @@ L’atelier ONF permet de :
 
 L’impression s’effectue depuis le fichier HTML Fonctiop@le exporté.
 
+## Cartographie des processus
+
+La cartographie propose une lecture calculée de la campagne sélectionnée, selon trois niveaux : famille, macro-processus et procédure. Elle couvre les **3 familles**, **19 macro-processus**, **39 procédures** et **267 contrôles PCIF** du référentiel.
+
+Quatre indicateurs évoluent avec la saisie de la campagne :
+
+- nombre de procédures métiers ;
+- contrôles renseignés sur 267 ;
+- contrôles prioritaires dont le score pondéré est au moins égal à 6 ;
+- procédures atteignant au moins 80 % de maîtrise.
+
+Une réponse « non applicable » compte comme renseignée, mais elle est exclue du calcul de maîtrise. Une procédure sans contrôle évalué n’est donc jamais présentée artificiellement comme maîtrisée à 100 %.
+
+La cartographie permet de filtrer la bibliothèque par famille, macro-processus, domaine ou recherche libre. La sélection d’un macro-processus ouvre directement les procédures correspondantes.
+
 ## Développement
 
 ```bash
@@ -171,4 +186,4 @@ Depuis le tableau de bord d’une campagne, **Exporter vers CARTOP@LE** téléch
 
 La matrice technique des rôles est documentée dans `docs/MATRICE-DES-DROITS.md`.
 
-Version actuelle : **0.25.0**.
+Version actuelle : **0.28.0**.
