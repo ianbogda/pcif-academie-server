@@ -1,4 +1,5 @@
 import { PilotagePcif,type PilotageTab,type WorkspaceSection } from "./PilotagePcif";
+import {HelpCenter,type HelpContext} from "./HelpCenter";
 import "bootstrap/dist/css/bootstrap.min.css";
 import React,{useEffect,useMemo,useState} from "react";
 import{createRoot}from"react-dom/client";
@@ -17,13 +18,14 @@ function Logo(){return <div className="pcif-logo"><svg className="logo-shield" v
 function DemoBanner(){return isDemo?<div className="demo-banner" role="status"><strong>ENVIRONNEMENT DE DÉMONSTRATION</strong><span>Données réinitialisées automatiquement chaque heure</span></div>:null}
 function App(){
  const[me,setMe]=useState<Me|null>(null),[view,setView]=useState<View>({kind:"home"}),[busy,setBusy]=useState(!!getToken());
- const[active,setActive]=useState<Establishment|null>(null),[ets,setEts]=useState<Establishment[]>([]);
+ const[active,setActive]=useState<Establishment|null>(null),[ets,setEts]=useState<Establishment[]>([]),[helpOpen,setHelpOpen]=useState(false);
  async function session(){setBusy(true);try{const m=await api.me(),e=await api.establishments();setMe(m);setEts(e);setActive(e[0]??null)}catch{clearToken();setMe(null)}finally{setBusy(false)}}
  useEffect(()=>{getToken()?session():setBusy(false)},[]);
  if(busy)return <><DemoBanner/><div className={`splash${isDemo?" demo-mode":""}`}><Logo/><span>Chargement…</span></div></>;
  if(!me)return new URLSearchParams(location.search).get("resetToken")?<ResetPassword/>:<Login onLogin={session}/>;
  const logout=()=>{clearToken();setMe(null);setView({kind:"home"})};
  const openShortcut=async(section:WorkspaceSection,tab?:PilotageTab)=>{if(!active)return;const camps=await api.campaigns(active.id);const campaign=camps[0];if(campaign)setView({kind:"campaign",campaign,establishment:active,section,tab})};
+ const helpContext:HelpContext=view.kind==="campaign"?view.section:view.kind;
  return <div className={`pcif-app${isDemo?" demo-mode":""}`}>
    <DemoBanner/>
    <aside className="sidebar">
@@ -39,7 +41,7 @@ function App(){
       {me.user.isAuditManager&&<button className={view.kind==="auditManagement"?"active":""} onClick={()=>setView({kind:"auditManagement"})}>☷ Missions d’audit</button>}
       {me.user.isPlatformAdmin&&<button className={view.kind==="admin"?"active":""} onClick={()=>setView({kind:"admin"})}>⚙ Administration</button>}
     </nav>
-    <div className="sidebar-foot"><button onClick={logout}>Déconnexion</button></div>
+    <div className="sidebar-foot"><button className="sidebar-help" onClick={()=>setHelpOpen(true)}>❔ Aide</button><button onClick={logout}>Déconnexion</button></div>
    </aside>
    <div className="workspace">
     <header className="topbar">
@@ -49,6 +51,7 @@ function App(){
        </select>
        {active&&<small>{active.uai} · {active.kind}</small>}
       </div>
+      <button className="context-help" onClick={()=>setHelpOpen(true)}>ⓘ Comprendre cet écran</button>
       <div className="rolechips">{me.agencies.map(a=><span key={a.id}>{roleLabel(a.role)}</span>)}{me.establishments.filter(x=>x.id===active?.id).map(x=><span key={x.role}>{roleLabel(x.role)}</span>)}</div>
     </header>
     <main>
@@ -58,6 +61,7 @@ function App(){
       {view.kind==="auditManagement"&&<AuditMissionManagement/>}
     </main>
    </div>
+   {helpOpen&&<HelpCenter me={me} context={helpContext} onClose={()=>setHelpOpen(false)}/>}
  </div>
 }
 function Login({onLogin}:{onLogin:()=>Promise<void>}){

@@ -1,1 +1,1 @@
-{"root":["./src/OrganisationPcif.tsx","./src/PilotagePcif.tsx","./src/api.ts","./src/demoProfiles.demo.ts","./src/demoProfiles.ts","./src/main.tsx","./src/vite-env.d.ts"],"version":"5.9.3"}
+{"root":["./src/helpcenter.tsx","./src/organisationpcif.tsx","./src/pilotagepcif.tsx","./src/api.ts","./src/demoprofiles.demo.ts","./src/demoprofiles.ts","./src/main.tsx","./src/vite-env.d.ts"],"version":"5.9.3"}
