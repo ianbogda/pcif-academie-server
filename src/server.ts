@@ -11,6 +11,7 @@ import { registerAdmin } from "./admin.js";
 import { registerPilotage } from "./pilotage.js";
 import { registerOrganisation } from "./organisation.js";
 import { registerAudit } from "./audit.js";
+import { registerAccessibility } from "./accessibility.js";
 import { z } from "zod";
 
 const packageVersion = JSON.parse(readFileSync("package.json", "utf8")).version;
@@ -27,6 +28,7 @@ await registerAdmin(app);
 await registerPilotage(app);
 await registerOrganisation(app);
 await registerAudit(app);
+await registerAccessibility(app);
 
 app.get("/health", async () => {
   await pool.query("SELECT 1");
