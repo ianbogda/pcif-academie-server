@@ -1,1 +1,1 @@
-{"root":["./src/CompliancePages.tsx","./src/HelpCenter.tsx","./src/OrganisationPcif.tsx","./src/PilotagePcif.tsx","./src/api.ts","./src/demoProfiles.demo.ts","./src/demoProfiles.ts","./src/main.tsx","./src/vite-env.d.ts"],"errors":true,"version":"5.8.3"}
+{"root":["./src/AccessibilityAudit.tsx","./src/CompliancePages.tsx","./src/HelpCenter.tsx","./src/OrganisationPcif.tsx","./src/PilotagePcif.tsx","./src/api.ts","./src/demoProfiles.demo.ts","./src/demoProfiles.ts","./src/main.tsx","./src/vite-env.d.ts"],"errors":true,"version":"5.8.3"}

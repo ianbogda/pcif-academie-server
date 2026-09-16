@@ -92,7 +92,7 @@ export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashb
    <button className={tab==="annual"?"active":""} onClick={()=>setTab("annual")}>Programme annuel</button>
   </nav>}
   {tab==="dashboard"&&<Dashboard campaign={campaign} auditOnly={!!data.access?.auditOnly} qs={qs} metrics={metrics} answered={answered} critical={critical} mastery={mastery} coverage={coverage} actions={data.actions} workshops={data.workshops} go={(target:string)=>target==="workshops"?onNavigate?.("workshops"):setTab(target as PilotageTab)}/>} 
-  {tab==="diagnostic"&&<Diagnostic qs={qs} actions={data.actions} campaignId={campaign.id} mode={mode} setMode={setMode} domain={domain} setDomain={setDomain} idx={idx} setIdx={setIdx} reload={load}/>}
+  {tab==="diagnostic"&&<Diagnostic qs={qs} actions={data.actions} campaignId={campaign.id} userKey={me.user.sub} mode={mode} setMode={setMode} domain={domain} setDomain={setDomain} idx={idx} setIdx={setIdx} reload={load}/>}
   {tab==="risks"&&<RiskView qs={qs}/>}
   {tab==="annual"&&(historical?<HistoricalActionPlan data={data}/>:<Annual data={data} campaignId={campaign.id} reload={load}/>)} 
   {tab==="workshops"&&<Workshops data={data} campaignId={campaign.id} reload={load}/>}
@@ -209,7 +209,7 @@ function reflexData(q:PilotageQuestion,action:string){
 function CorrectivePanel({q,campaignId,actions,reload}:{q:PilotageQuestion;campaignId:string;actions:PcifAction[];reload:()=>Promise<void>}){
  const proposals=q.corrective_actions||[];
  const [open,setOpen]=useState<number|null>(null);
- if(!(q.value===1||q.value===2)||Number(q.weight)<6)return null;
+ if(!(q.value===1||q.value===2))return null;
  const selected=(text:string)=>actions.find(a=>a.question_id===q.id&&a.action_text===text);
  async function toggle(text:string,checked:boolean){
   const ex=selected(text);
@@ -249,15 +249,41 @@ function CorrectivePanel({q,campaignId,actions,reload}:{q:PilotageQuestion;campa
  </section>
 }
 
-function Diagnostic({qs,actions,campaignId,mode,setMode,domain,setDomain,idx,setIdx,reload}:any){
+function Diagnostic({qs,actions,campaignId,userKey,mode,setMode,domain,setDomain,idx,setIdx,reload}:any){
  let list=domain==="TOUS"?qs:qs.filter((q:PilotageQuestion)=>q.domain===domain);
  if(mode==="critical")list=list.filter((q:PilotageQuestion)=>(q.value===1||q.value===2)&&Number(q.weight)>=6);
  if(mode==="unanswered")list=list.filter((q:PilotageQuestion)=>q.value===undefined||q.value===null);
  if(mode==="sprint")list=list.slice(0,20);
  const q=list[Math.min(idx,Math.max(0,list.length-1))];
- async function ans(v:number){if(!q)return;const sphere=q.responsibility==="COMPTABLE"?"COMPTABLE":"ORDONNATEUR";await api.saveAnswer(campaignId,q.id,{sphere,value:v,comment:q.comment||"",version:q.version||0});await reload();setIdx((x:number)=>Math.min(x+1,Math.max(0,list.length-1)))}
+ const prefKey=`pcif-diagnostic-auto-advance:${userKey||"user"}`;
+ const[autoAdvance,setAutoAdvance]=useState<boolean>(()=>{try{return localStorage.getItem(prefKey)!=="false"}catch{return true}});
+ const[selectedValue,setSelectedValue]=useState<number|null>(null);
+ const[saving,setSaving]=useState(false);
+ useEffect(()=>{setSelectedValue(null)},[q?.id]);
+ function changeAutoAdvance(value:boolean){setAutoAdvance(value);try{localStorage.setItem(prefKey,String(value))}catch{}}
+ async function ans(v:number){
+  if(!q||saving)return;
+  setSelectedValue(v);setSaving(true);
+  try{
+   const sphere=q.responsibility==="COMPTABLE"?"COMPTABLE":"ORDONNATEUR";
+   await api.saveAnswer(campaignId,q.id,{sphere,value:v,comment:q.comment||"",version:q.version||0});
+   await reload();
+   if(autoAdvance&&(v===3||v===0)){
+    await new Promise(resolve=>setTimeout(resolve,450));
+    setIdx((x:number)=>Math.min(x+1,Math.max(0,list.length-1)));
+   }
+  }finally{setSaving(false)}
+ }
+ const effectiveValue=selectedValue??q?.value??null;
+ const answeredCount=list.filter((item:PilotageQuestion)=>item.value!==undefined&&item.value!==null).length;
+ const answeredWithCurrent=q&&q.value==null&&selectedValue!==null?answeredCount+1:answeredCount;
+ const progress=list.length?Math.round(100*answeredWithCurrent/list.length):0;
+ const answerButton=(value:number,label:string,cls:string)=>{
+  const selected=effectiveValue===value;
+  return <button type="button" aria-pressed={selected} disabled={saving} className={`${cls} ${selected?"selected":""}`} onClick={()=>ans(value)}>{selected&&<span className="answer-check" aria-hidden="true">✓</span>}{label}</button>
+ };
  return <section className="diagnostic-view"><div className="diag-toolbar"><div>{["all","sprint","critical","unanswered"].map(m=><button key={m} className={mode===m?"active":""} onClick={()=>{setMode(m);setIdx(0)}}>{m==="all"?"Parcours complet":m==="sprint"?"Sprint 20":m==="critical"?"Risques ≥ 6":"Non répondues"}</button>)}</div><select value={domain} onChange={e=>{setDomain(e.target.value);setIdx(0)}}><option>TOUS</option>{DOMAINS.map(d=><option key={d}>{d}</option>)}</select></div>
- {!q?<div className="empty-dark">Aucune question dans ce filtre.</div>:<article className="challenge"><div className="challenge-progress"><span>Défi {Math.min(idx+1,list.length)} / {list.length}</span><span>{Math.round(100*Math.min(idx+1,list.length)/Math.max(1,list.length))}%</span></div><div className="challenge-bar"><i style={{width:`${100*Math.min(idx+1,list.length)/Math.max(1,list.length)}%`}}/></div><div className="challenge-card"><div className="chips"><span>{q.domain}</span><span>{q.category}</span><span>{q.responsibility}</span><span>P{probability(q)} × G{gravity(q)} = {probability(q)*gravity(q)}/9</span>{q.is_key&&<span>◆ Point clé</span>}</div><h2>{q.label}</h2><p className="risk-text"><b>Risque :</b> {q.risk_label||"—"}</p><div className="semantic-answers"><button className="yes" onClick={()=>ans(3)}>Oui</button><button className="partial" onClick={()=>ans(2)}>Partiel</button><button className="no" onClick={()=>ans(1)}>Non</button><button onClick={()=>ans(0)}>N/A</button></div><textarea value={q.comment||""} readOnly placeholder="Observation / preuve…"/><CorrectivePanel q={q} campaignId={campaignId} actions={actions} reload={reload}/><div className="diag-nav"><button onClick={()=>setIdx((x:number)=>Math.max(0,x-1))}>← Précédent</button><button onClick={()=>setIdx((x:number)=>Math.min(list.length-1,x+1))}>Suivant →</button></div></div></article>}
+ {!q?<div className="empty-dark">Aucune question dans ce filtre.</div>:<article className="challenge"><div className="challenge-progress challenge-progress-strong"><span><b>Défi {Math.min(idx+1,list.length)} / {list.length}</b><small>{answeredWithCurrent} réponse{answeredWithCurrent>1?"s":""} · {Math.max(0,list.length-answeredWithCurrent)} restante{Math.max(0,list.length-answeredWithCurrent)>1?"s":""}</small></span><strong>{progress}%</strong></div><div className="challenge-bar challenge-bar-strong" role="progressbar" aria-label="Avancement du diagnostic" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><i style={{width:`${progress}%`}}/></div><div className="diagnostic-preferences"><label><input type="checkbox" checked={autoAdvance} onChange={e=>changeAutoAdvance(e.target.checked)}/><span><b>Passage automatique après Oui ou N/A</b><small>Partiel et Non restent sur la question pour documenter l’écart et, si besoin, alimenter le plan d’action.</small></span></label></div><div className="challenge-card"><div className="chips"><span>{q.domain}</span><span>{q.category}</span><span>{q.responsibility}</span><span>P{probability(q)} × G{gravity(q)} = {probability(q)*gravity(q)}/9</span>{q.is_key&&<span>◆ Point clé</span>}</div><h2>{q.label}</h2><p className="risk-text"><b>Risque :</b> {q.risk_label||"—"}</p><div className="semantic-answers">{answerButton(3,"Oui","yes")}{answerButton(2,"Partiel","partial")}{answerButton(1,"Non","no")}{answerButton(0,"N/A","na")}</div><textarea value={q.comment||""} readOnly placeholder="Observation / preuve…"/>{(effectiveValue===1||effectiveValue===2)&&<CorrectivePanel q={{...q,value:effectiveValue}} campaignId={campaignId} actions={actions} reload={reload}/>}<div className="diag-nav"><button onClick={()=>setIdx((x:number)=>Math.max(0,x-1))}>← Précédent</button><button onClick={()=>setIdx((x:number)=>Math.min(list.length-1,x+1))}>Suivant →</button></div></div></article>}
  </section>
 }
 function RiskView({qs}:{qs:PilotageQuestion[]}){
