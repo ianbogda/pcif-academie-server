@@ -13,7 +13,7 @@ const workshops=[
   criteria:["Processus clés identifiés","Étapes et interfaces décrites","Contrôles existants repérés","Procédures prioritaires à sécuriser choisies"]},
  {title:"Où sont nos risques ?",subtitle:"Risques & maîtrise",deliverable:"Cartographie des risques + niveau de maîtrise",
   phases:[["5 min","Cadrage"],["15 min","Constats issus du diagnostic"],["30 min","Cotation et maîtrise"],["10 min","Arbitrage des priorités"]],
-  criteria:["Risques significatifs identifiés","Gravité et occurrence discutées","Maîtrise existante objectivée","Priorités de traitement validées"]},
+  criteria:["Risques significatifs identifiés","Probabilité et gravité discutées","Maîtrise existante objectivée","Priorités de traitement validées"]},
  {title:"Qu’allons-nous faire ?",subtitle:"Plan d’action",deliverable:"Plan d’action annuel + PCIF consolidé",
   phases:[["5 min","Rappel des priorités"],["15 min","Mesures possibles"],["30 min","Pilotes, échéances et preuves"],["10 min","Validation"]],
   criteria:["Mesures correctives retenues","Pilotes désignés","Échéances fixées","Indicateurs / preuves de réalisation définis"]}
@@ -22,8 +22,8 @@ const workshops=[
 function factor(v?:number|null){return v===3?0:v===2?.5:v===1?1:null}
 function answerLabel(v?:number|null){return v===3?"OUI":v===2?"PARTIEL":v===1?"NON":v===0?"N/A":"—"}
 function gravity(q:PilotageQuestion){return Number(q.gravity ?? q.pcif_i ?? 1)}
-function occurrence(q:PilotageQuestion){return Number(q.occurrence ?? q.pcif_p ?? 1)}
-function residual(q:PilotageQuestion){const f=factor(q.value);return f===null?0:(gravity(q)*occurrence(q))*f}
+function probability(q:PilotageQuestion){return Number(q.occurrence ?? q.pcif_p ?? 1)}
+function residual(q:PilotageQuestion){const f=factor(q.value);return f===null?0:(probability(q)*gravity(q))*f}
 function sev(n:number){return n>=6?["crit","Critique"]:n>=4?["high","Élevé"]:n>=2?["med","Modéré"]:["low","Faible"]}
 
 export type PilotageTab="dashboard"|"diagnostic"|"risks"|"annual"|"workshops"|"organisation";
@@ -68,6 +68,14 @@ export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashb
    return{domain:d,total:dqs.length,done,coverage:c,mastery:m,effective:e,level:e===100?5:Math.min(5,Math.floor(e/20))}
  });
 
+ function openPcifQuestion(code:string){
+   const normalized=code.replace(/^PCIF-/,"");
+   const target=qs.find(q=>q.code.replace(/^PCIF-/,"")===normalized);
+   if(!target)return;
+   const sameDomain=qs.filter(q=>q.domain===target.domain);
+   setDomain(target.domain);setMode("all");setIdx(Math.max(0,sameDomain.findIndex(q=>q.id===target.id)));setTab("diagnostic");
+   onNavigate?.("pilotage","diagnostic");
+ }
  if(section==="audit")return <AuditMode campaign={campaign} establishment={establishment} onBack={onBack}/>;
  const sectionTitle=section==="workshops"?"Ateliers PCIF":section==="onf"?"Organigramme fonctionnel":section==="processes"?"Processus & logigrammes":"Pilotage du PCIF";
  const historical=["VALIDATED","ARCHIVED"].includes(campaign.status);
@@ -88,7 +96,7 @@ export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashb
   {tab==="risks"&&<RiskView qs={qs}/>}
   {tab==="annual"&&(historical?<HistoricalActionPlan data={data}/>:<Annual data={data} campaignId={campaign.id} reload={load}/>)} 
   {tab==="workshops"&&<Workshops data={data} campaignId={campaign.id} reload={load}/>}
-  {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id} initialView={section==="processes"?"process":"ofn"} showTabs={false} readOnly={!!data.access?.auditOnly}/>} 
+  {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id} initialView={section==="processes"?"process":"ofn"} showTabs={false} readOnly={!!data.access?.auditOnly} onOpenQuestion={openPcifQuestion}/>} 
  </div>
 }
 
@@ -143,20 +151,20 @@ function RiskMatrix({qs}:{qs:PilotageQuestion[]}){
  const cells:Record<string,PilotageQuestion[]>={};
  for(let g=1;g<=3;g++)for(let o=1;o<=3;o++)cells[`${g}-${o}`]=[];
  qs.filter(q=>q.value===1||q.value===2).forEach(q=>{
-   const g=gravity(q),o=occurrence(q);
-   if(cells[`${g}-${o}`]) cells[`${g}-${o}`].push(q);
+   const g=gravity(q),p=probability(q);
+   if(cells[`${g}-${p}`]) cells[`${g}-${p}`].push(q);
  });
  const gLabels:Record<number,string>={1:"Mineure",2:"Modérée",3:"Majeure"};
- const oLabels:Record<number,string>={1:"Rare",2:"Ponctuel",3:"Fréquent"};
+ const pLabels:Record<number,string>={1:"Rare",2:"Possible",3:"Probable"};
  return <div className="risk-matrix">
-   <div className="axis">G \ O</div>
-   {[1,2,3].map(o=><div className="axis" key={"h"+o}><b>{o}</b><small>{oLabels[o]}</small></div>)}
+   <div className="axis">G ↓ / P →</div>
+   {[1,2,3].map(p=><div className="axis" key={"h"+p}><b>P{p}</b><small>{pLabels[p]}</small></div>)}
    {[3,2,1].flatMap(g=>[
      <div className="axis" key={"g"+g}><b>G{g}</b><small>{gLabels[g]}</small></div>,
-     ...[1,2,3].map(o=>{
-       const score=g*o,count=cells[`${g}-${o}`].length;
-       return <div className={`risk-cell ${score>=6?"critical":score>=4?"high":score>=2?"med":"low"}`} key={`${g}-${o}`}>
-         <b>{count}</b><small>{count===1?"risque résiduel":"risques résiduels"}</small><em>brut {score}/9</em>
+     ...[1,2,3].map(p=>{
+       const score=p*g,count=cells[`${g}-${p}`].length;
+       return <div className={`risk-cell ${score>=6?"critical":score>=4?"high":score>=2?"med":"low"}`} key={`${g}-${p}`}>
+         <b>{count}</b><small>{count===1?"risque résiduel":"risques résiduels"}</small><em>P × G = {score}/9</em>
        </div>
      })
    ])}
@@ -249,12 +257,12 @@ function Diagnostic({qs,actions,campaignId,mode,setMode,domain,setDomain,idx,set
  const q=list[Math.min(idx,Math.max(0,list.length-1))];
  async function ans(v:number){if(!q)return;const sphere=q.responsibility==="COMPTABLE"?"COMPTABLE":"ORDONNATEUR";await api.saveAnswer(campaignId,q.id,{sphere,value:v,comment:q.comment||"",version:q.version||0});await reload();setIdx((x:number)=>Math.min(x+1,Math.max(0,list.length-1)))}
  return <section className="diagnostic-view"><div className="diag-toolbar"><div>{["all","sprint","critical","unanswered"].map(m=><button key={m} className={mode===m?"active":""} onClick={()=>{setMode(m);setIdx(0)}}>{m==="all"?"Parcours complet":m==="sprint"?"Sprint 20":m==="critical"?"Risques ≥ 6":"Non répondues"}</button>)}</div><select value={domain} onChange={e=>{setDomain(e.target.value);setIdx(0)}}><option>TOUS</option>{DOMAINS.map(d=><option key={d}>{d}</option>)}</select></div>
- {!q?<div className="empty-dark">Aucune question dans ce filtre.</div>:<article className="challenge"><div className="challenge-progress"><span>Défi {Math.min(idx+1,list.length)} / {list.length}</span><span>{Math.round(100*Math.min(idx+1,list.length)/Math.max(1,list.length))}%</span></div><div className="challenge-bar"><i style={{width:`${100*Math.min(idx+1,list.length)/Math.max(1,list.length)}%`}}/></div><div className="challenge-card"><div className="chips"><span>{q.domain}</span><span>{q.category}</span><span>{q.responsibility}</span><span>G{gravity(q)} × O{occurrence(q)} = {q.weight}/9</span>{q.is_key&&<span>◆ Point clé</span>}</div><h2>{q.label}</h2><p className="risk-text"><b>Risque :</b> {q.risk_label||"—"}</p><div className="semantic-answers"><button className="yes" onClick={()=>ans(3)}>Oui</button><button className="partial" onClick={()=>ans(2)}>Partiel</button><button className="no" onClick={()=>ans(1)}>Non</button><button onClick={()=>ans(0)}>N/A</button></div><textarea value={q.comment||""} readOnly placeholder="Observation / preuve…"/><CorrectivePanel q={q} campaignId={campaignId} actions={actions} reload={reload}/><div className="diag-nav"><button onClick={()=>setIdx((x:number)=>Math.max(0,x-1))}>← Précédent</button><button onClick={()=>setIdx((x:number)=>Math.min(list.length-1,x+1))}>Suivant →</button></div></div></article>}
+ {!q?<div className="empty-dark">Aucune question dans ce filtre.</div>:<article className="challenge"><div className="challenge-progress"><span>Défi {Math.min(idx+1,list.length)} / {list.length}</span><span>{Math.round(100*Math.min(idx+1,list.length)/Math.max(1,list.length))}%</span></div><div className="challenge-bar"><i style={{width:`${100*Math.min(idx+1,list.length)/Math.max(1,list.length)}%`}}/></div><div className="challenge-card"><div className="chips"><span>{q.domain}</span><span>{q.category}</span><span>{q.responsibility}</span><span>P{probability(q)} × G{gravity(q)} = {probability(q)*gravity(q)}/9</span>{q.is_key&&<span>◆ Point clé</span>}</div><h2>{q.label}</h2><p className="risk-text"><b>Risque :</b> {q.risk_label||"—"}</p><div className="semantic-answers"><button className="yes" onClick={()=>ans(3)}>Oui</button><button className="partial" onClick={()=>ans(2)}>Partiel</button><button className="no" onClick={()=>ans(1)}>Non</button><button onClick={()=>ans(0)}>N/A</button></div><textarea value={q.comment||""} readOnly placeholder="Observation / preuve…"/><CorrectivePanel q={q} campaignId={campaignId} actions={actions} reload={reload}/><div className="diag-nav"><button onClick={()=>setIdx((x:number)=>Math.max(0,x-1))}>← Précédent</button><button onClick={()=>setIdx((x:number)=>Math.min(list.length-1,x+1))}>Suivant →</button></div></div></article>}
  </section>
 }
 function RiskView({qs}:{qs:PilotageQuestion[]}){
  const rr=qs.filter(q=>q.value===1||q.value===2).map(q=>({...q,residual:residual(q)})).sort((a,b)=>b.residual-a.residual);
- return <section className="risk-view"><div className="section-title"><div><h2>Cartographie détaillée des risques</h2><p>Réponses « Partiel » ou « Non », classées par risque résiduel.</p></div></div><div className="risk-layout"><div className="dash-card"><RiskMatrix qs={qs}/></div><div className="dash-card"><table className="risk-table"><thead><tr><th>Priorité</th><th>Domaine</th><th>Risque</th><th>G</th><th>O</th><th>Brut</th><th>Réponse</th><th>Résiduel</th></tr></thead><tbody>{rr.map(q=>{const sv=sev(q.residual);return <tr key={q.id}><td className={sv[0]}>{sv[1]}</td><td>{q.domain}</td><td>{q.risk_label}</td><td>{gravity(q)}</td><td>{occurrence(q)}</td><td>{gravity(q)*occurrence(q)}/9</td><td>{answerLabel(q.value)}</td><td>{q.residual.toFixed(1)}</td></tr>})}</tbody></table></div></div></section>
+ return <section className="risk-view"><div className="section-title"><div><h2>Cartographie détaillée des risques</h2><p>Réponses « Partiel » ou « Non », classées par risque résiduel.</p></div></div><div className="risk-layout"><div className="dash-card"><RiskMatrix qs={qs}/></div><div className="dash-card"><table className="risk-table"><thead><tr><th>Priorité</th><th>Domaine</th><th>Risque</th><th>Probabilité</th><th>Gravité</th><th>Niveau de risque</th><th>Réponse</th><th>Résiduel</th></tr></thead><tbody>{rr.map(q=>{const sv=sev(q.residual);return <tr key={q.id}><td className={sv[0]}>{sv[1]}</td><td>{q.domain}</td><td>{q.risk_label}</td><td>{probability(q)}/3</td><td>{gravity(q)}/3</td><td>{probability(q)*gravity(q)}/9</td><td>{answerLabel(q.value)}</td><td>{q.residual.toFixed(1)}</td></tr>})}</tbody></table></div></div></section>
 }
 function Annual({data,campaignId,reload}:{data:PilotageData;campaignId:string;reload:()=>Promise<void>}){
  const qmap=new Map<string,PilotageQuestion>();
@@ -274,7 +282,7 @@ function Annual({data,campaignId,reload}:{data:PilotageData;campaignId:string;re
  <div className="annual-v2">{risks.map(q=>{
    const proposals=q.corrective_actions||[], selected=data.actions.filter(a=>a.question_id===q.id);
    return <article className="annual-risk" key={q.id}>
-    <header><div><span>{q.domain} · {q.category}</span><h3>{q.risk_label||q.label}</h3><p>G{gravity(q)} × O{occurrence(q)} = <b>{q.weight}/9</b> · {answerLabel(q.value)} · résiduel <b>{residual(q).toFixed(1)}</b></p></div><strong className={sev(residual(q))[0]}>{sev(residual(q))[1]}</strong></header>
+    <header><div><span>{q.domain} · {q.category}</span><h3>{q.risk_label||q.label}</h3><p>P{probability(q)} × G{gravity(q)} = <b>{probability(q)*gravity(q)}/9</b> · {answerLabel(q.value)} · résiduel <b>{residual(q).toFixed(1)}</b></p></div><strong className={sev(residual(q))[0]}>{sev(residual(q))[1]}</strong></header>
     {proposals.length>0&&<div className="proposal-bank"><h4>Mesures proposées</h4>{proposals.map((text,i)=>{
       const ex=selected.find(a=>a.action_text===text);
       return <div className={`proposal-line ${ex?"chosen":""}`} key={i}><span>{text}</span>{ex?<button onClick={()=>remove(ex)}>Retirer</button>:<button onClick={()=>add(q,text)}>+ Retenir</button>}</div>
