@@ -31,23 +31,36 @@ const MANAGED_ROLES_CE = ["HEAD","SECRETARY_GENERAL","CONTRIBUTOR"] as const;
 
 async function userManager(request:any, reply:any){
   const user=await requireUser(request);
-  if(await isPlatformAdmin(user.sub)) return {user,kind:"ADMIN" as const,establishmentIds:null as string[]|null,roles:null as string[]|null};
-  const ac=await pool.query(`SELECT DISTINCT ae.establishment_id FROM user_agency_roles uar JOIN roles r ON r.id=uar.role_id JOIN agency_establishments ae ON ae.agency_id=uar.agency_id AND ae.active=true WHERE uar.user_id=$1 AND r.code='AGENCY_ACCOUNTANT'`,[user.sub]);
-  if(ac.rowCount) return {user,kind:"AC" as const,establishmentIds:ac.rows.map((x:any)=>x.establishment_id),roles:[...MANAGED_ROLES_AC]};
+  if(await isPlatformAdmin(user.sub)) return {user,kind:"ADMIN" as const,establishmentIds:null as string[]|null,agencyIds:null as string[]|null,roles:null as string[]|null};
+  const ac=await pool.query(`SELECT DISTINCT ae.establishment_id,uar.agency_id FROM user_agency_roles uar JOIN roles r ON r.id=uar.role_id JOIN agency_establishments ae ON ae.agency_id=uar.agency_id AND ae.active=true WHERE uar.user_id=$1 AND r.code='AGENCY_ACCOUNTANT'`,[user.sub]);
+  if(ac.rowCount) return {user,kind:"AC" as const,establishmentIds:[...new Set(ac.rows.map((x:any)=>x.establishment_id))] as string[],agencyIds:[...new Set(ac.rows.map((x:any)=>x.agency_id))] as string[],roles:[...MANAGED_ROLES_AC]};
   const ce=await pool.query(`SELECT DISTINCT uer.establishment_id FROM user_establishment_roles uer JOIN roles r ON r.id=uer.role_id WHERE uer.user_id=$1 AND r.code='HEAD'`,[user.sub]);
-  if(ce.rowCount) return {user,kind:"CE" as const,establishmentIds:ce.rows.map((x:any)=>x.establishment_id),roles:[...MANAGED_ROLES_CE]};
+  if(ce.rowCount) return {user,kind:"CE" as const,establishmentIds:ce.rows.map((x:any)=>x.establishment_id),agencyIds:[] as string[],roles:[...MANAGED_ROLES_CE]};
   reply.code(403).send({error:"USER_MANAGER_REQUIRED"}); return null;
 }
 function validateManagedAssignments(ctx:any, assignments:any[]){
-  if(ctx.kind==='ADMIN') return true;
-  return assignments.every(a=>ctx.establishmentIds.includes(a.establishmentId)&&ctx.roles.includes(a.roleCode));
+  return assignments.every(a=>{
+    if(ctx.roles&&!ctx.roles.includes(a.roleCode))return false;
+    if(['AGENCY_ACCOUNTANT','AGENCY_DEPUTY'].includes(a.roleCode))return !!a.agencyId&&(ctx.kind==='ADMIN'||ctx.agencyIds.includes(a.agencyId));
+    return !!a.establishmentId&&(ctx.kind==='ADMIN'||ctx.establishmentIds.includes(a.establishmentId));
+  });
 }
-async function syncAgencyRole(c:any,userId:string,a:any){
-  if(!['AGENCY_ACCOUNTANT','AGENCY_DEPUTY'].includes(a.roleCode))return;
-  await c.query(`INSERT INTO user_agency_roles(user_id,agency_id,role_id) SELECT $1,ae.agency_id,r.id FROM agency_establishments ae JOIN roles r ON r.code=$3 WHERE ae.establishment_id=$2 AND ae.active=true ON CONFLICT DO NOTHING`,[userId,a.establishmentId,a.roleCode]);
+async function insertManagedAssignment(c:any,userId:string,a:any){
+  if(['AGENCY_ACCOUNTANT','AGENCY_DEPUTY'].includes(a.roleCode)){
+    await c.query(`INSERT INTO user_agency_roles(user_id,agency_id,role_id) SELECT $1,$2,id FROM roles WHERE code=$3 ON CONFLICT DO NOTHING`,[userId,a.agencyId,a.roleCode]);
+    return;
+  }
+  await c.query(`INSERT INTO user_establishment_roles(user_id,establishment_id,role_id) SELECT $1,$2,id FROM roles WHERE code=$3 ON CONFLICT DO NOTHING`,[userId,a.establishmentId,a.roleCode]);
+}
+async function targetInScope(ctx:any,userId:string){
+  if(ctx.kind==='ADMIN')return true;
+  const e=await pool.query(`SELECT 1 FROM user_establishment_roles WHERE user_id=$1 AND establishment_id=ANY($2::uuid[]) LIMIT 1`,[userId,ctx.establishmentIds]);
+  if(e.rowCount)return true;
+  if(ctx.kind==='AC'&&ctx.agencyIds.length){const a=await pool.query(`SELECT 1 FROM user_agency_roles WHERE user_id=$1 AND agency_id=ANY($2::uuid[]) LIMIT 1`,[userId,ctx.agencyIds]);return !!a.rowCount;}
+  return false;
 }
 
-const assignment=z.object({establishmentId:z.string().uuid(),roleCode:z.enum([
+const assignment=z.object({establishmentId:z.string().uuid().optional(),agencyId:z.string().uuid().optional(),roleCode:z.enum([
   "AGENCY_ACCOUNTANT","AGENCY_DEPUTY","HEAD","SECRETARY_GENERAL","CONTRIBUTOR","READER","AUDITOR","DEPARTMENT_ADMIN","ACADEMY_ADMIN"
 ])});
 const userBody=z.object({
@@ -83,7 +96,7 @@ export async function registerAdmin(app:FastifyInstance){
     if(Number(stale.rows[0].count)>0)alerts.push({level:"warning",code:"STALE_ESTABLISHMENTS",count:Number(stale.rows[0].count),label:`${stale.rows[0].count} établissement(s) sans activité depuis 30 jours`,target:"establishments"});
     if(Number(pending.rows[0].count)>0)alerts.push({level:"info",code:"PENDING_PASSWORD_TOKENS",count:Number(pending.rows[0].count),label:`${pending.rows[0].count} activation(s) ou réinitialisation(s) en attente`,target:"users"});
     return {
-      generatedAt:new Date().toISOString(),version:process.env.APP_VERSION||"0.32.10",uptimeSeconds:Math.round(process.uptime()),
+      generatedAt:new Date().toISOString(),version:process.env.APP_VERSION||"0.32.11",uptimeSeconds:Math.round(process.uptime()),
       platform:{status:"OPERATIONAL",database:{status:"OPERATIONAL",latencyMs:dbLatencyMs,sizeBytes:Number(dbSize.rows[0].bytes)},smtp:{configured:!!(process.env.SMTP_HOST&&process.env.SMTP_FROM)}},
       counts:{establishments:est.rows[0],users:users.rows[0],campaigns:campaigns.rows[0],agencies:agencies.rows[0].active,answers:answers.rows[0],actions:actions.rows[0]},
       activity:activity.rows[0],roles:r,services:services.rows,alerts,recentEvents:recentEvents.rows,
@@ -186,26 +199,24 @@ export async function registerAdmin(app:FastifyInstance){
   });
   app.get("/api/admin/user-management-scope",async(request,reply)=>{
     const ctx=await userManager(request,reply);if(!ctx)return;
-    if(ctx.kind==='ADMIN'){const {rows}=await pool.query(`SELECT id,uai,name,kind FROM establishments WHERE active=true ORDER BY name`);return {kind:ctx.kind,establishments:rows,roles:null};}
+    if(ctx.kind==='ADMIN'){
+      const [{rows:establishments},{rows:agencies}]=await Promise.all([pool.query(`SELECT id,uai,name,kind FROM establishments WHERE active=true ORDER BY name`),pool.query(`SELECT id,name FROM accounting_agencies WHERE active=true ORDER BY name`)]);
+      return {kind:ctx.kind,establishments,agencies,roles:null};
+    }
     const {rows}=await pool.query(`SELECT id,uai,name,kind FROM establishments WHERE id=ANY($1::uuid[]) AND active=true ORDER BY name`,[ctx.establishmentIds]);
-    return {kind:ctx.kind,establishments:rows,roles:ctx.roles};
+    const agencies=ctx.kind==='AC'?(await pool.query(`SELECT id,name FROM accounting_agencies WHERE id=ANY($1::uuid[]) AND active=true ORDER BY name`,[ctx.agencyIds])).rows:[];
+    return {kind:ctx.kind,establishments:rows,agencies,roles:ctx.roles};
   });
   app.get("/api/admin/users",async(request,reply)=>{
     const ctx=await userManager(request,reply); if(!ctx)return;
     const {rows}=await pool.query(`
       SELECT u.id,u.email,u.display_name,u.active,u.is_platform_admin,u.created_at,u.deleted_at,
       COALESCE((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.valid_from DESC) FROM auditor_scopes s WHERE s.user_id=u.id),'[]'::jsonb) audit_scopes,
-      COALESCE(jsonb_agg(DISTINCT jsonb_build_object(
-        'establishmentId',e.id,'establishmentName',e.name,'uai',e.uai,'roleCode',r.code,'roleLabel',r.label
-      )) FILTER(WHERE e.id IS NOT NULL),'[]'::jsonb) assignments
-      FROM users u
-      LEFT JOIN user_establishment_roles uer ON uer.user_id=u.id
-      LEFT JOIN establishments e ON e.id=uer.establishment_id
-      LEFT JOIN roles r ON r.id=uer.role_id
-      WHERE u.deleted_at IS NULL
-      GROUP BY u.id ORDER BY u.display_name`);
+      COALESCE((SELECT jsonb_agg(jsonb_build_object('establishmentId',e2.id,'establishmentName',e2.name,'uai',e2.uai,'roleCode',r2.code,'roleLabel',r2.label)) FROM user_establishment_roles x JOIN establishments e2 ON e2.id=x.establishment_id JOIN roles r2 ON r2.id=x.role_id WHERE x.user_id=u.id),'[]'::jsonb)
+      || COALESCE((SELECT jsonb_agg(jsonb_build_object('agencyId',a2.id,'agencyName',a2.name,'roleCode',r3.code,'roleLabel',r3.label)) FROM user_agency_roles y JOIN accounting_agencies a2 ON a2.id=y.agency_id JOIN roles r3 ON r3.id=y.role_id WHERE y.user_id=u.id),'[]'::jsonb) assignments
+      FROM users u WHERE u.deleted_at IS NULL ORDER BY u.display_name`);
     if(ctx.kind==='ADMIN')return rows;
-    return rows.filter((u:any)=>u.assignments.some((a:any)=>ctx.establishmentIds.includes(a.establishmentId))).map((u:any)=>({...u,assignments:u.assignments.filter((a:any)=>ctx.establishmentIds.includes(a.establishmentId))}));
+    return rows.filter((u:any)=>u.assignments.some((a:any)=>(a.establishmentId&&ctx.establishmentIds.includes(a.establishmentId))||(a.agencyId&&ctx.agencyIds.includes(a.agencyId)))).map((u:any)=>({...u,assignments:u.assignments.filter((a:any)=>(a.establishmentId&&ctx.establishmentIds.includes(a.establishmentId))||(a.agencyId&&ctx.agencyIds.includes(a.agencyId)))}));
   });
   app.get("/api/admin/users/:id/auditor-scopes",async(request,reply)=>{
     if(!await adminOnly(request,reply))return;const id=(request.params as any).id;
@@ -229,11 +240,7 @@ export async function registerAdmin(app:FastifyInstance){
       const created=await tx(async c=>{
         const {rows}=await c.query(`INSERT INTO users(email,display_name,password_hash,active) VALUES($1,$2,$3,true) RETURNING id,email,display_name,active`,
           [parsed.data.email,parsed.data.displayName,hash]);
-        for(const a of parsed.data.assignments){
-          await c.query(`INSERT INTO user_establishment_roles(user_id,establishment_id,role_id)
-            SELECT $1,$2,id FROM roles WHERE code=$3 ON CONFLICT DO NOTHING`,[rows[0].id,a.establishmentId,a.roleCode]);
-          await syncAgencyRole(c,rows[0].id,a);
-        }
+        for(const a of parsed.data.assignments)await insertManagedAssignment(c,rows[0].id,a);
         return rows[0];
       });
       let emailSent=false;
@@ -257,7 +264,7 @@ export async function registerAdmin(app:FastifyInstance){
     const parsed=schema.safeParse(request.body);
     if(!parsed.success) return reply.code(400).send({error:"INVALID_USER",details:parsed.error.flatten()});
     if(!validateManagedAssignments(ctx,parsed.data.assignments))return reply.code(403).send({error:"ASSIGNMENT_OUT_OF_SCOPE"});
-    if(ctx.kind!=='ADMIN'){const owned=await pool.query(`SELECT 1 FROM user_establishment_roles WHERE user_id=$1 AND establishment_id=ANY($2::uuid[]) LIMIT 1`,[id,ctx.establishmentIds]);if(!owned.rowCount)return reply.code(403).send({error:"USER_OUT_OF_SCOPE"});}
+    if(!await targetInScope(ctx,id))return reply.code(403).send({error:"USER_OUT_OF_SCOPE"});
     try{
       const result=await tx(async c=>{
         const {rows}=await c.query(`UPDATE users SET email=$1,display_name=$2,active=$3 WHERE id=$4 AND deleted_at IS NULL RETURNING id,email,display_name,active,is_platform_admin`,
@@ -268,13 +275,9 @@ export async function registerAdmin(app:FastifyInstance){
           await c.query(`DELETE FROM user_agency_roles WHERE user_id=$1`,[id]);
         }else{
           await c.query(`DELETE FROM user_establishment_roles WHERE user_id=$1 AND establishment_id=ANY($2::uuid[])`,[id,ctx.establishmentIds]);
-          await c.query(`DELETE FROM user_agency_roles WHERE user_id=$1 AND agency_id IN(SELECT DISTINCT agency_id FROM agency_establishments WHERE establishment_id=ANY($2::uuid[]) AND active=true)`,[id,ctx.establishmentIds]);
+          await c.query(`DELETE FROM user_agency_roles WHERE user_id=$1 AND agency_id=ANY($2::uuid[])`,[id,ctx.agencyIds]);
         }
-        for(const a of parsed.data.assignments){
-          await c.query(`INSERT INTO user_establishment_roles(user_id,establishment_id,role_id)
-            SELECT $1,$2,id FROM roles WHERE code=$3`,[id,a.establishmentId,a.roleCode]);
-          await syncAgencyRole(c,id,a);
-        }
+        for(const a of parsed.data.assignments)await insertManagedAssignment(c,id,a);
         return rows[0];
       });
       return result;
@@ -284,22 +287,21 @@ export async function registerAdmin(app:FastifyInstance){
       throw e;
     }
   });
-  app.post("/api/admin/users/:id/reset-password",async(request,reply)=>{
+  app.post("/api/admin/users/:id/send-password-reset",async(request,reply)=>{
     const ctx=await userManager(request,reply);if(!ctx)return;
     const id=(request.params as any).id;
-    if(ctx.kind!=='ADMIN'){const owned=await pool.query(`SELECT 1 FROM user_establishment_roles WHERE user_id=$1 AND establishment_id=ANY($2::uuid[]) LIMIT 1`,[id,ctx.establishmentIds]);if(!owned.rowCount)return reply.code(403).send({error:"USER_OUT_OF_SCOPE"});}
-    const body=z.object({password:z.string().min(12).optional()}).parse(request.body??{});
-    const password=body.password??`Pcif!${randomBytes(9).toString("base64url")}`;
-    const hash=await bcrypt.hash(password,12);
-    const r=await pool.query(`UPDATE users SET password_hash=$1 WHERE id=$2 AND deleted_at IS NULL RETURNING id`,[hash,id]);
-    if(!r.rowCount) return reply.code(404).send({error:"NOT_FOUND"});
-    return {temporaryPassword:password};
+    if(!await targetInScope(ctx,id))return reply.code(403).send({error:"USER_OUT_OF_SCOPE"});
+    const {rows}=await pool.query(`SELECT id,email,display_name,active FROM users WHERE id=$1 AND deleted_at IS NULL`,[id]);
+    if(!rows.length)return reply.code(404).send({error:"NOT_FOUND"});
+    if(!rows[0].active)return reply.code(400).send({error:"USER_INACTIVE"});
+    try{const token=await issuePasswordToken(id,"RESET");await sendPasswordLink(rows[0].email,rows[0].display_name,token,"RESET");return {sent:true};}
+    catch(e){request.log.error(e,"Échec de l’envoi du courriel de réinitialisation");return reply.code(503).send({error:"RESET_EMAIL_FAILED"});}
   });
   app.delete("/api/admin/users/:id",async(request,reply)=>{
     const ctx=await userManager(request,reply); if(!ctx) return;
     const id=(request.params as any).id;
     if(id===ctx.user.sub) return reply.code(400).send({error:"CANNOT_DELETE_SELF"});
-    if(ctx.kind!=='ADMIN'){const owned=await pool.query(`SELECT 1 FROM user_establishment_roles WHERE user_id=$1 AND establishment_id=ANY($2::uuid[]) LIMIT 1`,[id,ctx.establishmentIds]);if(!owned.rowCount)return reply.code(403).send({error:"USER_OUT_OF_SCOPE"});}
+    if(!await targetInScope(ctx,id))return reply.code(403).send({error:"USER_OUT_OF_SCOPE"});
     await tx(async c=>{
       if(ctx.kind==='ADMIN'){
         await c.query(`DELETE FROM user_establishment_roles WHERE user_id=$1`,[id]);
@@ -307,7 +309,7 @@ export async function registerAdmin(app:FastifyInstance){
         await c.query(`UPDATE users SET active=false,deleted_at=now() WHERE id=$1`,[id]);
       }else{
         await c.query(`DELETE FROM user_establishment_roles WHERE user_id=$1 AND establishment_id=ANY($2::uuid[])`,[id,ctx.establishmentIds]);
-        await c.query(`DELETE FROM user_agency_roles WHERE user_id=$1 AND agency_id IN(SELECT DISTINCT agency_id FROM agency_establishments WHERE establishment_id=ANY($2::uuid[]) AND active=true)`,[id,ctx.establishmentIds]);
+        await c.query(`DELETE FROM user_agency_roles WHERE user_id=$1 AND agency_id=ANY($2::uuid[])`,[id,ctx.agencyIds]);
         const left=await c.query(`SELECT 1 FROM user_establishment_roles WHERE user_id=$1 UNION SELECT 1 FROM user_agency_roles WHERE user_id=$1 LIMIT 1`,[id]);
         if(!left.rowCount)await c.query(`UPDATE users SET active=false,deleted_at=now() WHERE id=$1`,[id]);
       }

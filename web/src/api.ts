@@ -5,7 +5,7 @@ export type Me = {
 };
 
 
-export type UserAssignment = { establishmentId:string; establishmentName?:string; uai?:string; roleCode:string; roleLabel?:string };
+export type UserAssignment = { establishmentId?:string; establishmentName?:string; uai?:string; agencyId?:string; agencyName?:string; roleCode:string; roleLabel?:string };
 export type AdminUser = {
   id:string; email:string; display_name:string; active:boolean; is_platform_admin:boolean;
   created_at:string; assignments:UserAssignment[];audit_scopes?:any[];
@@ -158,7 +158,7 @@ export const api = {
   accessibilityReports:()=>request<any[]>("/api/admin/accessibility/reports"),
   unpublishAccessibilityReport:(id:string)=>request<any>(`/api/admin/accessibility/reports/${id}/unpublish`,{method:"POST"}),
   adminUsers: () => request<AdminUser[]>("/api/admin/users"),
-  userManagementScope:()=>request<{kind:"ADMIN"|"AC"|"CE";establishments:Establishment[];roles:string[]|null}>("/api/admin/user-management-scope"),
+  userManagementScope:()=>request<{kind:"ADMIN"|"AC"|"CE";establishments:Establishment[];agencies:Array<{id:string;name:string}>;roles:string[]|null}>("/api/admin/user-management-scope"),
   administrationScope:()=>request<{kind:"ADMIN"|"AC"|"FP";establishments:any[];canManageUsers:boolean;canManageEstablishments:boolean;canManageAgencies:boolean}>("/api/admin/administration-scope"),
   adminDashboard:()=>request<any>("/api/admin/dashboard"),
   adminEstablishments:()=>request<AdminEstablishment[]>("/api/admin/establishments"),
@@ -174,7 +174,7 @@ export const api = {
   createUser: (payload:any) => request<any>("/api/admin/users",{method:"POST",body:JSON.stringify(payload)}),
   updateUser: (id:string,payload:any) => request<any>(`/api/admin/users/${id}`,{method:"PATCH",body:JSON.stringify(payload)}),
   deleteUser: (id:string) => request<void>(`/api/admin/users/${id}`,{method:"DELETE"}),
-  resetUserPassword: (id:string,password?:string) => request<any>(`/api/admin/users/${id}/reset-password`,{method:"POST",body:JSON.stringify(password?{password}:{})}),
+  sendUserPasswordReset: (id:string) => request<{sent:boolean}>(`/api/admin/users/${id}/send-password-reset`,{method:"POST"}),
   auditorScopes:(id:string)=>request<any[]>(`/api/admin/users/${id}/auditor-scopes`),
   saveAuditorScopes:(id:string,scopes:any[])=>request<any>(`/api/admin/users/${id}/auditor-scopes`,{method:"PUT",body:JSON.stringify({scopes})}),
   agencies: () => request<Array<{ id: string; name: string }>>("/api/agencies"),
