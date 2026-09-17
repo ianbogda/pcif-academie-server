@@ -59,6 +59,37 @@ const userBody=z.object({
 });
 
 export async function registerAdmin(app:FastifyInstance){
+  app.get("/api/admin/dashboard",async(request,reply)=>{
+    if(!await adminOnly(request,reply))return;
+    const started=Date.now();
+    const [est,users,campaigns,agencies,answers,actions,activity,roles,dbSize,pending,stale,services,recentEvents]=await Promise.all([
+      pool.query(`SELECT count(*)::int total,count(*) FILTER(WHERE active)::int active FROM establishments`),
+      pool.query(`SELECT count(*) FILTER(WHERE deleted_at IS NULL)::int total,count(*) FILTER(WHERE deleted_at IS NULL AND active)::int active,count(*) FILTER(WHERE deleted_at IS NULL AND active=false)::int inactive FROM users`),
+      pool.query(`SELECT count(*)::int total,count(*) FILTER(WHERE status IN ('DRAFT','OPEN','REVIEW'))::int active,count(*) FILTER(WHERE status IN ('VALIDATED','ARCHIVED'))::int closed FROM campaigns`),
+      pool.query(`SELECT count(*) FILTER(WHERE active)::int active FROM accounting_agencies`),
+      pool.query(`SELECT count(*)::int total,count(*) FILTER(WHERE updated_at>=now()-interval '30 days')::int last30 FROM answers`),
+      pool.query(`SELECT count(*)::int total,count(*) FILTER(WHERE updated_at>=now()-interval '30 days')::int last30 FROM pcif_actions`),
+      pool.query(`SELECT count(DISTINCT user_id) FILTER(WHERE occurred_at>=now()-interval '1 day')::int d1,count(DISTINCT user_id) FILTER(WHERE occurred_at>=now()-interval '7 days')::int d7,count(DISTINCT user_id) FILTER(WHERE occurred_at>=now()-interval '30 days')::int d30,count(*) FILTER(WHERE occurred_at>=now()-interval '30 days')::int events30 FROM audit_events`),
+      pool.query(`SELECT r.code,count(DISTINCT uer.user_id)::int count FROM roles r LEFT JOIN user_establishment_roles uer ON uer.role_id=r.id LEFT JOIN users u ON u.id=uer.user_id AND u.deleted_at IS NULL AND u.active=true GROUP BY r.code ORDER BY r.code`),
+      pool.query(`SELECT pg_database_size(current_database())::bigint bytes`),
+      pool.query(`SELECT count(DISTINCT user_id)::int count FROM password_tokens WHERE used_at IS NULL AND expires_at>now()`),
+      pool.query(`SELECT count(*)::int count FROM establishments e WHERE e.active=true AND NOT EXISTS(SELECT 1 FROM campaigns c WHERE c.establishment_id=e.id AND c.updated_at>=now()-interval '30 days') AND NOT EXISTS(SELECT 1 FROM audit_events a WHERE a.establishment_id=e.id AND a.occurred_at>=now()-interval '30 days')`),
+      pool.query(`SELECT module,count(*)::int count,count(DISTINCT user_id)::int users FROM audit_events WHERE occurred_at>=now()-interval '30 days' GROUP BY module ORDER BY count DESC`),
+      pool.query(`SELECT ae.occurred_at,ae.module,ae.operation,u.display_name,e.name establishment_name FROM audit_events ae LEFT JOIN users u ON u.id=ae.user_id LEFT JOIN establishments e ON e.id=ae.establishment_id ORDER BY ae.occurred_at DESC LIMIT 8`)
+    ]);
+    const dbLatencyMs=Date.now()-started;
+    const r=Object.fromEntries(roles.rows.map((x:any)=>[x.code,x.count]));
+    const alerts:any[]=[];
+    if(Number(stale.rows[0].count)>0)alerts.push({level:"warning",code:"STALE_ESTABLISHMENTS",count:Number(stale.rows[0].count),label:`${stale.rows[0].count} établissement(s) sans activité depuis 30 jours`,target:"establishments"});
+    if(Number(pending.rows[0].count)>0)alerts.push({level:"info",code:"PENDING_PASSWORD_TOKENS",count:Number(pending.rows[0].count),label:`${pending.rows[0].count} activation(s) ou réinitialisation(s) en attente`,target:"users"});
+    return {
+      generatedAt:new Date().toISOString(),version:process.env.APP_VERSION||"0.32.10",uptimeSeconds:Math.round(process.uptime()),
+      platform:{status:"OPERATIONAL",database:{status:"OPERATIONAL",latencyMs:dbLatencyMs,sizeBytes:Number(dbSize.rows[0].bytes)},smtp:{configured:!!(process.env.SMTP_HOST&&process.env.SMTP_FROM)}},
+      counts:{establishments:est.rows[0],users:users.rows[0],campaigns:campaigns.rows[0],agencies:agencies.rows[0].active,answers:answers.rows[0],actions:actions.rows[0]},
+      activity:activity.rows[0],roles:r,services:services.rows,alerts,recentEvents:recentEvents.rows,
+      maintenance:{backupInstrumented:false,restoreTestInstrumented:false,note:"Les sauvegardes et tests de restauration ne sont pas encore instrumentés par l’application."}
+    };
+  });
   app.get("/api/admin/education-directory",async(request,reply)=>{
     if(!await adminOnly(request,reply))return;
     const q=String((request.query as any)?.q||"").trim();if(q.length<2)return [];
