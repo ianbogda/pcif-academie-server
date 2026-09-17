@@ -6,8 +6,8 @@ const DOMAINS=["Organisation","Exécution budgétaire","Comptabilité Générale
 const BADGE_LABELS=["Découverte","Sensibilisation","Initiation","Pratique","Confirmé","Maîtrise"];
 const workshops=[
  {title:"Qui fait quoi ?",subtitle:"Organisation réelle",deliverable:"Organigramme fonctionnel nominatif + responsabilités",
-  phases:[["5 min","Lancement"],["15 min","Situation terrain"],["30 min","Acteurs, délégations, suppléances"],["10 min","Arbitrage & validation"]],
-  criteria:["Acteurs clés identifiés","Responsabilités et suppléances explicitées","Délégations / habilitations à vérifier repérées","Organigramme fonctionnel exploitable"]},
+  phases:[["5 min","Cadrer"],["10 min","Identifier les acteurs"],["15 min","Affecter les responsabilités"],["10 min","Formaliser les délégations"],["10 min","Tester les suppléances"],["7 min","Vérifier"],["3 min","Valider"]],
+  criteria:["Acteurs clés identifiés","Responsabilités principales affectées","Délégations / habilitations renseignées ou à confirmer","Suppléances testées et zones non couvertes repérées","Contrôle de cohérence réalisé","ONF daté et validé"]},
  {title:"Comment travaillons-nous ?",subtitle:"Processus",deliverable:"Cartographie des processus + procédures prioritaires",
   phases:[["5 min","Lancement"],["15 min","Parcours d’un flux réel"],["30 min","Étapes, contrôles, ruptures et interfaces"],["10 min","Priorisation"]],
   criteria:["Processus clés identifiés","Étapes et interfaces décrites","Contrôles existants repérés","Procédures prioritaires à sécuriser choisies"]},
@@ -95,7 +95,7 @@ export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashb
   {tab==="diagnostic"&&<Diagnostic qs={qs} actions={data.actions} campaignId={campaign.id} userKey={me.user.sub} mode={mode} setMode={setMode} domain={domain} setDomain={setDomain} idx={idx} setIdx={setIdx} reload={load}/>}
   {tab==="risks"&&<RiskView qs={qs}/>}
   {tab==="annual"&&(historical?<HistoricalActionPlan data={data}/>:<Annual data={data} campaignId={campaign.id} reload={load}/>)} 
-  {tab==="workshops"&&<Workshops data={data} campaignId={campaign.id} reload={load}/>}
+  {tab==="workshops"&&<Workshops data={data} campaignId={campaign.id} reload={load} onOpenOnf={()=>onNavigate?.("onf")}/>}
   {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id} initialView={section==="processes"?"process":"ofn"} showTabs={false} readOnly={!!data.access?.auditOnly} onOpenQuestion={openPcifQuestion}/>} 
  </div>
 }
@@ -320,7 +320,7 @@ function Annual({data,campaignId,reload}:{data:PilotageData;campaignId:string;re
    </article>
  })}</div></section>
 }
-function Workshops({data,campaignId,reload}:{data:PilotageData;campaignId:string;reload:()=>Promise<void>}){
+function Workshops({data,campaignId,reload,onOpenOnf}:{data:PilotageData;campaignId:string;reload:()=>Promise<void>;onOpenOnf?:()=>void}){
  const [selected,setSelected]=useState(1);
  const [editing,setEditing]=useState<WorkshopSession|null>(null);
  const w=workshops[selected-1];
@@ -352,6 +352,19 @@ function Workshops({data,campaignId,reload}:{data:PilotageData;campaignId:string
   <article className="workshop-detail">
    <header><div><h2>Atelier {selected}/4 — {w.title}</h2><p><b>Livrable :</b> {w.deliverable}</p></div><div className="workshop-actions"><button className="primary" onClick={()=>fresh(sessions.length?"REEXAMEN":"INITIALISATION")}>{sessions.length?"+ Nouvelle session de réexamen":"+ Démarrer l’atelier"}</button></div></header>
    <div className="workshop-timeline">{w.phases.map(([time,label])=><div key={time+label}><b>{time}</b><span>{label}</span></div>)}</div>
+   {selected===1&&<div className="workshop-facilitation">
+    <div className="facilitation-head"><div><span>FIL D’ANIMATION · 60 MIN</span><h3>Produire l’ONF pendant l’atelier</h3><p>Décrire l’organisation telle qu’elle fonctionne réellement. Les écarts constatés sont repérés, pas résolus prématurément : ils alimenteront les ateliers suivants.</p></div>{onOpenOnf&&<button className="primary" onClick={onOpenOnf}>Ouvrir l’ONF →</button>}</div>
+    <div className="facilitation-grid">
+     <article><b>0–5 min · Cadrer</b><p>Présenter le livrable et la règle du jeu : décrire le réel, pas l’organisation théorique.</p><small>Sortie : objectif partagé.</small></article>
+     <article><b>5–15 min · Identifier</b><p>« Qui intervient aujourd’hui dans la chaîne financière ? » Ajouter les personnes effectivement impliquées.</p><small>Sortie : acteurs nominatifs.</small></article>
+     <article><b>15–30 min · Affecter</b><p>Pour chaque acteur : réalise, prépare, contrôle, valide ou décide ? Rester au niveau des responsabilités, sans détailler encore les procédures.</p><small>Sortie : responsabilités affectées.</small></article>
+     <article><b>30–40 min · Formaliser</b><p>Repérer les délégations et habilitations. Question réflexe : « Sur quel fondement cette personne agit-elle ? »</p><small>Sortie : délégations renseignées ou à confirmer.</small></article>
+     <article><b>40–50 min · Tester</b><p>« Si X est absent trois semaines, qui reprend ? » Tester la continuité sur les acteurs et opérations clés.</p><small>Sortie : suppléances et zones non couvertes.</small></article>
+     <article><b>50–57 min · Vérifier</b><p>Lancer le contrôle de cohérence : responsabilité sans acteur, acteur sans rôle clair, doublon, délégation ou suppléance manquante.</p><small>Sortie : anomalies factuelles repérées.</small></article>
+     <article><b>57–60 min · Valider</b><p>« Cet ONF décrit-il honnêtement notre fonctionnement aujourd’hui ? » Corriger si nécessaire puis créer la version datée.</p><small>Sortie : ONF validé.</small></article>
+    </div>
+    <div className="facilitation-rule"><b>Règle d’animation</b><span>Si la discussion bascule vers « normalement, on devrait… », revenir à : <strong>« Qui le fait aujourd’hui ? »</strong> Les améliorations seront traitées dans les ateliers 2 à 4.</span></div>
+   </div>}
    {editing&&<div className="workshop-editor">
     <div className="editor-head"><h3>{editing.id?"Modifier la session":editing.session_kind==="REEXAMEN"?"Nouvelle session de réexamen":"Session initiale"}</h3><button onClick={()=>setEditing(null)}>Fermer</button></div>
     <div className="workshop-form-grid">

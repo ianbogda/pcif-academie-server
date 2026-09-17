@@ -96,7 +96,7 @@ export async function registerAdmin(app:FastifyInstance){
     if(Number(stale.rows[0].count)>0)alerts.push({level:"warning",code:"STALE_ESTABLISHMENTS",count:Number(stale.rows[0].count),label:`${stale.rows[0].count} établissement(s) sans activité depuis 30 jours`,target:"establishments"});
     if(Number(pending.rows[0].count)>0)alerts.push({level:"info",code:"PENDING_PASSWORD_TOKENS",count:Number(pending.rows[0].count),label:`${pending.rows[0].count} activation(s) ou réinitialisation(s) en attente`,target:"users"});
     return {
-      generatedAt:new Date().toISOString(),version:process.env.APP_VERSION||"0.32.11",uptimeSeconds:Math.round(process.uptime()),
+      generatedAt:new Date().toISOString(),version:process.env.APP_VERSION||"0.32.12",uptimeSeconds:Math.round(process.uptime()),
       platform:{status:"OPERATIONAL",database:{status:"OPERATIONAL",latencyMs:dbLatencyMs,sizeBytes:Number(dbSize.rows[0].bytes)},smtp:{configured:!!(process.env.SMTP_HOST&&process.env.SMTP_FROM)}},
       counts:{establishments:est.rows[0],users:users.rows[0],campaigns:campaigns.rows[0],agencies:agencies.rows[0].active,answers:answers.rows[0],actions:actions.rows[0]},
       activity:activity.rows[0],roles:r,services:services.rows,alerts,recentEvents:recentEvents.rows,
