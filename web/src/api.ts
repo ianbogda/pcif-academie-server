@@ -108,7 +108,13 @@ export function clearToken() {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  headers.set("Content-Type", "application/json");
+  // Ne déclarer du JSON que lorsqu’un corps est réellement envoyé.
+  // Fastify 5 refuse un POST vide annoncé comme application/json (FST_ERR_CTP_EMPTY_JSON_BODY).
+  if (init.body !== undefined && init.body !== null) {
+    headers.set("Content-Type", "application/json");
+  } else {
+    headers.delete("Content-Type");
+  }
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
