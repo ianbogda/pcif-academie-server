@@ -22,20 +22,36 @@ function App(){
  const legal=new URLSearchParams(location.search).get("legal") as CompliancePage|null;
  if(legal&&["accessibilite","mentions-legales","donnees-personnelles","cookies","securite"].includes(legal))return <CompliancePageView page={legal}/>;
  const[me,setMe]=useState<Me|null>(null),[view,setView]=useState<View>({kind:"home"}),[busy,setBusy]=useState(!!getToken());
- const[active,setActive]=useState<Establishment|null>(null),[ets,setEts]=useState<Establishment[]>([]),[helpOpen,setHelpOpen]=useState(false);
+ const[active,setActive]=useState<Establishment|null>(null),[ets,setEts]=useState<Establishment[]>([]),[helpOpen,setHelpOpen]=useState(false),[navigationError,setNavigationError]=useState("");
  async function session(){setBusy(true);try{const m=await api.me(),e=await api.establishments();setMe(m);setEts(e);setActive(e[0]??null)}catch{clearToken();setMe(null)}finally{setBusy(false)}}
  useEffect(()=>{getToken()?session():setBusy(false)},[]);
  if(busy)return <><DemoBanner/><div className={`splash${isDemo?" demo-mode":""}`}><Logo/><span>Chargement…</span></div></>;
  if(!me)return new URLSearchParams(location.search).get("resetToken")?<ResetPassword/>:<Login onLogin={session}/>;
  const logout=()=>{clearToken();setMe(null);setView({kind:"home"})};
  const openShortcut=async(section:WorkspaceSection,tab?:PilotageTab)=>{
-   if(!active)return;
-   let camps=await api.campaigns(active.id);
-   if(!camps.length&&!me.user.isAuditor){
-     try{const created=await api.ensureCampaign(active.id);camps=[created]}catch(e){console.error("Impossible d’initialiser la campagne PCIF",e)}
+   if(!active){setNavigationError("Aucun établissement actif n’est sélectionné.");return;}
+   setNavigationError("");
+   try{
+     let camps=await api.campaigns(active.id);
+     if(!camps.length&&!me.user.isAuditor){
+       const created=await api.ensureCampaign(active.id);
+       camps=[created];
+     }
+     const campaign=camps[0];
+     if(!campaign){
+       setNavigationError(me.user.isAuditor
+         ? "Aucune campagne accessible pour cet établissement dans votre mission d’audit."
+         : "Aucune campagne PCIF n’a pu être ouverte pour cet établissement.");
+       return;
+     }
+     setView({kind:"campaign",campaign,establishment:active,section,tab});
+   }catch(e:any){
+     console.error("Ouverture de l’espace PCIF impossible",e);
+     const detail=String(e?.message||"");
+     setNavigationError(detail.includes("NO_ACTIVE_REPOSITORY")
+       ? "Le référentiel PCIF n’est pas disponible sur le serveur. Vérifiez l’import des 267 points de contrôle."
+       : "Impossible d’ouvrir cet espace PCIF. Le serveur a refusé l’ouverture de la campagne ; l’erreur n’est plus masquée.");
    }
-   const campaign=camps[0];
-   if(campaign)setView({kind:"campaign",campaign,establishment:active,section,tab});
  };
  const helpContext:HelpContext=me.user.isPlatformAdmin?"admin":view.kind==="campaign"?view.section:view.kind;
  const canManageUsers=!!me.user.isPlatformAdmin||me.agencies.some(a=>a.role==="AGENCY_ACCOUNTANT")||me.establishments.some(e=>e.role==="HEAD");
@@ -72,6 +88,7 @@ function App(){
       <div className="rolechips">{me.agencies.map(a=><span key={a.id}>{roleLabel(a.role)}</span>)}{me.establishments.filter(x=>x.id===active?.id).map(x=><span key={x.role}>{roleLabel(x.role)}</span>)}</div>
     </header>}
     <main id="main-content" tabIndex={-1}>
+      {navigationError&&<div className="error" role="alert">{navigationError}</div>}
       {me.user.isPlatformAdmin?<AdminHub establishments={ets}/>:<>
       {view.kind==="home"&&<Dashboard establishment={active} onOpen={(c,e)=>setView({kind:"campaign",campaign:c,establishment:e,section:"pilotage"})}/>} 
       {view.kind==="campaign"&&<PilotagePcif me={me} campaign={view.campaign} establishment={view.establishment} initialTab={view.tab} section={view.section} onNavigate={(section,tab)=>setView({...view,section,tab})} onBack={()=>setView({kind:"home"})}/>} 

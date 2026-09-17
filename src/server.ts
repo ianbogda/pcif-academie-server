@@ -200,11 +200,16 @@ app.post("/api/establishments/:id/ensure-campaign", async (request, reply) => {
       return existing.rows[0];
     }
 
+    // En production, une version de référentiel importée peut exister sans avoir
+    // encore été marquée active. Ne pas bloquer l'ouverture métier pour ce seul
+    // drapeau : préférer l'active, puis la version réellement alimentée la plus récente.
     const repository = await client.query(
-      `SELECT rv.id, rv.version
+      `SELECT rv.id, rv.version, rv.active, COUNT(q.id)::int AS question_count
          FROM repository_versions rv
-        WHERE rv.active=true
-        ORDER BY rv.published_at DESC NULLS LAST, rv.version DESC
+         JOIN questions q ON q.repository_version_id=rv.id AND q.active=true
+        GROUP BY rv.id
+        HAVING COUNT(q.id) > 0
+        ORDER BY rv.active DESC, COUNT(q.id) DESC, rv.published_at DESC NULLS LAST, rv.version DESC
         LIMIT 1`
     );
     if (!repository.rows.length) {
