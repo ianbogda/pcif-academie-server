@@ -14,6 +14,18 @@ async function adminOnly(request:any, reply:any){
 }
 
 
+
+async function administrationScope(request:any, reply:any){
+  const user=await requireUser(request);
+  if(await isPlatformAdmin(user.sub)) return {user,kind:"ADMIN" as const,establishmentIds:null as string[]|null};
+  const agency=await pool.query(`SELECT DISTINCT r.code,ae.establishment_id FROM user_agency_roles uar JOIN roles r ON r.id=uar.role_id JOIN agency_establishments ae ON ae.agency_id=uar.agency_id AND ae.active=true WHERE uar.user_id=$1 AND r.code=ANY($2::text[])`,[user.sub,["AGENCY_ACCOUNTANT","AGENCY_DEPUTY"]]);
+  if(agency.rowCount){
+    const codes=new Set(agency.rows.map((x:any)=>x.code));
+    return {user,kind:codes.has("AGENCY_ACCOUNTANT")?"AC" as const:"FP" as const,establishmentIds:[...new Set(agency.rows.map((x:any)=>x.establishment_id))] as string[]};
+  }
+  reply.code(403).send({error:"ADMINISTRATION_SCOPE_REQUIRED"}); return null;
+}
+
 const MANAGED_ROLES_AC = ["AGENCY_ACCOUNTANT","AGENCY_DEPUTY","HEAD","SECRETARY_GENERAL","CONTRIBUTOR"] as const;
 const MANAGED_ROLES_CE = ["HEAD","SECRETARY_GENERAL","CONTRIBUTOR"] as const;
 
@@ -128,6 +140,12 @@ export async function registerAdmin(app:FastifyInstance){
     return result;
   });
 
+  app.get("/api/admin/administration-scope",async(request,reply)=>{
+    const ctx=await administrationScope(request,reply);if(!ctx)return;
+    if(ctx.kind==='ADMIN')return {kind:ctx.kind,establishments:[],canManageUsers:true,canManageEstablishments:true,canManageAgencies:true};
+    const {rows}=await pool.query(`SELECT e.id,e.uai,e.name,e.kind,e.active,e.department_name,e.academy_name,e.city,e.contact_email,a.id AS agency_id,a.name AS agency_name FROM establishments e LEFT JOIN agency_establishments ae ON ae.establishment_id=e.id AND ae.active=true LEFT JOIN accounting_agencies a ON a.id=ae.agency_id AND a.active=true WHERE e.id=ANY($1::uuid[]) ORDER BY e.name`,[ctx.establishmentIds]);
+    return {kind:ctx.kind,establishments:rows,canManageUsers:ctx.kind==='AC',canManageEstablishments:false,canManageAgencies:false};
+  });
   app.get("/api/admin/roles",async(request,reply)=>{
     const ctx=await userManager(request,reply); if(!ctx)return;
     const params:any[]=[]; let where=`code<>'PLATFORM_ADMIN'`;

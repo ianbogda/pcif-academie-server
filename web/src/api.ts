@@ -159,6 +159,7 @@ export const api = {
   unpublishAccessibilityReport:(id:string)=>request<any>(`/api/admin/accessibility/reports/${id}/unpublish`,{method:"POST"}),
   adminUsers: () => request<AdminUser[]>("/api/admin/users"),
   userManagementScope:()=>request<{kind:"ADMIN"|"AC"|"CE";establishments:Establishment[];roles:string[]|null}>("/api/admin/user-management-scope"),
+  administrationScope:()=>request<{kind:"ADMIN"|"AC"|"FP";establishments:any[];canManageUsers:boolean;canManageEstablishments:boolean;canManageAgencies:boolean}>("/api/admin/administration-scope"),
   adminEstablishments:()=>request<AdminEstablishment[]>("/api/admin/establishments"),
   educationDirectory:(q:string)=>request<any[]>(`/api/admin/education-directory?q=${encodeURIComponent(q)}`),
   importEducationEstablishment:(uai:string)=>request<any>(`/api/admin/education-directory/${encodeURIComponent(uai)}/import`,{method:"POST"}),
