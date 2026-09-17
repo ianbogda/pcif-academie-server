@@ -28,7 +28,15 @@ function App(){
  if(busy)return <><DemoBanner/><div className={`splash${isDemo?" demo-mode":""}`}><Logo/><span>Chargement…</span></div></>;
  if(!me)return new URLSearchParams(location.search).get("resetToken")?<ResetPassword/>:<Login onLogin={session}/>;
  const logout=()=>{clearToken();setMe(null);setView({kind:"home"})};
- const openShortcut=async(section:WorkspaceSection,tab?:PilotageTab)=>{if(!active)return;const camps=await api.campaigns(active.id);const campaign=camps[0];if(campaign)setView({kind:"campaign",campaign,establishment:active,section,tab})};
+ const openShortcut=async(section:WorkspaceSection,tab?:PilotageTab)=>{
+   if(!active)return;
+   let camps=await api.campaigns(active.id);
+   if(!camps.length&&!me.user.isAuditor){
+     try{const created=await api.ensureCampaign(active.id);camps=[created]}catch(e){console.error("Impossible d’initialiser la campagne PCIF",e)}
+   }
+   const campaign=camps[0];
+   if(campaign)setView({kind:"campaign",campaign,establishment:active,section,tab});
+ };
  const helpContext:HelpContext=me.user.isPlatformAdmin?"admin":view.kind==="campaign"?view.section:view.kind;
  const canManageUsers=!!me.user.isPlatformAdmin||me.agencies.some(a=>a.role==="AGENCY_ACCOUNTANT")||me.establishments.some(e=>e.role==="HEAD");
  const canScopedAdmin=me.agencies.some(a=>["AGENCY_ACCOUNTANT","AGENCY_DEPUTY"].includes(a.role));
@@ -90,7 +98,17 @@ function ResetPassword(){
 }
 function Dashboard({establishment,onOpen}:{establishment:Establishment|null;onOpen:(c:Campaign,e:Establishment)=>void}){
  const[camps,setCamps]=useState<Campaign[]>([]),[data,setData]=useState<PilotageData|null>(null),[benchmark,setBenchmark]=useState<BenchmarkData|null>(null),[history,setHistory]=useState<Array<{year:string;value:number}>>([]);
- useEffect(()=>{setData(null);setBenchmark(null);setHistory([]);if(!establishment){setCamps([]);return}api.campaigns(establishment.id).then(async list=>{setCamps(list);const datasets=await Promise.all(list.slice(0,3).map(async c=>({campaign:c,data:await api.pilotage(c.id)})));if(datasets[0])setData(datasets[0].data);setHistory(datasets.reverse().map(x=>({year:(x.campaign.label.match(/20\d{2}-20\d{2}/)?.[0]||x.campaign.label),value:pilotageMastery(x.data)})));api.benchmark(establishment.id).then(setBenchmark).catch(()=>setBenchmark(null))})},[establishment?.id]);
+ useEffect(()=>{setData(null);setBenchmark(null);setHistory([]);if(!establishment){setCamps([]);return}
+  (async()=>{
+    let list=await api.campaigns(establishment.id);
+    if(!list.length){try{list=[await api.ensureCampaign(establishment.id)]}catch{/* lecture seule/auditeur : ne crée rien */}}
+    setCamps(list);
+    const datasets=await Promise.all(list.slice(0,3).map(async c=>({campaign:c,data:await api.pilotage(c.id)})));
+    if(datasets[0])setData(datasets[0].data);
+    setHistory(datasets.reverse().map(x=>({year:(x.campaign.label.match(/20\d{2}-20\d{2}/)?.[0]||x.campaign.label),value:pilotageMastery(x.data)})));
+    api.benchmark(establishment.id).then(setBenchmark).catch(()=>setBenchmark(null));
+  })().catch(console.error)
+ },[establishment?.id]);
  if(!establishment)return <Empty text="Aucun établissement accessible."/>;
  const campaign=camps[0],questions=data?.questions||[],unique=new Map<string,any>();for(const q of questions){const old=unique.get(q.id);if(!old||q.sphere==="SYNTHESE")unique.set(q.id,q)}const qs=[...unique.values()];
  const answered=qs.filter(q=>q.value===1||q.value===2||q.value===3),coverage=qs.length?Math.round(100*answered.length/qs.length):0;

@@ -184,6 +184,7 @@ export const api = {
   campaigns: (establishmentId: string) =>
     request<Campaign[]>(`/api/campaigns?establishmentId=${encodeURIComponent(establishmentId)}`),
   campaign: (id: string) => request<Campaign>(`/api/campaigns/${id}`),
+  ensureCampaign: (establishmentId: string) => request<Campaign>(`/api/establishments/${establishmentId}/ensure-campaign`,{method:"POST"}),
   pilotage: (id:string) => request<PilotageData>(`/api/campaigns/${id}/pilotage`),
   exportCartopale:(id:string)=>download(`/api/campaigns/${id}/export/cartopale`),
   benchmark:(establishmentId:string)=>request<BenchmarkData>(`/api/establishments/${establishmentId}/benchmark`),

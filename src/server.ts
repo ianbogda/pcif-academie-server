@@ -177,6 +177,67 @@ app.get("/api/campaigns", async (request, reply) => {
   return rows;
 });
 
+app.post("/api/establishments/:id/ensure-campaign", async (request, reply) => {
+  const user = await requireUser(request);
+  const establishmentId = (request.params as any).id;
+  const access = await establishmentAccess(user.sub, establishmentId);
+  if (!access.canWrite) return reply.code(403).send({ error: "FORBIDDEN" });
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    // Empêche deux membres du même EPLE de créer simultanément deux campagnes.
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [establishmentId]);
+    const existing = await client.query(
+      `SELECT c.*, rv.version AS repository_version,
+              (SELECT count(*)::int FROM questions q2 WHERE q2.repository_version_id=c.repository_version_id AND q2.active=true) AS question_count
+         FROM campaigns c JOIN repository_versions rv ON rv.id=c.repository_version_id
+        WHERE c.establishment_id=$1 ORDER BY c.created_at DESC LIMIT 1`,
+      [establishmentId]
+    );
+    if (existing.rows.length) {
+      await client.query("COMMIT");
+      return existing.rows[0];
+    }
+
+    const repository = await client.query(
+      `SELECT rv.id, rv.version
+         FROM repository_versions rv
+        WHERE rv.active=true
+        ORDER BY rv.published_at DESC NULLS LAST, rv.version DESC
+        LIMIT 1`
+    );
+    if (!repository.rows.length) {
+      await client.query("ROLLBACK");
+      return reply.code(409).send({ error: "NO_ACTIVE_REPOSITORY" });
+    }
+
+    const now = new Date();
+    const year = now.getUTCMonth() >= 7 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
+    const label = `Campagne PCIF ${year}-${year + 1}`;
+    const created = await client.query(
+      `INSERT INTO campaigns(establishment_id,repository_version_id,label,status,created_by)
+       VALUES($1,$2,$3,'DRAFT',$4)
+       RETURNING *`,
+      [establishmentId, repository.rows[0].id, label, user.sub]
+    );
+    await client.query("COMMIT");
+    return reply.code(201).send({
+      ...created.rows[0],
+      repository_version: repository.rows[0].version,
+      question_count: Number((await pool.query(
+        `SELECT count(*)::int AS n FROM questions WHERE repository_version_id=$1 AND active=true`,
+        [repository.rows[0].id]
+      )).rows[0].n)
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+});
+
 app.post("/api/campaigns", async (request, reply) => {
   const user = await requireUser(request);
   const schema = z.object({
