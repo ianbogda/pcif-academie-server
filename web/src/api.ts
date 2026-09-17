@@ -31,7 +31,9 @@ export type WorkshopSession = {
   reason:string;participants:string;notes:string;decisions:string;deliverable:string;
   exit_criteria:Record<string,boolean>;updated_at:string;updated_by_name?:string|null;
 };
-export type PilotageData = {questions:PilotageQuestion[];actions:PcifAction[];workshops:WorkshopProgress[];workshopSessions:WorkshopSession[];access?:{auditOnly:boolean;canWrite:boolean}};
+export type WorkshopLive={id?:string;workshop_no?:number;status:"IDLE"|"PLANNED"|"RUNNING"|"PAUSED"|"FINISHED";scheduled_at?:string|null;facilitator_user_id?:string;facilitator_name?:string;can_control:boolean;elapsed_live:number;members?:Array<{campaignId:string;establishmentId:string;name:string;uai:string}>};
+export type WorkshopPlanning={canOrganize:boolean;workshopNo?:number;establishments:Array<{establishment_id:string;name:string;uai:string;campaign_id:string;campaign_label:string}>;facilitators:Array<{id:string;display_name:string;role_code:string}>};
+export type PilotageData = {questions:PilotageQuestion[];actions:PcifAction[];workshops:WorkshopProgress[];workshopSessions:WorkshopSession[];access?:{auditOnly:boolean;canWrite:boolean;roles?:string[]}};
 export type BenchmarkData={current:number|null;agency:BenchmarkCohort;department:BenchmarkCohort;academy:BenchmarkCohort};
 export type BenchmarkCohort={count:number;average:number|null;values:number[]};
 export type AuditData={campaign:any;observationsAllowed:boolean;findings:{withoutEvidence:any[];divergences:any[];risksWithoutAction:any[];overdueActions:any[];progressions:any[];processesWithoutFormalisation:number;unassignedOperations:number};observations:any[]};
@@ -207,6 +209,10 @@ export const api = {
   saveWorkshop: (campaignId:string,no:number,payload:any) => request<WorkshopProgress>(`/api/campaigns/${campaignId}/workshops/${no}`,{method:"PUT",body:JSON.stringify(payload)}),
   createWorkshopSession:(campaignId:string,payload:any)=>request<WorkshopSession>(`/api/campaigns/${campaignId}/workshop-sessions`,{method:"POST",body:JSON.stringify(payload)}),
   updateWorkshopSession:(campaignId:string,sessionId:string,payload:any)=>request<WorkshopSession>(`/api/campaigns/${campaignId}/workshop-sessions/${sessionId}`,{method:"PATCH",body:JSON.stringify(payload)}),
+  workshopLive:(campaignId:string,no:number)=>request<WorkshopLive>(`/api/campaigns/${campaignId}/workshops/${no}/live`),
+  workshopPlanning:(campaignId:string,no:number)=>request<WorkshopPlanning>(`/api/campaigns/${campaignId}/workshops/${no}/planning`),
+  createWorkshopEvent:(payload:any)=>request<any>(`/api/workshop-events`,{method:"POST",body:JSON.stringify(payload)}),
+  workshopTimer:(eventId:string,action:"START"|"PAUSE"|"RESUME"|"RESET"|"FINISH")=>request<WorkshopLive>(`/api/workshop-events/${eventId}/timer`,{method:"POST",body:JSON.stringify({action})}),
   questions: (campaignId: string) => request<Question[]>(`/api/campaigns/${campaignId}/questions`),
   saveAnswer: (
     campaignId: string,

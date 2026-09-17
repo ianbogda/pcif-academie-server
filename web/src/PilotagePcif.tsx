@@ -1,6 +1,6 @@
 import { OrganisationPcif } from "./OrganisationPcif";
 import React,{useEffect,useMemo,useState}from"react";
-import{api,type AuditData,type Campaign,type Establishment,type Me,type PcifAction,type PilotageData,type PilotageQuestion,type WorkshopSession}from"./api";
+import{api,type AuditData,type Campaign,type Establishment,type Me,type PcifAction,type PilotageData,type PilotageQuestion,type WorkshopSession,type WorkshopLive,type WorkshopPlanning}from"./api";
 
 const DOMAINS=["Organisation","Exécution budgétaire","Comptabilité Générale","Régies","Contentieux","Patrimoine stocks Domaine"];
 const BADGE_LABELS=["Découverte","Sensibilisation","Initiation","Pratique","Confirmé","Maîtrise"];
@@ -95,7 +95,7 @@ export function PilotagePcif({campaign,establishment,me,onBack,initialTab="dashb
   {tab==="diagnostic"&&<Diagnostic qs={qs} actions={data.actions} campaignId={campaign.id} userKey={me.user.sub} mode={mode} setMode={setMode} domain={domain} setDomain={setDomain} idx={idx} setIdx={setIdx} reload={load}/>}
   {tab==="risks"&&<RiskView qs={qs}/>}
   {tab==="annual"&&(historical?<HistoricalActionPlan data={data}/>:<Annual data={data} campaignId={campaign.id} reload={load}/>)} 
-  {tab==="workshops"&&<Workshops data={data} campaignId={campaign.id} reload={load} onOpenOnf={()=>onNavigate?.("onf")}/>}
+  {tab==="workshops"&&<Workshops data={data} campaignId={campaign.id} me={me} reload={load} onOpenOnf={()=>onNavigate?.("onf")}/>}
   {tab==="organisation"&&<OrganisationPcif campaignId={campaign.id} initialView={section==="processes"?"process":"ofn"} showTabs={false} readOnly={!!data.access?.auditOnly} onOpenQuestion={openPcifQuestion}/>} 
  </div>
 }
@@ -320,28 +320,30 @@ function Annual({data,campaignId,reload}:{data:PilotageData;campaignId:string;re
    </article>
  })}</div></section>
 }
-function Workshops({data,campaignId,reload,onOpenOnf}:{data:PilotageData;campaignId:string;reload:()=>Promise<void>;onOpenOnf?:()=>void}){
+function Workshops({data,campaignId,me,reload,onOpenOnf}:{data:PilotageData;campaignId:string;me:Me;reload:()=>Promise<void>;onOpenOnf?:()=>void}){
  const [selected,setSelected]=useState(1);
  const [editing,setEditing]=useState<WorkshopSession|null>(null);
- const timerKey=`pcif:atelier1:timer:${campaignId}`;
- const readAtelier1Timer=()=>{try{const raw=localStorage.getItem(timerKey);if(!raw)return {started:false,running:false,elapsed:0,anchor:null as number|null};const t=JSON.parse(raw);let elapsed=Number(t.elapsed)||0;if(t.running&&t.anchor)elapsed+=Math.max(0,(Date.now()-Number(t.anchor))/1000);return {started:!!t.started,running:!!t.running&&elapsed<3600,elapsed:Math.min(3600,elapsed),anchor:t.running&&elapsed<3600?Date.now():null as number|null}}catch{return {started:false,running:false,elapsed:0,anchor:null as number|null}}};
- const initialTimer=readAtelier1Timer();
- const [atelier1Elapsed,setAtelier1Elapsed]=useState(initialTimer.elapsed);
- const [atelier1Running,setAtelier1Running]=useState(initialTimer.running);
- const [atelier1Started,setAtelier1Started]=useState(initialTimer.started);
+ const [live,setLive]=useState<WorkshopLive>({status:"IDLE",elapsed_live:0,can_control:false});
+ const [liveElapsed,setLiveElapsed]=useState(0);
+ const [planning,setPlanning]=useState<WorkshopPlanning|null>(null);
+ const [showPlanning,setShowPlanning]=useState(false);
+ const [plannedCampaigns,setPlannedCampaigns]=useState<string[]>([campaignId]);
+ const [plannedAt,setPlannedAt]=useState("");
+ const [facilitator,setFacilitator]=useState(me.user.sub);
  const w=workshops[selected-1];
  const sessions=(data.workshopSessions||[]).filter(s=>s.workshop_no===selected);
  const latest=sessions[0];
  const statusLabel=(s?:WorkshopSession["status"])=>s==="A_PREPARER"?"À préparer":s==="EN_COURS"?"En cours":s==="TERMINEE"?"Session terminée":s==="A_REINTERROGER"?"À réinterroger":"Jamais réalisé";
- useEffect(()=>{
-   if(!atelier1Running)return;
-   let base=atelier1Elapsed; const anchor=Date.now();
-   localStorage.setItem(timerKey,JSON.stringify({started:true,running:true,elapsed:base,anchor}));
-   const sync=()=>{const next=Math.min(3600,base+(Date.now()-anchor)/1000);setAtelier1Elapsed(next);if(next>=3600){setAtelier1Running(false);localStorage.setItem(timerKey,JSON.stringify({started:true,running:false,elapsed:3600,anchor:null}));}};
-   sync(); const id=window.setInterval(sync,250);
-   return()=>window.clearInterval(id);
- },[atelier1Running]);
- useEffect(()=>{if(!atelier1Running&&atelier1Started)localStorage.setItem(timerKey,JSON.stringify({started:true,running:false,elapsed:atelier1Elapsed,anchor:null}));},[atelier1Running]);
+ const roles=data.access?.roles||[];
+ const canStartAdHoc=roles.some(r=>["AGENCY_ACCOUNTANT","AGENCY_DEPUTY","HEAD","SECRETARY_GENERAL","PLATFORM_ADMIN"].includes(r));
+ const canOrganize=roles.some(r=>["AGENCY_ACCOUNTANT","AGENCY_DEPUTY","PLATFORM_ADMIN"].includes(r));
+ async function syncLive(){try{const x=await api.workshopLive(campaignId,selected);setLive(x);setLiveElapsed(Number(x.elapsed_live)||0)}catch{}}
+ useEffect(()=>{syncLive();const id=window.setInterval(syncLive,2000);return()=>window.clearInterval(id)},[campaignId,selected]);
+ useEffect(()=>{if(live.status!=="RUNNING")return;const base=Number(live.elapsed_live)||0,anchor=Date.now();const id=window.setInterval(()=>setLiveElapsed(Math.min(3600,base+(Date.now()-anchor)/1000)),250);return()=>window.clearInterval(id)},[live.id,live.status,live.elapsed_live]);
+ async function loadPlanning(){const x=await api.workshopPlanning(campaignId,selected);setPlanning(x);if(x.canOrganize){setPlannedCampaigns([campaignId]);setFacilitator(x.facilitators.some(f=>f.id===me.user.sub)?me.user.sub:(x.facilitators[0]?.id||me.user.sub));setShowPlanning(true)}}
+ async function createPlannedEvent(){if(!plannedCampaigns.length)return;await api.createWorkshopEvent({workshopNo:selected,campaignIds:plannedCampaigns,scheduledAt:plannedAt?new Date(plannedAt).toISOString():null,facilitatorUserId:facilitator});setShowPlanning(false);await syncLive()}
+ async function createAdHocAndStart(){const ev=await api.createWorkshopEvent({workshopNo:selected,campaignIds:[campaignId],facilitatorUserId:me.user.sub});await api.workshopTimer(ev.id,"START");await syncLive()}
+ async function timerAction(action:"START"|"PAUSE"|"RESUME"|"RESET"|"FINISH"){if(!live.id)return;const x=await api.workshopTimer(live.id,action);setLive(x);setLiveElapsed(Number(x.elapsed_live)||0)}
  const atelier1Phases=[
   {start:0,end:300,label:"Cadrer",help:"Poser l’objectif : décrire l’organisation réelle et produire l’ONF pendant l’heure."},
   {start:300,end:900,label:"Identifier les acteurs",help:"Faire apparaître toutes les personnes qui interviennent réellement dans la chaîne financière."},
@@ -351,13 +353,13 @@ function Workshops({data,campaignId,reload,onOpenOnf}:{data:PilotageData;campaig
   {start:3000,end:3420,label:"Vérifier",help:"Repérer responsabilités sans titulaire, doublons, délégations incertaines et suppléances manquantes."},
   {start:3420,end:3600,label:"Valider",help:"Confirmer collectivement que l’ONF représente honnêtement le fonctionnement actuel."}
  ];
+ const atelier1Elapsed=liveElapsed;
+ const atelier1Started=live.status!=="IDLE"&&live.status!=="PLANNED";
+ const atelier1Running=live.status==="RUNNING";
  const atelier1PhaseIndex=Math.min(atelier1Phases.length-1,Math.max(0,atelier1Phases.findIndex(p=>atelier1Elapsed>=p.start&&atelier1Elapsed<p.end)));
  const atelier1Phase=atelier1Phases[atelier1PhaseIndex];
  const atelier1Remaining=Math.max(0,3600-atelier1Elapsed);
  const atelier1Clock=`${String(Math.floor(atelier1Remaining/60)).padStart(2,"0")}:${String(Math.floor(atelier1Remaining%60)).padStart(2,"0")}`;
- function startAtelier1(){const elapsed=atelier1Elapsed>=3600?0:atelier1Elapsed;setAtelier1Elapsed(elapsed);setAtelier1Started(true);setAtelier1Running(true);localStorage.setItem(timerKey,JSON.stringify({started:true,running:true,elapsed,anchor:Date.now()}))}
- function toggleAtelier1(){if(atelier1Running){const raw=readAtelier1Timer();setAtelier1Elapsed(raw.elapsed);setAtelier1Running(false);localStorage.setItem(timerKey,JSON.stringify({started:true,running:false,elapsed:raw.elapsed,anchor:null}))}else startAtelier1()}
- function resetAtelier1(){localStorage.removeItem(timerKey);setAtelier1Elapsed(0);setAtelier1Running(false);setAtelier1Started(false)}
  function fresh(kind:"INITIALISATION"|"REEXAMEN"){
    const today=new Date().toISOString().slice(0,10);
    setEditing({id:"",campaign_id:campaignId,workshop_no:selected,session_kind:kind,status:"A_PREPARER",session_date:today,next_review_date:null,reason:kind==="REEXAMEN"?"Réinterrogation en cours d’année":"Démarrage du PCIF",participants:"",notes:"",decisions:"",deliverable:"",exit_criteria:{},updated_at:""} as WorkshopSession)
@@ -381,17 +383,17 @@ function Workshops({data,campaignId,reload,onOpenOnf}:{data:PilotageData;campaig
     </button>
   })}</div>
   <article className="workshop-detail">
-   <header><div><h2>Atelier {selected}/4 — {w.title}</h2><p><b>Livrable :</b> {w.deliverable}</p></div><div className="workshop-actions"><button className="primary" onClick={()=>{fresh(sessions.length?"REEXAMEN":"INITIALISATION");if(selected===1)startAtelier1()}}>{sessions.length?"+ Nouvelle session de réexamen":"+ Démarrer l’atelier"}</button></div></header>
+   <header><div><h2>Atelier {selected}/4 — {w.title}</h2><p><b>Livrable :</b> {w.deliverable}</p></div><div className="workshop-actions"><button className="primary" onClick={()=>fresh(sessions.length?"REEXAMEN":"INITIALISATION")}>{sessions.length?"+ Nouvelle session de réexamen":"+ Préparer la session"}</button>{canOrganize&&<button className="subtle" onClick={loadPlanning}>Organiser l’atelier</button>}</div></header>
    {selected===1?<div className="timed-workshop">
-    <div className="timed-workshop-head"><div><b>Atelier 1 — Qui fait quoi ?</b><span>{atelier1Started?(atelier1Running?"Atelier en cours":"Atelier en pause"):"Prêt à démarrer · durée 60 min"}</span></div><div className="timed-clock"><strong>{atelier1Clock}</strong><small>restantes</small></div></div>
+    <div className="timed-workshop-head"><div><b>Atelier 1 — Qui fait quoi ?</b><span>{live.status==="RUNNING"?"Atelier en cours":live.status==="PAUSED"?"Atelier en pause":live.status==="PLANNED"?"Atelier planifié":"Prêt à démarrer · durée 60 min"}</span></div><div className="timed-clock"><strong>{atelier1Clock}</strong><small>restantes</small></div></div>
+    {live.id&&<div className="live-workshop-meta"><span><b>Animateur :</b> {live.facilitator_name}{live.can_control?" · vous êtes maître du temps":""}</span>{live.scheduled_at&&<span><b>Prévu :</b> {new Date(live.scheduled_at).toLocaleString("fr-FR")}</span>}{live.members&&live.members.length>1&&<span><b>Établissements synchronisés :</b> {live.members.map(m=>m.name).join(" · ")}</span>}</div>}
     <div className="timed-track-wrap">
      <div className="timed-track">{atelier1Phases.map((p,i)=><div key={p.label} className={`timed-phase ${i<atelier1PhaseIndex?"done":i===atelier1PhaseIndex&&atelier1Started?"current":""}`} style={{flexGrow:p.end-p.start}}><b>{Math.round((p.end-p.start)/60)} min</b><span>{p.label}</span></div>)}</div>
      <div className="timed-progress" style={{width:`${atelier1Elapsed/36}%`}}/><div className="timed-cursor" style={{left:`${atelier1Elapsed/36}%`}}/>
      <div className="timed-scale"><span>0</span><span>15</span><span>30</span><span>45</span><span>60 min</span></div>
     </div>
     <div className="timed-controls">
-     {!atelier1Started?<button className="primary" onClick={startAtelier1}>▶ Démarrer l’atelier</button>:<button className="subtle" onClick={toggleAtelier1}>{atelier1Running?"Pause":"▶ Reprendre"}</button>}
-     <button className="subtle" onClick={resetAtelier1}>↺ Réinitialiser</button>
+     {live.status==="IDLE"?(canStartAdHoc?<button className="primary" onClick={createAdHocAndStart}>▶ Démarrer l’atelier</button>:<span className="timer-locked">En attente du démarrage par un animateur habilité</span>):live.can_control?<>{live.status==="PLANNED"&&<button className="primary" onClick={()=>timerAction("START")}>▶ Démarrer l’atelier</button>}{live.status==="RUNNING"&&<button className="subtle" onClick={()=>timerAction("PAUSE")}>Pause</button>}{live.status==="PAUSED"&&<button className="primary" onClick={()=>timerAction("RESUME")}>▶ Reprendre</button>}<button className="subtle" onClick={()=>timerAction("RESET")}>↺ Réinitialiser</button></>:<span className="timer-locked">🔒 Chronomètre piloté par <b>{live.facilitator_name}</b></span>}
      <span>{atelier1Elapsed>=3600?"Atelier terminé":atelier1PhaseIndex<6?<>Ensuite : <b>{atelier1Phases[atelier1PhaseIndex+1].label}</b></>:"Dernière étape"}</span>
     </div>
     <div className="timed-current"><div><small>SÉQUENCE EN COURS</small><b>{atelier1Phase.label} · {Math.round(atelier1Phase.start/60)} → {Math.round(atelier1Phase.end/60)} min</b><p>{atelier1Phase.help}</p></div></div>
@@ -409,6 +411,7 @@ function Workshops({data,campaignId,reload,onOpenOnf}:{data:PilotageData;campaig
     </div>
     <div className="facilitation-rule"><b>Règle d’animation</b><span>Si la discussion bascule vers « normalement, on devrait… », revenir à : <strong>« Qui le fait aujourd’hui ? »</strong> Les améliorations seront traitées dans les ateliers 2 à 4.</span></div>
    </div>}
+   {showPlanning&&planning?.canOrganize&&<div className="workshop-planner"><div className="editor-head"><div><h3>Organiser l’atelier {selected}</h3><p>Les établissements inscrits partageront la même session et le même chronomètre.</p></div><button onClick={()=>setShowPlanning(false)}>Fermer</button></div><div className="planner-grid"><label>Date et heure<input type="datetime-local" value={plannedAt} onChange={e=>setPlannedAt(e.target.value)}/></label><label>Animateur<select value={facilitator} onChange={e=>setFacilitator(e.target.value)}>{planning.facilitators.map(f=><option key={f.id} value={f.id}>{f.display_name} · {f.role_code}</option>)}</select></label></div><fieldset><legend>Établissements participants</legend><div className="planner-establishments">{planning.establishments.map(e=><label key={e.campaign_id}><input type="checkbox" checked={plannedCampaigns.includes(e.campaign_id)} onChange={x=>setPlannedCampaigns(x.target.checked?[...new Set([...plannedCampaigns,e.campaign_id])]:plannedCampaigns.filter(id=>id!==e.campaign_id))}/><span><b>{e.name}</b><small>{e.uai} · {e.campaign_label}</small></span></label>)}</div></fieldset><div className="planner-rule"><b>Maîtrise du temps</b><span>Après enregistrement, seul l’animateur désigné peut démarrer, mettre en pause, reprendre ou réinitialiser le chronomètre. Tous les participants voient le même état en temps réel.</span></div><button className="primary" disabled={!plannedCampaigns.length||!facilitator} onClick={createPlannedEvent}>Enregistrer l’atelier</button></div>}
    {editing&&<div className="workshop-editor">
     <div className="editor-head"><h3>{editing.id?"Modifier la session":editing.session_kind==="REEXAMEN"?"Nouvelle session de réexamen":"Session initiale"}</h3><button onClick={()=>setEditing(null)}>Fermer</button></div>
     <div className="workshop-form-grid">

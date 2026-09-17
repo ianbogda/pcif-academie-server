@@ -187,3 +187,7 @@ Depuis le tableau de bord d’une campagne, **Exporter vers CARTOP@LE** téléch
 La matrice technique des rôles est documentée dans `docs/MATRICE-DES-DROITS.md`.
 
 Version actuelle : **0.28.0**.
+
+## v0.33.0 — Ateliers synchronisés
+
+Le chronomètre des ateliers est désormais porté par le serveur : une seule session active par établissement et atelier, vue commune ordonnateur/comptable, animateur unique maître du temps. L’AC ou le fondé de pouvoir peut organiser une session multi-EPLE, choisir les établissements, la date/heure et désigner l’animateur. Le CE ou le SGE peut lancer une session locale lorsqu’aucune session n’est déjà active.

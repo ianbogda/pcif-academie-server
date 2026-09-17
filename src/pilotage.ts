@@ -92,7 +92,7 @@ export async function registerPilotage(app:FastifyInstance){
     const workshopSessions=await pool.query(`SELECT s.*,u.display_name AS updated_by_name
       FROM pcif_workshop_sessions s LEFT JOIN users u ON u.id=s.updated_by
       WHERE s.campaign_id=$1 ORDER BY s.workshop_no,s.session_date DESC,s.created_at DESC`,[id]);
-    return {questions:q.rows,actions:actions.rows,workshops:ca.isAuditOnly?[]:workshops.rows,workshopSessions:ca.isAuditOnly?[]:workshopSessions.rows,access:{auditOnly:ca.isAuditOnly,canWrite:ca.canWrite}};
+    return {questions:q.rows,actions:actions.rows,workshops:ca.isAuditOnly?[]:workshops.rows,workshopSessions:ca.isAuditOnly?[]:workshopSessions.rows,access:{auditOnly:ca.isAuditOnly,canWrite:ca.canWrite,roles:ca.roles}};
   });
 
   const actionSchema=z.object({
@@ -201,6 +201,77 @@ export async function registerPilotage(app:FastifyInstance){
        d.exitCriteria?JSON.stringify(d.exitCriteria):null,user.sub,sessionId,campaignId]);
     if(!rows.length) return reply.code(404).send({error:"NOT_FOUND"});
     return rows[0];
+  });
+
+
+
+  async function liveWorkshopEvent(userId:string,campaignId:string,workshopNo:number){
+    await pool.query(`UPDATE pcif_workshop_events SET elapsed_seconds=3600,status='FINISHED',started_at=NULL,updated_at=now() WHERE status='RUNNING' AND started_at IS NOT NULL AND elapsed_seconds+EXTRACT(EPOCH FROM(now()-started_at))>=3600`);
+    const ca=await campaignAccess(userId,campaignId);
+    if(!ca||!ca.canRead)return null;
+    const {rows}=await pool.query(`SELECT ev.*,u.display_name facilitator_name,u.email facilitator_email,
+      (ev.facilitator_user_id=$3) can_control,
+      GREATEST(0,LEAST(3600,ev.elapsed_seconds + CASE WHEN ev.status='RUNNING' AND ev.started_at IS NOT NULL THEN EXTRACT(EPOCH FROM (now()-ev.started_at))::int ELSE 0 END)) elapsed_live,
+      json_agg(json_build_object('campaignId',c.id,'establishmentId',e.id,'name',e.name,'uai',e.uai) ORDER BY e.name) members
+      FROM pcif_workshop_events ev JOIN pcif_workshop_event_campaigns ec ON ec.event_id=ev.id
+      JOIN campaigns c ON c.id=ec.campaign_id JOIN establishments e ON e.id=c.establishment_id
+      JOIN users u ON u.id=ev.facilitator_user_id
+      WHERE ev.id=(SELECT ev2.id FROM pcif_workshop_events ev2 JOIN pcif_workshop_event_campaigns ec2 ON ec2.event_id=ev2.id
+        WHERE ec2.campaign_id=$1 AND ev2.workshop_no=$2 AND ev2.status IN('PLANNED','RUNNING','PAUSED') ORDER BY ev2.created_at DESC LIMIT 1)
+      GROUP BY ev.id,u.display_name,u.email`,[campaignId,workshopNo,userId]);
+    return rows[0]||null;
+  }
+
+  app.get("/api/campaigns/:campaignId/workshops/:no/live",async(request,reply)=>{
+    const user=await requireUser(request),{campaignId,no}=request.params as any;
+    const state=await liveWorkshopEvent(user.sub,campaignId,Number(no));
+    if(state===null){const ca=await campaignAccess(user.sub,campaignId);if(!ca||!ca.canRead)return reply.code(403).send({error:"FORBIDDEN"});}
+    return state||{status:"IDLE",elapsed_live:0,can_control:false};
+  });
+
+  app.get("/api/campaigns/:campaignId/workshops/:no/planning",async(request,reply)=>{
+    const user=await requireUser(request),{campaignId,no}=request.params as any;
+    const ca=await campaignAccess(user.sub,campaignId);if(!ca||!ca.canRead)return reply.code(403).send({error:"FORBIDDEN"});
+    const organizer=ca.isPlatformAdmin||ca.agencyRoles.some((r:any)=>['AGENCY_ACCOUNTANT','AGENCY_DEPUTY'].includes(r));
+    if(!organizer)return {canOrganize:false,establishments:[],facilitators:[]};
+    const agencyId=ca.campaign.agency_id;if(!agencyId)return {canOrganize:false,establishments:[],facilitators:[]};
+    const establishments=(await pool.query(`SELECT DISTINCT ON(e.id) e.id establishment_id,e.name,e.uai,c.id campaign_id,c.label campaign_label
+      FROM agency_establishments ae JOIN establishments e ON e.id=ae.establishment_id
+      JOIN campaigns c ON c.establishment_id=e.id AND c.status IN('DRAFT','OPEN','REVIEW')
+      WHERE ae.agency_id=$1 AND ae.active=true ORDER BY e.id,c.created_at DESC`,[agencyId])).rows;
+    const facilitators=(await pool.query(`SELECT DISTINCT u.id,u.display_name,r.code role_code FROM users u JOIN (
+      SELECT uar.user_id,r.code FROM user_agency_roles uar JOIN roles r ON r.id=uar.role_id WHERE uar.agency_id=$1 AND r.code IN('AGENCY_ACCOUNTANT','AGENCY_DEPUTY')
+      UNION ALL SELECT uer.user_id,r.code FROM user_establishment_roles uer JOIN roles r ON r.id=uer.role_id JOIN agency_establishments ae ON ae.establishment_id=uer.establishment_id
+      WHERE ae.agency_id=$1 AND ae.active=true AND r.code IN('HEAD','SECRETARY_GENERAL')) r ON r.user_id=u.id
+      WHERE u.active=true AND u.deleted_at IS NULL ORDER BY u.display_name`,[agencyId])).rows;
+    return {canOrganize:true,establishments,facilitators,workshopNo:Number(no)};
+  });
+
+  const eventCreateSchema=z.object({workshopNo:z.number().int().min(1).max(4),campaignIds:z.array(z.string().uuid()).min(1),scheduledAt:z.string().datetime().nullable().optional(),facilitatorUserId:z.string().uuid().optional()});
+  app.post("/api/workshop-events",async(request,reply)=>{
+    const user=await requireUser(request);const parsed=eventCreateSchema.safeParse(request.body);if(!parsed.success)return reply.code(400).send({error:"INVALID_BODY",details:parsed.error.flatten()});const d=parsed.data;
+    const first=await campaignAccess(user.sub,d.campaignIds[0]);if(!first||!first.canWrite)return reply.code(403).send({error:"FORBIDDEN"});
+    const isAgencyOrganizer=first.isPlatformAdmin||first.agencyRoles.some((r:any)=>['AGENCY_ACCOUNTANT','AGENCY_DEPUTY'].includes(r));
+    if(d.campaignIds.length>1&&!isAgencyOrganizer)return reply.code(403).send({error:"AGENCY_ORGANIZER_REQUIRED"});
+    const facilitator=d.facilitatorUserId||user.sub;
+    if(!isAgencyOrganizer&&facilitator!==user.sub)return reply.code(403).send({error:"CANNOT_DESIGNATE_FACILITATOR"});
+    const facilitatorOk=await pool.query(`SELECT 1 FROM users u WHERE u.id=$1 AND u.active=true AND u.deleted_at IS NULL AND (EXISTS(SELECT 1 FROM user_agency_roles uar JOIN roles r ON r.id=uar.role_id JOIN campaigns c ON c.id=ANY($2::uuid[]) JOIN agency_establishments ae ON ae.establishment_id=c.establishment_id AND ae.agency_id=uar.agency_id AND ae.active=true WHERE uar.user_id=u.id AND r.code IN('AGENCY_ACCOUNTANT','AGENCY_DEPUTY')) OR EXISTS(SELECT 1 FROM user_establishment_roles uer JOIN roles r ON r.id=uer.role_id JOIN campaigns c ON c.establishment_id=uer.establishment_id WHERE c.id=ANY($2::uuid[]) AND uer.user_id=u.id AND r.code IN('HEAD','SECRETARY_GENERAL'))) LIMIT 1`,[facilitator,d.campaignIds]);
+    if(!facilitatorOk.rowCount)return reply.code(400).send({error:"INVALID_FACILITATOR"});
+    for(const cid of d.campaignIds){const ca=await campaignAccess(user.sub,cid);if(!ca||!ca.canWrite)return reply.code(403).send({error:"FORBIDDEN_CAMPAIGN",campaignId:cid});if(!isAgencyOrganizer&&!ca.directRoles.some((r:any)=>['HEAD','SECRETARY_GENERAL'].includes(r)))return reply.code(403).send({error:"ROLE_REQUIRED"});}
+    const conflict=await pool.query(`SELECT e.name FROM pcif_workshop_event_campaigns ec JOIN pcif_workshop_events ev ON ev.id=ec.event_id JOIN campaigns c ON c.id=ec.campaign_id JOIN establishments e ON e.id=c.establishment_id WHERE ec.campaign_id=ANY($1::uuid[]) AND ev.workshop_no=$2 AND ev.status IN('PLANNED','RUNNING','PAUSED') LIMIT 1`,[d.campaignIds,d.workshopNo]);
+    if(conflict.rowCount)return reply.code(409).send({error:"WORKSHOP_ALREADY_ACTIVE",establishment:conflict.rows[0].name});
+    const client=await pool.connect();try{await client.query('BEGIN');const ev=(await client.query(`INSERT INTO pcif_workshop_events(workshop_no,scheduled_at,facilitator_user_id,created_by) VALUES($1,$2,$3,$4) RETURNING *`,[d.workshopNo,d.scheduledAt||null,facilitator,user.sub])).rows[0];for(const cid of d.campaignIds)await client.query(`INSERT INTO pcif_workshop_event_campaigns(event_id,campaign_id) VALUES($1,$2)`,[ev.id,cid]);await client.query('COMMIT');return reply.code(201).send(ev)}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+  });
+
+  app.post("/api/workshop-events/:eventId/timer",async(request,reply)=>{
+    const user=await requireUser(request),{eventId}=request.params as any;const parsed=z.object({action:z.enum(['START','PAUSE','RESUME','RESET','FINISH'])}).safeParse(request.body);if(!parsed.success)return reply.code(400).send({error:'INVALID_BODY'});
+    const ev=(await pool.query(`SELECT * FROM pcif_workshop_events WHERE id=$1`,[eventId])).rows[0];if(!ev)return reply.code(404).send({error:'NOT_FOUND'});if(ev.facilitator_user_id!==user.sub)return reply.code(403).send({error:'FACILITATOR_ONLY'});
+    const a=parsed.data.action;let sql='';if(a==='START')sql=`UPDATE pcif_workshop_events SET status='RUNNING',elapsed_seconds=0,started_at=now(),updated_at=now() WHERE id=$1 AND status IN('PLANNED','PAUSED')`;
+    if(a==='RESUME')sql=`UPDATE pcif_workshop_events SET status='RUNNING',started_at=now(),updated_at=now() WHERE id=$1 AND status='PAUSED'`;
+    if(a==='PAUSE')sql=`UPDATE pcif_workshop_events SET elapsed_seconds=LEAST(3600,elapsed_seconds+COALESCE(EXTRACT(EPOCH FROM(now()-started_at))::int,0)),status='PAUSED',started_at=NULL,updated_at=now() WHERE id=$1 AND status='RUNNING'`;
+    if(a==='RESET')sql=`UPDATE pcif_workshop_events SET elapsed_seconds=0,status='PLANNED',started_at=NULL,updated_at=now() WHERE id=$1`;
+    if(a==='FINISH')sql=`UPDATE pcif_workshop_events SET elapsed_seconds=3600,status='FINISHED',started_at=NULL,updated_at=now() WHERE id=$1`;
+    await pool.query(sql,[eventId]);const member=(await pool.query(`SELECT campaign_id FROM pcif_workshop_event_campaigns WHERE event_id=$1 LIMIT 1`,[eventId])).rows[0];return await liveWorkshopEvent(user.sub,member.campaign_id,ev.workshop_no)||{status:'FINISHED',elapsed_live:3600};
   });
 
   app.put("/api/campaigns/:campaignId/workshops/:no",async(request,reply)=>{
