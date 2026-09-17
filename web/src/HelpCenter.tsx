@@ -1,7 +1,7 @@
 import React,{useMemo,useState} from "react";
 import type {Me} from "./api";
 
-export type HelpContext="home"|"pilotage"|"workshops"|"onf"|"processes"|"audit"|"auditManagement"|"admin";
+export type HelpContext="home"|"pilotage"|"workshops"|"onf"|"processes"|"audit"|"auditManagement"|"admin"|"userManagement";
 type Topic={id:string;title:string;summary:string;category:string;keywords:string[];contexts?:HelpContext[];auditor?:boolean;body:React.ReactNode};
 type CapabilityStatus="AVAILABLE"|"IN_DEVELOPMENT"|"PLANNED";
 type Capability={id:string;title:string;description:string;status:CapabilityStatus};
