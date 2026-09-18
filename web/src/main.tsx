@@ -128,7 +128,17 @@ function MyProfile({me,establishment}:{me:Me;establishment:Establishment|null}){
     </section>
    </div>
   </div>
- </div>{resourceManager&&<ResourceManager scopes={publisherScopes} close={()=>{setResourceManager(false);api.resources(establishment?.id).then(setResources)}}/>}
+  {resourceManager && (
+   <ResourceManager
+    scopes={publisherScopes}
+    close={() => {
+     setResourceManager(false);
+     api.resources(establishment?.id).then(setResources);
+    }}
+   />
+  )}
+ </div>
+)
 }
 function ResourceManager({scopes,close}:{scopes:ResourcePublisherScope[];close:()=>void}){
  const[items,setItems]=useState<SharedResource[]>([]),[editing,setEditing]=useState<SharedResource|null>(null),[form,setForm]=useState<any>({scopeType:scopes[0]?.type,scopeKey:scopes[0]?.key,title:"",description:"",url:"",imageUrl:"",category:"RESSOURCE",provider:"",duration:"",status:"PUBLISHED",sortOrder:100}),[err,setErr]=useState("");
