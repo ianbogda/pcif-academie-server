@@ -330,6 +330,8 @@ function Workshops({data,campaignId,me,reload,onOpenOnf}:{data:PilotageData;camp
  const [plannedCampaigns,setPlannedCampaigns]=useState<string[]>([campaignId]);
  const [plannedAt,setPlannedAt]=useState("");
  const [facilitator,setFacilitator]=useState(me.user.sub);
+ const [noteModal,setNoteModal]=useState(false);
+ const [noteDraft,setNoteDraft]=useState({kind:"PENSE_BETE",title:"",content:"",pinned:false});
  const w=workshops[selected-1];
  const sessions=(data.workshopSessions||[]).filter(s=>s.workshop_no===selected);
  const latest=sessions[0];
@@ -343,7 +345,8 @@ function Workshops({data,campaignId,me,reload,onOpenOnf}:{data:PilotageData;camp
  async function loadPlanning(){const x=await api.workshopPlanning(campaignId,selected);setPlanning(x);if(x.canOrganize){setPlannedCampaigns([campaignId]);setFacilitator(x.facilitators.some(f=>f.id===me.user.sub)?me.user.sub:(x.facilitators[0]?.id||me.user.sub));setShowPlanning(true)}}
  async function createPlannedEvent(){if(!plannedCampaigns.length)return;await api.createWorkshopEvent({workshopNo:selected,campaignIds:plannedCampaigns,scheduledAt:plannedAt?new Date(plannedAt).toISOString():null,facilitatorUserId:facilitator});setShowPlanning(false);await syncLive()}
  async function createAdHocAndStart(){const ev=await api.createWorkshopEvent({workshopNo:selected,campaignIds:[campaignId],facilitatorUserId:me.user.sub});await api.workshopTimer(ev.id,"START");await syncLive()}
- async function rememberCurrentStep(){await api.createMyNote({kind:"PENSE_BETE",title:`Atelier ${selected} — ${w.title}`,content:selected===1?atelier1Phase.help:`Point à reprendre pendant l’atelier ${selected}.`,sourceType:"WORKSHOP",sourceLabel:`Atelier ${selected} · ${w.title}`,sourceCampaignId:campaignId,sourceWorkshopNo:selected});}
+ function rememberCurrentStep(){setNoteDraft({kind:"PENSE_BETE",title:`Atelier ${selected} — ${w.title}`,content:selected===1?atelier1Phase.help:`Point à reprendre pendant l’atelier ${selected}.`,pinned:false});setNoteModal(true)}
+ async function saveWorkshopNote(e:React.FormEvent){e.preventDefault();if(!noteDraft.title.trim()&&!noteDraft.content.trim())return;await api.createMyNote({...noteDraft,sourceType:"WORKSHOP",sourceLabel:`Atelier ${selected} · ${w.title}`,sourceCampaignId:campaignId,sourceWorkshopNo:selected});setNoteModal(false)}
  async function timerAction(action:"START"|"PAUSE"|"RESUME"|"RESET"|"FINISH"){if(!live.id)return;const x=await api.workshopTimer(live.id,action);setLive(x);setLiveElapsed(Number(x.elapsed_live)||0)}
  const atelier1Phases=[
   {start:0,end:300,label:"Cadrer",help:"Poser l’objectif : décrire l’organisation réelle et produire l’ONF pendant l’heure."},
@@ -399,6 +402,7 @@ function Workshops({data,campaignId,me,reload,onOpenOnf}:{data:PilotageData;camp
     </div>
     <div className="timed-current"><div><small>SÉQUENCE EN COURS</small><b>{atelier1Phase.label} · {Math.round(atelier1Phase.start/60)} → {Math.round(atelier1Phase.end/60)} min</b><p>{atelier1Phase.help}</p><button className="note-from-workshop" onClick={rememberCurrentStep}>＋ Ajouter à mon bloc-notes</button></div></div>
    </div>:<div className="workshop-timeline">{w.phases.map(([time,label])=><div key={time+label}><b>{time}</b><span>{label}</span></div>)}</div>}
+   {noteModal&&<div className="modal note-modal" role="dialog" aria-modal="true" aria-labelledby="note-modal-title"><div><header><div><small>NOTE PERSONNELLE · ATELIER {selected}</small><h3 id="note-modal-title">Ajouter à mon bloc-notes</h3><p>{w.title} · Cette note reste strictement personnelle.</p></div><button type="button" onClick={()=>setNoteModal(false)} aria-label="Fermer">×</button></header><form onSubmit={saveWorkshopNote}><label>Type<select value={noteDraft.kind} onChange={e=>setNoteDraft({...noteDraft,kind:e.target.value})}><option value="NOTE">Note</option><option value="PENSE_BETE">Pense-bête</option><option value="A_VERIFIER">À vérifier</option><option value="IDEE">Idée</option></select></label><label>Titre<input value={noteDraft.title} onChange={e=>setNoteDraft({...noteDraft,title:e.target.value})}/></label><label>Ma note<textarea autoFocus rows={6} value={noteDraft.content} onChange={e=>setNoteDraft({...noteDraft,content:e.target.value})}/></label><label className="note-pin-check"><input type="checkbox" checked={noteDraft.pinned} onChange={e=>setNoteDraft({...noteDraft,pinned:e.target.checked})}/> Épingler cette note</label><footer><button type="button" className="subtle" onClick={()=>setNoteModal(false)}>Annuler</button><button className="primary">Ajouter la note</button></footer></form></div></div>}
    {selected===1&&<div className="workshop-facilitation">
     <div className="facilitation-head"><div><span>FIL D’ANIMATION · 60 MIN</span><h3>Produire l’ONF pendant l’atelier</h3><p>Décrire l’organisation telle qu’elle fonctionne réellement. Les écarts constatés sont repérés, pas résolus prématurément : ils alimenteront les ateliers suivants.</p></div>{onOpenOnf&&<button className="primary" onClick={onOpenOnf}>Ouvrir l’ONF →</button>}</div>
     <div className="facilitation-grid">
