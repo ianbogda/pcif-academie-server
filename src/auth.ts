@@ -54,6 +54,19 @@ export async function registerAuth(app: FastifyInstance) {
       await client.query("COMMIT");return {updated:true};
     }catch(e){await client.query("ROLLBACK");throw e}finally{client.release()}
   });
+
+  app.post("/api/me/password",async(request,reply)=>{
+    const user=await requireUser(request);
+    const parsed=z.object({currentPassword:z.string().min(1).max(200),newPassword:z.string().min(12).max(200)}).safeParse(request.body);
+    if(!parsed.success)return reply.code(400).send({error:"INVALID_PASSWORD_CHANGE"});
+    const {rows}=await pool.query(`SELECT password_hash FROM users WHERE id=$1 AND active=true AND deleted_at IS NULL`,[user.sub]);
+    if(!rows.length||!(await bcrypt.compare(parsed.data.currentPassword,rows[0].password_hash)))return reply.code(400).send({error:"CURRENT_PASSWORD_INVALID"});
+    if(await bcrypt.compare(parsed.data.newPassword,rows[0].password_hash))return reply.code(400).send({error:"PASSWORD_UNCHANGED"});
+    const hash=await bcrypt.hash(parsed.data.newPassword,12);
+    await pool.query(`UPDATE users SET password_hash=$1 WHERE id=$2`,[hash,user.sub]);
+    await pool.query(`UPDATE password_tokens SET used_at=now() WHERE user_id=$1 AND used_at IS NULL`,[user.sub]);
+    return {updated:true};
+  });
 }
 
 export async function requireUser(request: FastifyRequest): Promise<JwtUser> {

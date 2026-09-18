@@ -9,7 +9,7 @@ import{api,clearToken,getToken,setToken,type AdminUser,type BenchmarkData,type C
 import { demoProfiles as demo } from "./demoProfiles";
 import"./styles.css";
 
-type View={kind:"home"}|{kind:"campaign";campaign:Campaign;establishment:Establishment;section:WorkspaceSection;tab?:PilotageTab}|{kind:"admin"}|{kind:"userManagement"}|{kind:"auditManagement"};
+type View={kind:"home"}|{kind:"campaign";campaign:Campaign;establishment:Establishment;section:WorkspaceSection;tab?:PilotageTab}|{kind:"admin"}|{kind:"userManagement"}|{kind:"auditManagement"}|{kind:"profile"};
 const isDemo=import.meta.env.VITE_DEPLOYMENT_ENV==="demo";
 const demoDashboard={mastery:72,coverage:64,critical:12,actions:11,done:6,answered:171,total:267,
  history:[{year:"2024",value:48},{year:"2025",value:61},{year:"2026",value:72}],
@@ -53,7 +53,7 @@ function App(){
        : "Impossible d’ouvrir cet espace PCIF. Le serveur a refusé l’ouverture de la campagne ; l’erreur n’est plus masquée.");
    }
  };
- const helpContext:HelpContext=me.user.isPlatformAdmin?"admin":view.kind==="campaign"?view.section:view.kind;
+ const helpContext:HelpContext=me.user.isPlatformAdmin?"admin":view.kind==="campaign"?view.section:(view.kind==="profile"?"home":view.kind);
  const canManageUsers=!!me.user.isPlatformAdmin||me.agencies.some(a=>a.role==="AGENCY_ACCOUNTANT")||me.establishments.some(e=>e.role==="HEAD");
  const canScopedAdmin=me.agencies.some(a=>["AGENCY_ACCOUNTANT","AGENCY_DEPUTY"].includes(a.role));
  return <div className={`pcif-app${isDemo?" demo-mode":""}`}><a className="skip-link" href="#main-content">Aller au contenu</a>
@@ -85,7 +85,7 @@ function App(){
        {active&&<small>{active.uai} · {active.kind}</small>}
       </div>
       <button className="context-help" onClick={()=>setHelpOpen(true)}>ⓘ Comprendre cet écran</button>
-      <div className="rolechips">{me.agencies.map(a=><span key={a.id}>{roleLabel(a.role)}</span>)}{me.establishments.filter(x=>x.id===active?.id).map(x=><span key={x.role}>{roleLabel(x.role)}</span>)}</div>
+      <button className="profile-access" onClick={()=>setView({kind:"profile"})}>♙ Mon profil</button><div className="rolechips">{me.agencies.map(a=><span key={a.id}>{roleLabel(a.role)}</span>)}{me.establishments.filter(x=>x.id===active?.id).map(x=><span key={x.role}>{roleLabel(x.role)}</span>)}</div>
     </header>}
     <main id="main-content" tabIndex={-1}>
       {navigationError&&<div className="error" role="alert">{navigationError}</div>}
@@ -93,7 +93,8 @@ function App(){
       {view.kind==="home"&&<Dashboard establishment={active} onOpen={(c,e)=>setView({kind:"campaign",campaign:c,establishment:e,section:"pilotage"})}/>} 
       {view.kind==="campaign"&&<PilotagePcif me={me} campaign={view.campaign} establishment={view.establishment} initialTab={view.tab} section={view.section} onNavigate={(section,tab)=>setView({...view,section,tab})} onBack={()=>setView({kind:"home"})}/>} 
       {view.kind==="admin"&&<AdminHub establishments={ets}/>} 
-      {view.kind==="userManagement"&&<AdminUsers establishments={ets}/>}</>}
+      {view.kind==="userManagement"&&<AdminUsers establishments={ets}/>}
+      {view.kind==="profile"&&<MyProfile me={me}/>}</>}
       {view.kind==="auditManagement"&&<AuditMissionManagement/>}
     </main>
     <ComplianceFooter/>
@@ -101,6 +102,24 @@ function App(){
    {helpOpen&&<HelpCenter me={me} context={helpContext} onClose={()=>setHelpOpen(false)}/>}
  </div>
 }
+function MyProfile({me}:{me:Me}){
+ const[currentPassword,setCurrentPassword]=useState(""),[newPassword,setNewPassword]=useState(""),[confirm,setConfirm]=useState(""),[message,setMessage]=useState(""),[error,setError]=useState(""),[saving,setSaving]=useState(false);
+ const resources=[
+  {title:"Sensibilisation à la responsabilité des gestionnaires publics (RGP)",duration:"1 h",desc:"Comprendre les principes de la RGP et leurs conséquences dans les pratiques professionnelles.",url:"https://mentor.gouv.fr/catalog/3654"},
+  {title:"Acculturation au contrôle interne et à la maîtrise des risques",duration:"3 h",desc:"Acquérir les notions essentielles du contrôle interne et de la maîtrise des risques.",url:"https://mentor.gouv.fr/catalog/1012"},
+  {title:"30 minutes pour comprendre la démarche qualité",duration:"30 min",desc:"Découvrir les bases, les étapes et les outils d’une démarche qualité.",url:"https://mentor.gouv.fr/catalog/503"},
+  {title:"Fondamentaux d'une démarche de contrôle de gestion",duration:"1 h 30",desc:"S’initier aux notions et outils du contrôle de gestion et au pilotage de la performance.",url:"https://mentor.gouv.fr/catalog/205"}
+ ];
+ async function changePassword(e:React.FormEvent){e.preventDefault();setError("");setMessage("");if(newPassword.length<12){setError("Le nouveau mot de passe doit comporter au moins 12 caractères.");return}if(newPassword!==confirm){setError("La confirmation ne correspond pas au nouveau mot de passe.");return}setSaving(true);try{await api.changeMyPassword(currentPassword,newPassword);setCurrentPassword("");setNewPassword("");setConfirm("");setMessage("Votre mot de passe a été modifié.")}catch(e:any){setError(e?.message==="CURRENT_PASSWORD_INVALID"?"Le mot de passe actuel est incorrect.":"Le mot de passe n’a pas pu être modifié.")}finally{setSaving(false)}}
+ return <div className="profile-page">
+  <div className="hero"><div><small>ESPACE PERSONNEL</small><h1>Mon profil</h1><p>Vos informations de connexion et vos ressources pour approfondir la démarche PCIF.</p></div></div>
+  <div className="profile-layout">
+   <section className="panel profile-account"><h2>Mon profil</h2><div className="identity-card"><strong>{me.user.displayName}</strong><span>{me.user.email}</span></div><h3>Modifier mon mot de passe</h3><form onSubmit={changePassword} className="password-form"><label>Mot de passe actuel<input type="password" autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)} required/></label><label>Nouveau mot de passe<input type="password" autoComplete="new-password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} minLength={12} required/><small>12 caractères minimum.</small></label><label>Confirmer le nouveau mot de passe<input type="password" autoComplete="new-password" value={confirm} onChange={e=>setConfirm(e.target.value)} minLength={12} required/></label>{error&&<div className="error" role="alert">{error}</div>}{message&&<div className="notice" role="status">{message}</div>}<button className="primary" disabled={saving}>{saving?"Modification…":"Modifier mon mot de passe"}</button></form></section>
+   <section className="panel profile-resources"><div className="resource-heading"><div><small>SE FORMER · SE SENSIBILISER</small><h2>Mes ressources</h2></div><span className="mentor-badge">Mentor · DGAFP</span></div><p className="resource-intro">Des parcours en ligne pour consolider les notions mobilisées dans PCIF Académie. Les liens s’ouvrent sur la plateforme interministérielle Mentor.</p><div className="resource-list">{resources.map(r=><a key={r.url} className="resource-card" href={r.url} target="_blank" rel="noreferrer"><div><strong>{r.title}</strong><p>{r.desc}</p></div><span>{r.duration} ↗</span></a>)}</div></section>
+  </div>
+ </div>
+}
+
 function Login({onLogin}:{onLogin:()=>Promise<void>}){
  const[email,setEmail]=useState(demo[0]?.[1]??""),[password,setPassword]=useState(demo[0]?.[2]??""),[err,setErr]=useState(""),[forgot,setForgot]=useState(false),[sent,setSent]=useState(false);
  async function go(e:React.FormEvent){e.preventDefault();try{const r=await api.login(email,password);setToken(r.accessToken);await onLogin()}catch{setErr("Identifiants incorrects ou compte indisponible.")}}

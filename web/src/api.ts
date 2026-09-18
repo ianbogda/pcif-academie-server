@@ -155,6 +155,7 @@ export const api = {
   forgotPassword:(email:string)=>request<{accepted:boolean}>("/api/auth/forgot-password",{method:"POST",body:JSON.stringify({email})}),
   resetPassword:(token:string,password:string)=>request<{updated:boolean}>("/api/auth/reset-password",{method:"POST",body:JSON.stringify({token,password})}),
   me: () => request<Me>("/api/me"),
+  changeMyPassword:(currentPassword:string,newPassword:string)=>request<{updated:boolean}>("/api/me/password",{method:"POST",body:JSON.stringify({currentPassword,newPassword})}),
   establishments: () => request<Establishment[]>("/api/establishments"),
   accessibilityAudits:()=>request<any[]>("/api/admin/accessibility/audits"),
   createAccessibilityAudit:(payload:any)=>request<any>("/api/admin/accessibility/audits",{method:"POST",body:JSON.stringify(payload)}),
