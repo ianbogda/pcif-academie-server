@@ -365,6 +365,44 @@ app.put("/api/campaigns/:campaignId/answers/:questionId", async (request, reply)
   }
 });
 
+
+
+// Bibliothèque de ressources — publication hiérarchisée et visibilité héritée.
+const resourceSchema = z.object({
+  scopeType:z.enum(["PLATFORM","ACADEMY","DEPARTMENT","AGENCY"]), scopeKey:z.string().min(1).max(120),
+  title:z.string().trim().min(2).max(240), description:z.string().max(3000).default(""),
+  url:z.string().url().max(2000), imageUrl:z.string().url().max(2000).nullable().optional(),
+  category:z.string().max(80).default("RESSOURCE"), provider:z.string().max(180).default(""), duration:z.string().max(40).nullable().optional(),
+  status:z.enum(["DRAFT","PUBLISHED","ARCHIVED"]).default("PUBLISHED"), sortOrder:z.number().int().min(0).max(9999).default(100)
+});
+async function resourcePublisherScopes(userId:string){
+  if(await isPlatformAdmin(userId)) return [{type:"PLATFORM",key:"*",label:"PCIF Académie · tous les utilisateurs"}];
+  const scopes:any[]=[];
+  const agencies=await pool.query(`SELECT DISTINCT a.id::text key,a.name label FROM user_agency_roles uar JOIN roles r ON r.id=uar.role_id JOIN accounting_agencies a ON a.id=uar.agency_id WHERE uar.user_id=$1 AND r.code='AGENCY_ACCOUNTANT' AND a.active=true`,[userId]);
+  for(const x of agencies.rows)scopes.push({type:"AGENCY",key:x.key,label:`Agence comptable · ${x.label}`});
+  const territorial=await pool.query(`SELECT DISTINCT r.code,e.department_code,e.department_name,e.academy_code,e.academy_name FROM user_establishment_roles uer JOIN roles r ON r.id=uer.role_id JOIN establishments e ON e.id=uer.establishment_id WHERE uer.user_id=$1 AND r.code IN('DEPARTMENT_ADMIN','ACADEMY_ADMIN')`,[userId]);
+  for(const x of territorial.rows){
+    if(x.code==='DEPARTMENT_ADMIN'&&x.department_code)scopes.push({type:"DEPARTMENT",key:x.department_code,label:`Département · ${x.department_name||x.department_code}`});
+    if(x.code==='ACADEMY_ADMIN'&&x.academy_code)scopes.push({type:"ACADEMY",key:x.academy_code,label:`Académie · ${x.academy_name||x.academy_code}`});
+  }
+  return scopes.filter((x,i,a)=>a.findIndex(y=>y.type===x.type&&y.key===x.key)===i);
+}
+app.get("/api/resources/publisher-scopes",async req=>{const u=await requireUser(req);return resourcePublisherScopes(u.sub)});
+app.get("/api/resources",async(req,reply)=>{
+  const u=await requireUser(req);const {establishmentId}=req.query as {establishmentId?:string};
+  let keys:any={agency:null,department:null,academy:null};
+  if(establishmentId){
+    const access=await establishmentAccess(u.sub,establishmentId);if(!access.canRead)return reply.code(403).send({error:"FORBIDDEN"});
+    const {rows}=await pool.query(`SELECT e.department_code,e.academy_code,ae.agency_id::text agency_id FROM establishments e LEFT JOIN agency_establishments ae ON ae.establishment_id=e.id AND ae.active=true WHERE e.id=$1`,[establishmentId]);
+    if(rows[0])keys={agency:rows[0].agency_id,department:rows[0].department_code,academy:rows[0].academy_code};
+  }
+  const {rows}=await pool.query(`SELECT r.*,CASE r.scope_type WHEN 'PLATFORM' THEN 'PCIF Académie' WHEN 'ACADEMY' THEN 'Académie' WHEN 'DEPARTMENT' THEN 'Département' ELSE 'Agence comptable' END scope_label FROM shared_resources r WHERE r.status='PUBLISHED' AND ((r.scope_type='PLATFORM' AND r.scope_key='*') OR (r.scope_type='ACADEMY' AND r.scope_key=$1) OR (r.scope_type='DEPARTMENT' AND r.scope_key=$2) OR (r.scope_type='AGENCY' AND r.scope_key=$3)) ORDER BY r.sort_order,r.created_at DESC`,[keys.academy,keys.department,keys.agency]);return rows;
+});
+app.get("/api/resources/manage",async req=>{const u=await requireUser(req);const scopes=await resourcePublisherScopes(u.sub);if(!scopes.length)return [];const clauses=scopes.map((_,i)=>`(scope_type=$${i*2+1} AND scope_key=$${i*2+2})`).join(' OR '),params=scopes.flatMap(x=>[x.type,x.key]);return (await pool.query(`SELECT * FROM shared_resources WHERE ${clauses} ORDER BY status,sort_order,created_at DESC`,params)).rows});
+app.post("/api/resources",async(req,reply)=>{const u=await requireUser(req),p=resourceSchema.safeParse(req.body??{});if(!p.success)return reply.code(400).send({error:"INVALID_RESOURCE"});const scopes=await resourcePublisherScopes(u.sub),x=p.data;if(!scopes.some(s=>s.type===x.scopeType&&s.key===x.scopeKey))return reply.code(403).send({error:"RESOURCE_SCOPE_FORBIDDEN"});const {rows}=await pool.query(`INSERT INTO shared_resources(scope_type,scope_key,title,description,url,image_url,category,provider,duration,status,sort_order,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,[x.scopeType,x.scopeKey,x.title,x.description,x.url,x.imageUrl??null,x.category,x.provider,x.duration??null,x.status,x.sortOrder,u.sub]);return reply.code(201).send(rows[0])});
+app.patch("/api/resources/:id",async(req,reply)=>{const u=await requireUser(req),{id}=req.params as {id:string};const old=await pool.query(`SELECT * FROM shared_resources WHERE id=$1`,[id]);if(!old.rowCount)return reply.code(404).send({error:"NOT_FOUND"});const scopes=await resourcePublisherScopes(u.sub);if(!scopes.some(s=>s.type===old.rows[0].scope_type&&s.key===old.rows[0].scope_key))return reply.code(403).send({error:"RESOURCE_SCOPE_FORBIDDEN"});const p=resourceSchema.partial().safeParse(req.body??{});if(!p.success)return reply.code(400).send({error:"INVALID_RESOURCE"});const x={...old.rows[0],...p.data};if(p.data.scopeType||p.data.scopeKey){if(!scopes.some(s=>s.type===(p.data.scopeType??old.rows[0].scope_type)&&s.key===(p.data.scopeKey??old.rows[0].scope_key)))return reply.code(403).send({error:"RESOURCE_SCOPE_FORBIDDEN"})}const {rows}=await pool.query(`UPDATE shared_resources SET scope_type=$2,scope_key=$3,title=$4,description=$5,url=$6,image_url=$7,category=$8,provider=$9,duration=$10,status=$11,sort_order=$12,updated_at=now() WHERE id=$1 RETURNING *`,[id,x.scopeType??x.scope_type,x.scopeKey??x.scope_key,x.title,x.description,x.url,x.imageUrl??x.image_url,x.category,x.provider,x.duration,x.status,x.sortOrder??x.sort_order]);return rows[0]});
+app.delete("/api/resources/:id",async(req,reply)=>{const u=await requireUser(req),{id}=req.params as {id:string};const old=await pool.query(`SELECT * FROM shared_resources WHERE id=$1`,[id]);if(!old.rowCount)return reply.code(404).send({error:"NOT_FOUND"});const scopes=await resourcePublisherScopes(u.sub);if(!scopes.some(s=>s.type===old.rows[0].scope_type&&s.key===old.rows[0].scope_key))return reply.code(403).send({error:"RESOURCE_SCOPE_FORBIDDEN"});await pool.query(`DELETE FROM shared_resources WHERE id=$1`,[id]);return reply.code(204).send()});
+
 // Espace personnel — notes strictement privées à l'utilisateur connecté.
 const personalNoteSchema = z.object({
   kind: z.enum(["NOTE","PENSE_BETE","A_VERIFIER","IDEE"]).default("NOTE"),

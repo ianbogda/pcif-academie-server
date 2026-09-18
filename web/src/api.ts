@@ -12,6 +12,9 @@ export type AdminUser = {
 };
 
 
+export type SharedResource={id:string;scope_type:"PLATFORM"|"ACADEMY"|"DEPARTMENT"|"AGENCY";scope_key:string;scope_label?:string;title:string;description:string;url:string;image_url?:string|null;category:string;provider:string;duration?:string|null;status:"DRAFT"|"PUBLISHED"|"ARCHIVED";sort_order:number};
+export type ResourcePublisherScope={type:"PLATFORM"|"ACADEMY"|"DEPARTMENT"|"AGENCY";key:string;label:string};
+
 export type PersonalNote={id:string;kind:"NOTE"|"PENSE_BETE"|"A_VERIFIER"|"IDEE";title:string;content:string;pinned:boolean;done:boolean;source_type?:string|null;source_label?:string|null;source_campaign_id?:string|null;source_workshop_no?:number|null;created_at:string;updated_at:string};
 export type PilotageQuestion = {
   id:string; code:string; domain:string; category?:string; label:string; risk_label?:string;
@@ -215,6 +218,12 @@ export const api = {
   createAction: (campaignId:string,payload:any) => request<PcifAction>(`/api/campaigns/${campaignId}/actions`,{method:"POST",body:JSON.stringify(payload)}),
   updateAction: (campaignId:string,actionId:string,payload:any) => request<PcifAction>(`/api/campaigns/${campaignId}/actions/${actionId}`,{method:"PATCH",body:JSON.stringify(payload)}),
   deleteAction: (campaignId:string,actionId:string) => request<void>(`/api/campaigns/${campaignId}/actions/${actionId}`,{method:"DELETE"}),
+  resources:(establishmentId?:string)=>request<SharedResource[]>(`/api/resources${establishmentId?`?establishmentId=${encodeURIComponent(establishmentId)}`:""}`),
+  resourcePublisherScopes:()=>request<ResourcePublisherScope[]>(`/api/resources/publisher-scopes`),
+  managedResources:()=>request<SharedResource[]>(`/api/resources/manage`),
+  createResource:(payload:any)=>request<SharedResource>(`/api/resources`,{method:"POST",body:JSON.stringify(payload)}),
+  updateResource:(id:string,payload:any)=>request<SharedResource>(`/api/resources/${id}`,{method:"PATCH",body:JSON.stringify(payload)}),
+  deleteResource:(id:string)=>request<void>(`/api/resources/${id}`,{method:"DELETE"}),
   myNotes:()=>request<PersonalNote[]>(`/api/me/notes`),
   createMyNote:(payload:any)=>request<PersonalNote>(`/api/me/notes`,{method:"POST",body:JSON.stringify(payload)}),
   updateMyNote:(id:string,payload:any)=>request<PersonalNote>(`/api/me/notes/${id}`,{method:"PATCH",body:JSON.stringify(payload)}),
