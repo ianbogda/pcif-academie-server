@@ -5,7 +5,7 @@ import {AccessibilityAdmin} from "./AccessibilityAudit";
 import "bootstrap/dist/css/bootstrap.min.css";
 import React,{useEffect,useMemo,useState} from "react";
 import{createRoot}from"react-dom/client";
-import{api,clearToken,getToken,setToken,type AdminUser,type BenchmarkData,type Campaign,type Establishment,type Me,type PilotageData,type Question}from"./api";
+import{api,clearToken,getToken,setToken,type AdminUser,type PersonalNote,type BenchmarkData,type Campaign,type Establishment,type Me,type PilotageData,type Question}from"./api";
 import { demoProfiles as demo } from "./demoProfiles";
 import"./styles.css";
 
@@ -85,7 +85,7 @@ function App(){
        {active&&<small>{active.uai} · {active.kind}</small>}
       </div>
       <button className="context-help" onClick={()=>setHelpOpen(true)}>ⓘ Comprendre cet écran</button>
-      <button className="profile-access" onClick={()=>setView({kind:"profile"})}>♙ Mon profil</button><div className="rolechips">{me.agencies.map(a=><span key={a.id}>{roleLabel(a.role)}</span>)}{me.establishments.filter(x=>x.id===active?.id).map(x=><span key={x.role}>{roleLabel(x.role)}</span>)}</div>
+      <button className="profile-access" onClick={()=>setView({kind:"profile"})}>♙ Mon espace</button><div className="rolechips">{me.agencies.map(a=><span key={a.id}>{roleLabel(a.role)}</span>)}{me.establishments.filter(x=>x.id===active?.id).map(x=><span key={x.role}>{roleLabel(x.role)}</span>)}</div>
     </header>}
     <main id="main-content" tabIndex={-1}>
       {navigationError&&<div className="error" role="alert">{navigationError}</div>}
@@ -104,22 +104,36 @@ function App(){
 }
 function MyProfile({me}:{me:Me}){
  const[currentPassword,setCurrentPassword]=useState(""),[newPassword,setNewPassword]=useState(""),[confirm,setConfirm]=useState(""),[message,setMessage]=useState(""),[error,setError]=useState(""),[saving,setSaving]=useState(false);
+ const[notes,setNotes]=useState<PersonalNote[]>([]),[draft,setDraft]=useState({kind:"NOTE",title:"",content:""}),[query,setQuery]=useState("");
  const resources=[
   {title:"Sensibilisation à la responsabilité des gestionnaires publics (RGP)",duration:"1 h",provider:"École nationale des finances publiques",desc:"Comprendre les principes de la RGP et leurs conséquences dans les pratiques professionnelles.",url:"https://mentor.gouv.fr/catalog/3654",image:"https://mentor.gouv.fr/pluginfile.php/1386611/local_trainings/thumbnail/3654/Banniere_RGP.png"},
   {title:"Acculturation au contrôle interne et à la maîtrise des risques",duration:"3 h",provider:"CFMD · Ministère des Armées",desc:"Acquérir les notions essentielles du contrôle interne et de la maîtrise des risques.",url:"https://mentor.gouv.fr/catalog/1012",image:"https://mentor.gouv.fr/pluginfile.php/436357/local_trainings/thumbnail/1012/241014%20VARIATION%20VIGNETTE%20CIMR.png"},
   {title:"30 minutes pour comprendre la démarche qualité",duration:"30 min",provider:"Ministère de la Transition écologique",desc:"Découvrir les bases, les étapes et les outils d’une démarche qualité.",url:"https://mentor.gouv.fr/catalog/503",image:"https://mentor.gouv.fr/pluginfile.php/127631/local_trainings/thumbnail/503/Fiche30mind%C3%A9marchequalit%C3%A9600X400.png"},
   {title:"Fondamentaux d'une démarche de contrôle de gestion",duration:"1 h 30",provider:"IRA de Nantes",desc:"S’initier aux notions et outils du contrôle de gestion et au pilotage de la performance.",url:"https://mentor.gouv.fr/catalog/205",image:"https://mentor.gouv.fr/pluginfile.php/24160/local_trainings/thumbnail/205/vignette%20mentor.png"}
  ];
+ const loadNotes=()=>api.myNotes().then(setNotes).catch(()=>setNotes([])); useEffect(()=>{loadNotes()},[]);
+ async function addNote(e:React.FormEvent){e.preventDefault();if(!draft.title.trim()&&!draft.content.trim())return;await api.createMyNote(draft);setDraft({kind:"NOTE",title:"",content:""});await loadNotes()}
+ async function patchNote(n:PersonalNote,payload:any){await api.updateMyNote(n.id,payload);await loadNotes()}
  async function changePassword(e:React.FormEvent){e.preventDefault();setError("");setMessage("");if(newPassword.length<12){setError("Le nouveau mot de passe doit comporter au moins 12 caractères.");return}if(newPassword!==confirm){setError("La confirmation ne correspond pas au nouveau mot de passe.");return}setSaving(true);try{await api.changeMyPassword(currentPassword,newPassword);setCurrentPassword("");setNewPassword("");setConfirm("");setMessage("Votre mot de passe a été modifié.")}catch(e:any){setError(e?.message==="CURRENT_PASSWORD_INVALID"?"Le mot de passe actuel est incorrect.":"Le mot de passe n’a pas pu être modifié.")}finally{setSaving(false)}}
- return <div className="profile-page">
-  <div className="hero"><div><small>ESPACE PERSONNEL</small><h1>Mon profil</h1><p>Vos informations de connexion et vos ressources pour approfondir la démarche PCIF.</p></div></div>
-  <div className="profile-layout">
-   <section className="panel profile-account"><h2>Mon profil</h2><div className="identity-card"><div className="identity-avatar" aria-hidden="true">{me.user.displayName?.trim()?.charAt(0)?.toUpperCase()||"U"}</div><div><strong>{me.user.displayName}</strong><span>{me.user.email}</span></div></div><h3>Modifier mon mot de passe</h3><form onSubmit={changePassword} className="password-form"><label>Mot de passe actuel<input type="password" autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)} required/></label><label>Nouveau mot de passe<input type="password" autoComplete="new-password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} minLength={12} required/><small>12 caractères minimum.</small></label><label>Confirmer le nouveau mot de passe<input type="password" autoComplete="new-password" value={confirm} onChange={e=>setConfirm(e.target.value)} minLength={12} required/></label>{error&&<div className="error" role="alert">{error}</div>}{message&&<div className="notice" role="status">{message}</div>}<button className="primary" disabled={saving}>{saving?"Modification…":"Modifier mon mot de passe"}</button></form></section>
-   <section className="panel profile-resources"><div className="resource-heading"><div><small>SE FORMER · SE SENSIBILISER</small><h2>Mes ressources</h2></div><span className="mentor-badge">Mentor · DGAFP</span></div><p className="resource-intro">Des parcours en ligne pour consolider les notions mobilisées dans PCIF Académie. Les liens s’ouvrent sur la plateforme interministérielle Mentor.</p><div className="resource-list">{resources.map(r=><a key={r.url} className="resource-card" href={r.url} target="_blank" rel="noreferrer"><div className="resource-picture"><img src={r.image} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display="none";e.currentTarget.parentElement?.classList.add("image-fallback")}}/><span aria-hidden="true">Formation</span></div><div className="resource-body"><small>{r.provider}</small><strong>{r.title}</strong><p>{r.desc}</p><footer><span>⏱ {r.duration}</span><b>Accéder à la formation ↗</b></footer></div></a>)}</div></section>
+ const shown=notes.filter(n=>(n.title+" "+n.content+" "+(n.source_label||"")).toLowerCase().includes(query.toLowerCase()));
+ const kindLabel=(k:string)=>k==="PENSE_BETE"?"Pense-bête":k==="A_VERIFIER"?"À vérifier":k==="IDEE"?"Idée":"Note";
+ return <div className="profile-page personal-space">
+  <div className="hero"><div><small>ESPACE PERSONNEL</small><h1>Mon espace</h1><p>Mon compte, mes notes de travail et mes ressources. Les notes restent strictement personnelles.</p></div></div>
+  <div className="personal-layout">
+   <aside className="personal-account">
+    <section className="panel"><h2>Mon profil</h2><div className="identity-card"><div className="identity-avatar">{me.user.displayName?.trim()?.charAt(0)?.toUpperCase()||"U"}</div><div><strong>{me.user.displayName}</strong><span>{me.user.email}</span></div></div><h3>Sécurité du compte</h3><form onSubmit={changePassword} className="password-form"><label>Mot de passe actuel<input type="password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)} required/></label><label>Nouveau mot de passe<input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} minLength={12} required/><small>12 caractères minimum.</small></label><label>Confirmation<input type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} minLength={12} required/></label>{error&&<div className="error">{error}</div>}{message&&<div className="notice">{message}</div>}<button className="primary" disabled={saving}>Modifier le mot de passe</button></form></section>
+   </aside>
+   <div className="personal-main">
+    <section className="panel notes-panel"><div className="personal-section-head"><div><small>MÉMENTO PERSONNEL</small><h2>Mon bloc-notes</h2></div><span>{notes.filter(n=>!n.done).length} note(s) active(s)</span></div>
+     <form className="quick-note" onSubmit={addNote}><select value={draft.kind} onChange={e=>setDraft({...draft,kind:e.target.value})}><option value="NOTE">Note</option><option value="PENSE_BETE">Pense-bête</option><option value="A_VERIFIER">À vérifier</option><option value="IDEE">Idée</option></select><input placeholder="Titre de la note" value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})}/><textarea placeholder="Écrire un pense-bête, une idée, un point à vérifier…" value={draft.content} onChange={e=>setDraft({...draft,content:e.target.value})}/><button className="primary">+ Ajouter</button></form>
+     <input className="note-search" placeholder="⌕ Rechercher dans mes notes…" value={query} onChange={e=>setQuery(e.target.value)}/>
+     <div className="note-list">{shown.map(n=><article key={n.id} className={`personal-note${n.done?" done":""}`}><header><span className={`note-kind ${n.kind.toLowerCase()}`}>{kindLabel(n.kind)}</span><div><button title="Épingler" onClick={()=>patchNote(n,{pinned:!n.pinned})}>{n.pinned?"📌":"○"}</button><button title="Marquer comme traité" onClick={()=>patchNote(n,{done:!n.done})}>{n.done?"↺":"✓"}</button><button title="Supprimer" onClick={async()=>{await api.deleteMyNote(n.id);await loadNotes()}}>×</button></div></header><h3>{n.title||kindLabel(n.kind)}</h3><p>{n.content}</p>{n.source_label&&<footer>↗ {n.source_label}</footer>}</article>)}{!shown.length&&<div className="empty-notes">Aucune note pour le moment.</div>}</div>
+    </section>
+    <section className="panel profile-resources"><div className="resource-heading"><div><small>SE FORMER · SE SENSIBILISER</small><h2>Mes ressources</h2></div><span className="mentor-badge">Mentor · DGAFP</span></div><div className="resource-list">{resources.map(r=><a key={r.url} className="resource-card" href={r.url} target="_blank" rel="noreferrer"><div className="resource-picture"><img src={r.image} alt="" loading="lazy"/><span>Formation</span></div><div className="resource-body"><small>{r.provider}</small><strong>{r.title}</strong><p>{r.desc}</p><footer><span>⏱ {r.duration}</span><b>Accéder ↗</b></footer></div></a>)}</div></section>
+   </div>
   </div>
  </div>
 }
-
 function Login({onLogin}:{onLogin:()=>Promise<void>}){
  const[email,setEmail]=useState(demo[0]?.[1]??""),[password,setPassword]=useState(demo[0]?.[2]??""),[err,setErr]=useState(""),[forgot,setForgot]=useState(false),[sent,setSent]=useState(false);
  async function go(e:React.FormEvent){e.preventDefault();try{const r=await api.login(email,password);setToken(r.accessToken);await onLogin()}catch{setErr("Identifiants incorrects ou compte indisponible.")}}

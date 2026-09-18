@@ -12,6 +12,7 @@ export type AdminUser = {
 };
 
 
+export type PersonalNote={id:string;kind:"NOTE"|"PENSE_BETE"|"A_VERIFIER"|"IDEE";title:string;content:string;pinned:boolean;done:boolean;source_type?:string|null;source_label?:string|null;source_campaign_id?:string|null;source_workshop_no?:number|null;created_at:string;updated_at:string};
 export type PilotageQuestion = {
   id:string; code:string; domain:string; category?:string; label:string; risk_label?:string;
   responsibility:"ORDONNATEUR"|"COMPTABLE"|"MIXTE"; weight:number;
@@ -214,6 +215,10 @@ export const api = {
   createAction: (campaignId:string,payload:any) => request<PcifAction>(`/api/campaigns/${campaignId}/actions`,{method:"POST",body:JSON.stringify(payload)}),
   updateAction: (campaignId:string,actionId:string,payload:any) => request<PcifAction>(`/api/campaigns/${campaignId}/actions/${actionId}`,{method:"PATCH",body:JSON.stringify(payload)}),
   deleteAction: (campaignId:string,actionId:string) => request<void>(`/api/campaigns/${campaignId}/actions/${actionId}`,{method:"DELETE"}),
+  myNotes:()=>request<PersonalNote[]>(`/api/me/notes`),
+  createMyNote:(payload:any)=>request<PersonalNote>(`/api/me/notes`,{method:"POST",body:JSON.stringify(payload)}),
+  updateMyNote:(id:string,payload:any)=>request<PersonalNote>(`/api/me/notes/${id}`,{method:"PATCH",body:JSON.stringify(payload)}),
+  deleteMyNote:(id:string)=>request<void>(`/api/me/notes/${id}`,{method:"DELETE"}),
   saveWorkshop: (campaignId:string,no:number,payload:any) => request<WorkshopProgress>(`/api/campaigns/${campaignId}/workshops/${no}`,{method:"PUT",body:JSON.stringify(payload)}),
   createWorkshopSession:(campaignId:string,payload:any)=>request<WorkshopSession>(`/api/campaigns/${campaignId}/workshop-sessions`,{method:"POST",body:JSON.stringify(payload)}),
   updateWorkshopSession:(campaignId:string,sessionId:string,payload:any)=>request<WorkshopSession>(`/api/campaigns/${campaignId}/workshop-sessions/${sessionId}`,{method:"PATCH",body:JSON.stringify(payload)}),

@@ -365,6 +365,31 @@ app.put("/api/campaigns/:campaignId/answers/:questionId", async (request, reply)
   }
 });
 
+// Espace personnel — notes strictement privées à l'utilisateur connecté.
+const personalNoteSchema = z.object({
+  kind: z.enum(["NOTE","PENSE_BETE","A_VERIFIER","IDEE"]).default("NOTE"),
+  title: z.string().max(180).default(""), content: z.string().max(10000).default(""),
+  pinned: z.boolean().default(false), done: z.boolean().default(false),
+  sourceType: z.string().max(40).nullable().optional(), sourceLabel: z.string().max(240).nullable().optional(),
+  sourceCampaignId: z.string().uuid().nullable().optional(), sourceWorkshopNo: z.number().int().min(1).max(4).nullable().optional()
+});
+app.get("/api/me/notes", async (req) => {
+  const user = await requireUser(req);
+  const { rows } = await pool.query(`SELECT * FROM personal_notes WHERE user_id=$1 ORDER BY pinned DESC, done ASC, updated_at DESC`, [user.sub]);
+  return rows;
+});
+app.post("/api/me/notes", async (req, reply) => {
+  const user = await requireUser(req); const parsed=personalNoteSchema.safeParse(req.body ?? {});
+  if(!parsed.success)return reply.code(400).send({error:"INVALID_NOTE"}); const n=parsed.data;
+  const {rows}=await pool.query(`INSERT INTO personal_notes(user_id,kind,title,content,pinned,done,source_type,source_label,source_campaign_id,source_workshop_no) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,[user.sub,n.kind,n.title,n.content,n.pinned,n.done,n.sourceType??null,n.sourceLabel??null,n.sourceCampaignId??null,n.sourceWorkshopNo??null]); return reply.code(201).send(rows[0]);
+});
+app.patch("/api/me/notes/:id", async (req, reply) => {
+  const user=await requireUser(req); const {id}=req.params as {id:string}; const parsed=personalNoteSchema.partial().safeParse(req.body ?? {}); if(!parsed.success)return reply.code(400).send({error:"INVALID_NOTE"});
+  const old=await pool.query(`SELECT * FROM personal_notes WHERE id=$1 AND user_id=$2`,[id,user.sub]); if(!old.rowCount)return reply.code(404).send({error:"NOT_FOUND"}); const x={...old.rows[0],...parsed.data};
+  const {rows}=await pool.query(`UPDATE personal_notes SET kind=$3,title=$4,content=$5,pinned=$6,done=$7,updated_at=now() WHERE id=$1 AND user_id=$2 RETURNING *`,[id,user.sub,x.kind,x.title,x.content,x.pinned,x.done]); return rows[0];
+});
+app.delete("/api/me/notes/:id", async (req, reply) => { const user=await requireUser(req); const {id}=req.params as {id:string}; await pool.query(`DELETE FROM personal_notes WHERE id=$1 AND user_id=$2`,[id,user.sub]); return reply.code(204).send(); });
+
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? "127.0.0.1";
 await app.listen({ port, host });
