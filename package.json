@@ -1,6 +1,6 @@
 {
   "name": "pcif-academie-server",
-  "version": "0.35.2",
+  "version": "0.36.0",
   "private": true,
   "description": "Première itération serveur multi-utilisateur de PCIF Académie / EPLE Core",
   "scripts": {

@@ -1,0 +1,164 @@
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "pcif-academie-server",
+-  "version": "0.35.2",
++  "version": "0.36.0",
+   "private": true,
+   "description": "Première itération serveur multi-utilisateur de PCIF Académie / EPLE Core",
+   "scripts": {
+diff --git a/src/server.ts b/src/server.ts
+--- a/src/server.ts
++++ b/src/server.ts
+@@ -11,6 +11,7 @@
+ import { registerOrganisation } from "./organisation.js";
+ import { registerAudit } from "./audit.js";
+ import { registerAccessibility } from "./accessibility.js";
++import { registerIntegrations } from "./integrations.js";
+ import { z } from "zod";
+
+ const packageVersion = JSON.parse(readFileSync("package.json", "utf8")).version;
+@@ -26,6 +27,7 @@
+ await registerOrganisation(app);
+ await registerAudit(app);
+ await registerAccessibility(app);
++await registerIntegrations(app);
+
+ app.get("/health", async () => {
+   await pool.query("SELECT 1");
+--- /dev/null
++++ b/sql/020_eple_tools_integrations.sql
+@@ -0,0 +1,40 @@
++CREATE TABLE IF NOT EXISTS integration_clients (
++  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
++  code text NOT NULL UNIQUE, label text NOT NULL,
++  key_hash text NOT NULL, scopes text[] NOT NULL DEFAULT '{}',
++  allowed_uais text[] NOT NULL DEFAULT '{}', active boolean NOT NULL DEFAULT true,
++  created_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz,
++  last_used_at timestamptz
++);
++CREATE TABLE IF NOT EXISTS external_signals (
++  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
++  establishment_id uuid NOT NULL REFERENCES establishments(id) ON DELETE CASCADE,
++  provider text NOT NULL, external_id text NOT NULL, domain text NOT NULL,
++  process_code text, signal_type text NOT NULL CHECK(signal_type IN ('INFO','WARNING','ALERT')),
++  severity smallint NOT NULL CHECK(severity BETWEEN 1 AND 3),
++  title text NOT NULL, description text, observed_at timestamptz NOT NULL,
++  received_at timestamptz NOT NULL DEFAULT now(),
++  status text NOT NULL DEFAULT 'NEW' CHECK(status IN ('NEW','ACKNOWLEDGED','LINKED','CLOSED')),
++  raw_payload jsonb NOT NULL DEFAULT '{}'::jsonb,
++  UNIQUE(establishment_id,provider,external_id)
++);
++CREATE INDEX IF NOT EXISTS idx_external_signals_establishment ON external_signals(establishment_id,status,observed_at DESC);
++CREATE TABLE IF NOT EXISTS signal_question_links (
++  signal_id uuid NOT NULL REFERENCES external_signals(id) ON DELETE CASCADE,
++  question_id uuid NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
++  PRIMARY KEY(signal_id,question_id)
++);
++CREATE TABLE IF NOT EXISTS signal_action_links (
++  signal_id uuid NOT NULL REFERENCES external_signals(id) ON DELETE CASCADE,
++  action_id uuid NOT NULL REFERENCES pcif_actions(id) ON DELETE CASCADE,
++  PRIMARY KEY(signal_id,action_id)
++);
++CREATE TABLE IF NOT EXISTS integration_sync_runs (
++  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), provider text NOT NULL,
++  direction text NOT NULL CHECK(direction IN ('IN','OUT')),
++  started_at timestamptz NOT NULL DEFAULT now(), finished_at timestamptz,
++  status text NOT NULL DEFAULT 'RUNNING',
++  imported integer NOT NULL DEFAULT 0, updated integer NOT NULL DEFAULT 0,
++  skipped integer NOT NULL DEFAULT 0, errors integer NOT NULL DEFAULT 0,
++  detail jsonb NOT NULL DEFAULT '{}'::jsonb
++);
+--- /dev/null
++++ b/src/integrations.ts
+@@ -0,0 +1,57 @@
++import { createHash, timingSafeEqual } from "node:crypto";
++import type { FastifyInstance, FastifyRequest } from "fastify";
++import { z } from "zod";
++import { pool } from "./db.js";
++import { requireUser } from "./auth.js";
++import { establishmentAccess } from "./access.js";
++
++const VIGIE_BASE_URL=String(process.env.VIGIE_BASE_URL||"").replace(/\/$/,"");
++const VIGIE_API_KEY=String(process.env.VIGIE_API_KEY||"");
++const VIGIE_TIMEOUT_MS=Math.max(1000,Number(process.env.VIGIE_TIMEOUT_MS||6000));
++const hash=(s:string)=>createHash("sha256").update(s).digest("hex");
++
++async function appClient(req:FastifyRequest,scope:string){
++  const raw=String(req.headers.authorization||"").replace(/^Bearer\s+/i,"");
++  if(!raw)return null;
++  const {rows}=await pool.query(`SELECT * FROM integration_clients WHERE active=true AND $1=ANY(scopes)`,[scope]);
++  const h=Buffer.from(hash(raw));
++  const found=rows.find((x:any)=>{const b=Buffer.from(String(x.key_hash));return b.length===h.length&&timingSafeEqual(b,h)});
++  if(found)await pool.query(`UPDATE integration_clients SET last_used_at=now() WHERE id=$1`,[found.id]);
++  return found||null;
++}
++function allowed(client:any,uai:string){return !client.allowed_uais?.length||client.allowed_uais.includes(uai)}
++
++export async function registerIntegrations(app:FastifyInstance){
++  app.post("/api/integrations/vigie/summaries",async(req,reply)=>{
++    const client=await appClient(req,"vigie:summary:read"); if(!client)return reply.code(401).send({error:"UNAUTHORIZED"});
++    const p=z.object({uais:z.array(z.string().min(8).max(9)).max(100)}).safeParse(req.body);if(!p.success)return reply.code(400).send({error:"INVALID_BODY"});
++    const out:any[]=[];
++    for(const uai of [...new Set(p.data.uais.map(x=>x.toUpperCase()))]){
++      if(!allowed(client,uai))continue;
++      const e=(await pool.query(`SELECT id,uai FROM establishments WHERE upper(uai)=upper($1) AND active=true`,[uai])).rows[0];if(!e)continue;
++      const c=(await pool.query(`SELECT id,label,status FROM campaigns WHERE establishment_id=$1 AND status<>'ARCHIVED' ORDER BY created_at DESC LIMIT 1`,[e.id])).rows[0];if(!c)continue;
++      const m=(await pool.query(`SELECT ROUND(100*(1-COALESCE(SUM(CASE a.value WHEN 1 THEN q.weight WHEN 2 THEN q.weight*.5 ELSE 0 END),0)/NULLIF(SUM(CASE WHEN a.value IN(1,2,3) THEN q.weight ELSE 0 END),0)))::int level FROM campaigns c JOIN questions q ON q.repository_version_id=c.repository_version_id AND q.active=true LEFT JOIN LATERAL(SELECT value FROM answers WHERE campaign_id=c.id AND question_id=q.id ORDER BY (sphere='SYNTHESE') DESC,updated_at DESC LIMIT 1)a ON true WHERE c.id=$1`,[c.id])).rows[0];
++      const a=(await pool.query(`SELECT count(*) FILTER(WHERE status<>'REALISEE')::int open,count(*) FILTER(WHERE status<>'REALISEE' AND target_date<CURRENT_DATE)::int overdue FROM pcif_actions WHERE campaign_id=$1 AND selected=true`,[c.id])).rows[0];
++      const r=(await pool.query(`SELECT count(*)::int major FROM questions q JOIN campaigns c ON c.repository_version_id=q.repository_version_id LEFT JOIN LATERAL(SELECT value FROM answers WHERE campaign_id=c.id AND question_id=q.id ORDER BY (sphere='SYNTHESE') DESC,updated_at DESC LIMIT 1) a ON true WHERE c.id=$1 AND q.active=true AND COALESCE(q.gravity,0)*COALESCE(q.occurrence,0)>=6 AND COALESCE(a.value,0) IN(1,2)`,[c.id])).rows[0];
++      out.push({uai,campaign:c,mastery:{level:m.level??null,trend:null},risks:{major:r.major||0},actions:{open:a.open||0,overdue:a.overdue||0},sourceUrl:`${process.env.PUBLIC_APP_URL||""}/`});
++    }
++    return {contract:"eple-tools/v1",summaries:out};
++  });
++
++  app.get("/api/integrations/vigie/status",async req=>{const u=await requireUser(req);return{configured:!!(VIGIE_BASE_URL&&VIGIE_API_KEY),baseUrl:VIGIE_BASE_URL||null,canSync:!!u.sub}});
++  app.post("/api/integrations/vigie/sync",async(req,reply)=>{
++    const u=await requireUser(req);const p=z.object({establishmentId:z.string().uuid()}).safeParse(req.body);if(!p.success)return reply.code(400).send({error:"INVALID_BODY"});
++    const access=await establishmentAccess(u.sub,p.data.establishmentId);if(!access.canWrite)return reply.code(403).send({error:"FORBIDDEN"});
++    const e=(await pool.query(`SELECT id,uai FROM establishments WHERE id=$1`,[p.data.establishmentId])).rows[0];if(!e?.uai)return reply.code(409).send({error:"UAI_REQUIRED"});
++    if(!VIGIE_BASE_URL||!VIGIE_API_KEY)return reply.code(503).send({error:"VIGIE_NOT_CONFIGURED"});
++    const run=(await pool.query(`INSERT INTO integration_sync_runs(provider,direction) VALUES('VIGIE','IN') RETURNING id`)).rows[0];
++    try{
++      const res=await fetch(`${VIGIE_BASE_URL}/api/eple-tools/v1/signals?uai=${encodeURIComponent(e.uai)}`,{headers:{authorization:`Bearer ${VIGIE_API_KEY}`},signal:AbortSignal.timeout(VIGIE_TIMEOUT_MS)});
++      if(!res.ok)throw new Error(`VIGIE_HTTP_${res.status}`);const body:any=await res.json();let imported=0,updated=0;
++      for(const s of body.signals||[]){const q=await pool.query(`INSERT INTO external_signals(establishment_id,provider,external_id,domain,process_code,signal_type,severity,title,description,observed_at,raw_payload) VALUES($1,'VIGIE',$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb) ON CONFLICT(establishment_id,provider,external_id) DO UPDATE SET domain=excluded.domain,process_code=excluded.process_code,signal_type=excluded.signal_type,severity=excluded.severity,title=excluded.title,description=excluded.description,observed_at=excluded.observed_at,received_at=now(),raw_payload=excluded.raw_payload RETURNING (xmax=0) inserted`,[e.id,s.id,s.domain,s.processCode||null,s.type,s.severity,s.title,s.description||null,s.observedAt,JSON.stringify(s)]);q.rows[0].inserted?imported++:updated++}
++      await pool.query(`UPDATE integration_sync_runs SET finished_at=now(),status='SUCCESS',imported=$2,updated=$3 WHERE id=$1`,[run.id,imported,updated]);return{ok:true,imported,updated};
++    }catch(err:any){await pool.query(`UPDATE integration_sync_runs SET finished_at=now(),status='ERROR',errors=1,detail=$2::jsonb WHERE id=$1`,[run.id,JSON.stringify({message:err.message})]);return reply.code(502).send({error:err.message})}
++  });
++  app.get("/api/establishments/:id/signals",async(req,reply)=>{const u=await requireUser(req),id=(req.params as any).id,a=await establishmentAccess(u.sub,id);if(!a.canRead)return reply.code(403).send({error:"FORBIDDEN"});return (await pool.query(`SELECT * FROM external_signals WHERE establishment_id=$1 ORDER BY observed_at DESC`,[id])).rows});
++  app.post("/api/signals/:id/acknowledge",async(req,reply)=>{const u=await requireUser(req),id=(req.params as any).id,s=(await pool.query(`SELECT * FROM external_signals WHERE id=$1`,[id])).rows[0];if(!s)return reply.code(404).send({error:"NOT_FOUND"});const a=await establishmentAccess(u.sub,s.establishment_id);if(!a.canWrite)return reply.code(403).send({error:"FORBIDDEN"});return (await pool.query(`UPDATE external_signals SET status='ACKNOWLEDGED' WHERE id=$1 RETURNING *`,[id])).rows[0]});
++}
+--- /dev/null
++++ b/docs/ITERATION-0.36.0.md
+@@ -0,0 +1,14 @@
++# PCIF Académie 0.36.0 — EPLE Tools Contract v1
++
++- API serveur-à-serveur `POST /api/integrations/vigie/summaries`.
++- Clients applicatifs hachés et scopes `vigie:summary:read`.
++- Synchronisation des signaux Vigie par UAI.
++- Signal externe distinct du risque et du score PCIF.
++- Stockage idempotent et journal des synchronisations.
++- Consultation et acquittement des signaux avec RBAC PCIF.
++
++## Intégration
++Ajouter `registerIntegrations(app)` dans `src/server.ts`, puis configurer :
++`VIGIE_BASE_URL`, `VIGIE_API_KEY`, `VIGIE_TIMEOUT_MS`.
++
++Pour créer la clé Vigie en base, stocker `sha256(CLE_EN_CLAIR)` dans `integration_clients.key_hash`.
+--- /dev/null
++++ b/docs/EPLE-TOOLS-CONTRACT-v1.md
+@@ -0,0 +1,12 @@
++# EPLE Tools Integration Contract v1
++
++Identifiant pivot : **UAI**. Les applications restent propriétaires de leurs données.
++
++## Signal
++`id`, `source`, `uai`, `domain`, `processCode`, `type` (`INFO|WARNING|ALERT`), `severity` (1..3),
++`title`, `description`, `observedAt`, `evidence`, `rule`.
++
++Un signal est une observation. Il ne modifie jamais automatiquement un score PCIF et n'est pas un risque PCIF.
++
++## Sécurité
++HTTPS + Bearer serveur-à-serveur. Secrets uniquement côté serveur. Synchronisation idempotente.
