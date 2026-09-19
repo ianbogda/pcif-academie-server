@@ -29,11 +29,32 @@ export async function registerIntegrations(app:FastifyInstance){
     for(const uai of [...new Set(p.data.uais.map(x=>x.toUpperCase()))]){
       if(!allowed(client,uai))continue;
       const e=(await pool.query(`SELECT id,uai FROM establishments WHERE upper(uai)=upper($1) AND active=true`,[uai])).rows[0];if(!e)continue;
-      const c=(await pool.query(`SELECT id,label,status FROM campaigns WHERE establishment_id=$1 AND status<>'ARCHIVED' ORDER BY created_at DESC LIMIT 1`,[e.id])).rows[0];if(!c)continue;
-      const m=(await pool.query(`SELECT ROUND(100*(1-COALESCE(SUM(CASE a.value WHEN 1 THEN q.weight WHEN 2 THEN q.weight*.5 ELSE 0 END),0)/NULLIF(SUM(CASE WHEN a.value IN(1,2,3) THEN q.weight ELSE 0 END),0)))::int level FROM campaigns c JOIN questions q ON q.repository_version_id=c.repository_version_id AND q.active=true LEFT JOIN LATERAL(SELECT value FROM answers WHERE campaign_id=c.id AND question_id=q.id ORDER BY (sphere='SYNTHESE') DESC,updated_at DESC LIMIT 1)a ON true WHERE c.id=$1`,[c.id])).rows[0];
+      const c=(await pool.query(`SELECT id,label,status,repository_version_id,created_at FROM campaigns WHERE establishment_id=$1 AND status<>'ARCHIVED' ORDER BY created_at DESC LIMIT 1`,[e.id])).rows[0];if(!c)continue;
+      const masteryFor=async(campaignId:string)=>{
+        const row=(await pool.query(`SELECT count(*)::int total,
+          count(*) FILTER(WHERE a.value IN(1,2,3))::int answered,
+          ROUND(100.0*count(*) FILTER(WHERE a.value IN(1,2,3))/NULLIF(count(*),0))::int completion,
+          ROUND(100*(1-COALESCE(SUM(CASE a.value WHEN 1 THEN q.weight WHEN 2 THEN q.weight*.5 ELSE 0 END),0)/NULLIF(SUM(CASE WHEN a.value IN(1,2,3) THEN q.weight ELSE 0 END),0)))::int level
+          FROM campaigns c JOIN questions q ON q.repository_version_id=c.repository_version_id AND q.active=true
+          LEFT JOIN LATERAL(SELECT value FROM answers WHERE campaign_id=c.id AND question_id=q.id ORDER BY (sphere='SYNTHESE') DESC,updated_at DESC LIMIT 1)a ON true
+          WHERE c.id=$1`,[campaignId])).rows[0];
+        return {level:row.level??null,completion:Number(row.completion||0),answered:Number(row.answered||0),total:Number(row.total||0)};
+      };
+      const m=await masteryFor(c.id);
+      const previous=(await pool.query(`SELECT id FROM campaigns WHERE establishment_id=$1 AND repository_version_id=$2 AND id<>$3 AND created_at<$4 ORDER BY created_at DESC LIMIT 1`,[e.id,c.repository_version_id,c.id,c.created_at])).rows[0];
+      const pm=previous?await masteryFor(previous.id):null;
+      const trend=m.level!=null&&pm?.level!=null?m.level-pm.level:null;
       const a=(await pool.query(`SELECT count(*) FILTER(WHERE status<>'REALISEE')::int open,count(*) FILTER(WHERE status<>'REALISEE' AND target_date<CURRENT_DATE)::int overdue FROM pcif_actions WHERE campaign_id=$1 AND selected=true`,[c.id])).rows[0];
       const r=(await pool.query(`SELECT count(*)::int major FROM questions q JOIN campaigns c ON c.repository_version_id=q.repository_version_id LEFT JOIN LATERAL(SELECT value FROM answers WHERE campaign_id=c.id AND question_id=q.id ORDER BY (sphere='SYNTHESE') DESC,updated_at DESC LIMIT 1) a ON true WHERE c.id=$1 AND q.active=true AND COALESCE(q.gravity,0)*COALESCE(q.occurrence,0)>=6 AND COALESCE(a.value,0) IN(1,2)`,[c.id])).rows[0];
-      out.push({uai,campaign:c,mastery:{level:m.level??null,trend:null},risks:{major:r.major||0},actions:{open:a.open||0,overdue:a.overdue||0},sourceUrl:`${process.env.PUBLIC_APP_URL||""}/`});
+      const attention=(await pool.query(`SELECT q.domain label,
+        ROUND(100*(1-COALESCE(SUM(CASE a.value WHEN 1 THEN q.weight WHEN 2 THEN q.weight*.5 ELSE 0 END),0)/NULLIF(SUM(CASE WHEN a.value IN(1,2,3) THEN q.weight ELSE 0 END),0)))::int mastery,
+        count(*) FILTER(WHERE COALESCE(q.gravity,0)*COALESCE(q.occurrence,0)>=6 AND COALESCE(a.value,0) IN(1,2))::int "majorRisks"
+        FROM questions q JOIN campaigns c ON c.repository_version_id=q.repository_version_id
+        LEFT JOIN LATERAL(SELECT value FROM answers WHERE campaign_id=c.id AND question_id=q.id ORDER BY (sphere='SYNTHESE') DESC,updated_at DESC LIMIT 1)a ON true
+        WHERE c.id=$1 AND q.active=true GROUP BY q.domain
+        HAVING count(*) FILTER(WHERE a.value IN(1,2,3))>0
+        ORDER BY mastery ASC NULLS LAST,"majorRisks" DESC,q.domain LIMIT 3`,[c.id])).rows;
+      out.push({uai,campaign:{id:c.id,label:c.label,status:c.status},mastery:{...m,scale:"PERCENT",trend},risks:{major:r.major||0},actions:{open:a.open||0,overdue:a.overdue||0},attention,sourceUrl:`${String(process.env.PUBLIC_APP_URL||"").replace(/\/$/,"")}/`});
     }
     return {contract:"eple-tools/v1",summaries:out};
   });
