@@ -54,7 +54,15 @@ export async function registerIntegrations(app:FastifyInstance){
         WHERE c.id=$1 AND q.active=true GROUP BY q.domain
         HAVING count(*) FILTER(WHERE a.value IN(1,2,3))>0
         ORDER BY mastery ASC NULLS LAST,"majorRisks" DESC,q.domain LIMIT 3`,[c.id])).rows;
-      out.push({uai,campaign:{id:c.id,label:c.label,status:c.status},mastery:{...m,scale:"PERCENT",trend},risks:{major:r.major||0},actions:{open:a.open||0,overdue:a.overdue||0},attention,sourceUrl:`${String(process.env.PUBLIC_APP_URL||"").replace(/\/$/,"")}/`});
+      const domains=(await pool.query(`SELECT q.domain label,
+        count(*)::int total,count(*) FILTER(WHERE a.value IN(1,2,3))::int answered,
+        ROUND(100.0*count(*) FILTER(WHERE a.value IN(1,2,3))/NULLIF(count(*),0))::int completion,
+        ROUND(100*(1-COALESCE(SUM(CASE a.value WHEN 1 THEN q.weight WHEN 2 THEN q.weight*.5 ELSE 0 END),0)/NULLIF(SUM(CASE WHEN a.value IN(1,2,3) THEN q.weight ELSE 0 END),0)))::int mastery,
+        count(*) FILTER(WHERE COALESCE(q.gravity,0)*COALESCE(q.occurrence,0)>=6 AND COALESCE(a.value,0) IN(1,2))::int "majorRisks"
+        FROM questions q JOIN campaigns c ON c.repository_version_id=q.repository_version_id
+        LEFT JOIN LATERAL(SELECT value FROM answers WHERE campaign_id=c.id AND question_id=q.id ORDER BY (sphere='SYNTHESE') DESC,updated_at DESC LIMIT 1)a ON true
+        WHERE c.id=$1 AND q.active=true GROUP BY q.domain ORDER BY q.domain`,[c.id])).rows;
+      out.push({uai,campaign:{id:c.id,label:c.label,status:c.status},mastery:{...m,scale:"PERCENT",trend},risks:{major:r.major||0},actions:{open:a.open||0,overdue:a.overdue||0},attention,domains,sourceUrl:`${String(process.env.PUBLIC_APP_URL||"").replace(/\/$/,"")}/`});
     }
     return {contract:"eple-tools/v1",summaries:out};
   });
